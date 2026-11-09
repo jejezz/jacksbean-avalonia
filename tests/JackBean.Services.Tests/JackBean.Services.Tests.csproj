@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JackBean.Services\JackBean.Services.csproj" />
+    <ProjectReference Include="..\..\src\JackBean.Data\JackBean.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 실제 SFTP 서버(파이썬 asyncssh)를 띄우는 통합 테스트용 스크립트. 파이썬·asyncssh가 없으면 그 테스트는 건너뛴다. -->
+    <None Include="support\*.py" CopyToOutputDirectory="PreserveNewest" LinkBase="support" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

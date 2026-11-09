@@ -1,0 +1,40 @@
+<Project>
+  <!-- 버전·정체성의 유일한 원본. 코드는 AppIdentity/AppVersion으로 읽는다 (어셈블리 메타데이터, AOT 안전).
+       AppId는 릴리스 후 바꾸지 않는다. MAJOR는 1 이상 (macOS 패키징이 0.y.z를 거부) — 첫 릴리스 전에는 0.1.0-rc.1 로 둔다. -->
+  <PropertyGroup>
+    <AppVersion>0.1.0-rc.1</AppVersion>
+    <AppBuild>1</AppBuild>
+    <AppId>art.zoomon.jacksbean.avalonia</AppId>
+    <AppDisplayName>Jack’s Bean</AppDisplayName>
+    <!-- 실행 파일과 사용자 데이터 폴더(%APPDATA%\JacksBean 등)에 쓰는 공백 없는 이름. Flutter 판과 같은 폴더라 정책 파일을 이어 쓴다. -->
+    <AppFileName>JacksBean</AppFileName>
+    <AppCopyrightHolder>Jongyun Ahn</AppCopyrightHolder>
+    <AppFirstReleaseYear>2026</AppFirstReleaseYear>
+    <!-- 업데이트 서버 (introduce-public-repos의 /api/update). 단지(장비)마다 호스트가 다르면 빌드 때
+         -p:AppUpdateServer=https://…/repos 로 바꾼다. 빈 값이면 업데이트 확인을 끈다. https만 받는다. -->
+    <AppUpdateServer Condition="'$(AppUpdateServer)' == ''">https://c-a3f19c04.rtc.zoomon.art/repos</AppUpdateServer>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Version>$(AppVersion)</Version>
+    <Product>$(AppDisplayName)</Product>
+    <Company>$(AppCopyrightHolder)</Company>
+    <EnableSourceLink>false</EnableSourceLink>
+    <Copyright>Copyright © $(AppFirstReleaseYear) $(AppCopyrightHolder)</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="AppId" Value="$(AppId)" />
+    <AssemblyMetadata Include="AppDisplayName" Value="$(AppDisplayName)" />
+    <AssemblyMetadata Include="AppFileName" Value="$(AppFileName)" />
+    <AssemblyMetadata Include="AppCopyrightHolder" Value="$(AppCopyrightHolder)" />
+    <AssemblyMetadata Include="AppFirstReleaseYear" Value="$(AppFirstReleaseYear)" />
+    <AssemblyMetadata Include="AppVersion" Value="$(AppVersion)" />
+    <AssemblyMetadata Include="AppBuild" Value="$(AppBuild)" />
+    <AssemblyMetadata Include="AppUpdateServer" Value="$(AppUpdateServer)" />
+  </ItemGroup>
+</Project>

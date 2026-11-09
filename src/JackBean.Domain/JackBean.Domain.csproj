@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 도메인: UI·파일 IO·OS에 의존하지 않는다. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="JackBean.Domain.Tests" />
+  </ItemGroup>
+</Project>

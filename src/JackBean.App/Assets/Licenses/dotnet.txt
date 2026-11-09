@@ -1,0 +1,4 @@
+.NET runtime and libraries — MIT License (SPDX: MIT)
+https://github.com/dotnet/runtime
+
+원문 필요: 위 저장소의 LICENSE.TXT 를 원본으로 한다. 이 파일에는 문구를 옮겨 적지 않았다.

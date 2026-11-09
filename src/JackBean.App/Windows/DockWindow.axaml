@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="JackBean.App.Windows.DockWindow"
+        Title="Jack’s Bean"
+        FontSize="14"
+        Width="84" Height="84"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        WindowDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
+  <!-- 알약: 평소엔 정원, 펼치면 글자를 담는다. 테두리(DockRing)는 코드에서 칠한다. -->
+  <Grid x:Name="Root" Background="Transparent">
+    <Border x:Name="Pill" Margin="6" HorizontalAlignment="Right" VerticalAlignment="Center"
+            BorderThickness="2" CornerRadius="36" Height="72" MinWidth="72"
+            BoxShadow="0 1 6 0 #33000000">
+      <Grid x:Name="PillContent" />
+    </Border>
+  </Grid>
+</Window>

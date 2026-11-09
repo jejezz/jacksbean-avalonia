@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JackBean.App/JackBean.App.csproj" />
+    <Project Path="src/JackBean.Data/JackBean.Data.csproj" />
+    <Project Path="src/JackBean.Domain/JackBean.Domain.csproj" />
+    <Project Path="src/JackBean.Services/JackBean.Services.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JackBean.Data.Tests/JackBean.Data.Tests.csproj" />
+    <Project Path="tests/JackBean.Domain.Tests/JackBean.Domain.Tests.csproj" />
+    <Project Path="tests/JackBean.Services.Tests/JackBean.Services.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 응용 계층: 드롭 처리·정책 파일·설정 컨트롤러·업데이트. Domain에만 의존한다.
+       이름을 Application으로 하지 않은 것은 Avalonia의 Application 클래스와 이름이 겹치지 않게 하려는 것. -->
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="JackBean.Services.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JackBean.Domain\JackBean.Domain.csproj" />
+  </ItemGroup>
+</Project>

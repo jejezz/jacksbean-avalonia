@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 데이터 계층: 설정 파일 같은 저장소 구현. Domain에만 의존한다. -->
+  <ItemGroup>
+    <ProjectReference Include="..\JackBean.Domain\JackBean.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- 실행 파일 이름은 파일 이름 규약(공백 없음). 폰트 등 avares:// 주소의 호스트도 이 이름이다. -->
+    <AssemblyName>$(AppFileName)</AssemblyName>
+    <RootNamespace>JackBean.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/app_icon.ico</ApplicationIcon>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Linux에서는 ICU 라이브러리가 없는 PC에서도 시작되게 한다. 이 앱은 문화권별 정렬·서식을 쓰지 않는다. -->
+    <InvariantGlobalization Condition="$(RuntimeIdentifier.StartsWith('linux'))">true</InvariantGlobalization>
+    <!-- 매개변수 있는 생성자만 가진 대화상자 창은 런타임 XAML 로더(디자이너용)로 못 연다. 쓰지 않으므로 경고를 끈다. -->
+    <NoWarn>$(NoWarn);AVLN3001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JackBean.Domain\JackBean.Domain.csproj" />
+    <ProjectReference Include="..\JackBean.Services\JackBean.Services.csproj" />
+    <ProjectReference Include="..\JackBean.Data\JackBean.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,51 @@
+# Jack’s Bean (Avalonia)
+
+Flutter 판 `jacksbean-flutter`를 C#/Avalonia(.NET 10)로 옮기는 프로젝트. 표시 이름 `Jack’s Bean`(U+2019), 식별자 `art.zoomon.jacksbean.avalonia`,
+사용자 데이터 폴더는 Flutter 판과 같은 `JacksBean`(정책 파일 `policy.<os>.json`을 이어 쓴다. 설정은 같은 폴더의 `settings.json`).
+
+**구조·스타일은 형제 프로젝트 `../daylight-commander-avalonia`를 따른다.** 새 화면·설정·업데이트를 만들 때 먼저 거기서 같은 것을 찾아 가져온다
+(`ThemeService`, `UiScale`, `Strings`/`IAppStrings`, `DialogBase`, `SettingsWindow`, `AboutDialog`, `LicensesWindow`, `WindowPlacementHelper`, `Updates/`).
+공통 규약은 `application-release-templates/conventions`(ui-ux, theming, settings, settings-screen, about-dialog, fonts, icons, licensing).
+
+## 구조 (Presentation(App) → Services → Domain ← Data)
+- `src/JackBean.Domain` — UI·IO 없는 모델과 규칙: 분류 결과(`Drop/`), 정책 문서·규칙 판정·포팅·"항상 열기" 제안(`Policy/`), 독 위치(`Dock/`),
+  설정 모델 `AppSettings`(`Settings/`), 색(`Theme/`), 창 위치 계산(`Window/`), `AppIdentity`/`AppVersion`.
+- `src/JackBean.Services` — `PathClassifier`, `PolicyStore`(정책 파일), `AppLauncher`(셸 없이 실행), `DropRouter`, `DockExpansion`, `SettingsController`, `Updates/`.
+- `src/JackBean.Data` — `JsonSettingsRepository`(소스 생성 JSON, NativeAOT 안전).
+- `src/JackBean.App` — Avalonia UI. 창: `DockWindow`(항상 위 독), `HomeWindow`(규칙·앱 보기, 앱 바 44), `Views/SettingsWindow`, `Dialogs/AboutDialog`, `Views/LicensesWindow`.
+- 정체성·버전·업데이트 서버는 `Directory.Build.props` 하나(`AppIdentity`/`AppVersion`이 어셈블리 메타데이터로 읽는다). **저장소 URL(`AppIdentity.RepositoryUrl`)은 업데이트 서버가 앱을 아는 이름이다 — 다른 앱 것을 복사해 두면 그 앱의 릴리스를 업데이트로 내놓는다.**
+
+## 멀티 윈도우와 내장 도구
+- 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).
+- 정책의 앱 `command`가 `jackbean:<id>`면 프로세스를 띄우지 않고 `ToolRegistry`가 `IBuiltInTool.CreateWindow(path)`로 창을 연다(파일 하나당 창 하나).
+  텍스트 에디터·PDF 뷰어·압축 도구는 `IBuiltInTool`을 구현해 `App.OnFrameworkInitializationCompleted`에서 `Tools.Register`한다. 첫 도구: `image-viewer`.
+  형제 앱에 에디터(`EditorWindow`)·뷰어(`ViewerWindow`)·압축(`ArchiveService`)이 이미 있으니 새로 만들지 말고 가져온다.
+
+## 규약 적용
+- **색·글꼴·크기는 리소스로만 읽는다**: `AppBg AppSurface AppSurfaceHi AppStroke AppStrokeStrong AppTextHi AppTextMid AppPrimary AppOnPrimary AppAccent AppDanger AppCursor AppHover`,
+  `AppFont`, `FsBody FsMid FsSmall FsTitle`(글자 크기 배율 적용). `{DynamicResource}`/`GetResourceObservable`로 읽고 색 값을 직접 쓰지 않는다. 적용은 `ThemeService.Apply(settings)`.
+- **문구**: `IAppStrings`(인터페이스 → `KoreanStrings` → `EnglishStrings` 순으로 모두 추가, 빠뜨리면 컴파일 오류). 코드는 `Strings.Current`, XAML은 `{DynamicResource Str.*}`(새 문구를 XAML에서 쓰면 `Strings.PublishResources`에 더한다).
+- **글꼴(fonts.md)**: SeoulNamsan 400/700/800 번들 + 설정에서 시스템 글꼴 선택. 파일 이름·경로는 `user` 클래스(시스템 글꼴), 고정폭은 `mono`.
+- **아이콘(icons.md)**: Phosphor Duotone 하나(`Icons/DuoIcon`). 쓸 아이콘은 `scripts/gen-phosphor-icons.py`의 `ICONS`에 더하고 다시 돌린다(`PhosphorIcons.g.cs`는 직접 고치지 않는다).
+- **설정**: 저장 키 `theme_mode accent_palette text_scale app_locale ui_font_family window_placement dock_position`. `SettingsController.Update(...)`로 바꾸면 바로 적용·(모아서)저장되고 열린 모든 창이 따라온다.
+- **창 위치**: 홈 창은 `PlacementMath`로 기억·복원(window-placement.md), 새 독립 창은 `WindowPlacementHelper.OpenNear`.
+- **단축키**: 설정 ⌘,/Ctrl+, · 정보 F1 · 새로 고침 F5/⌘R · 창 닫기 ⌘W · 대화상자 Esc. macOS 메뉴 막대에 정보·설정·종료.
+- **업데이트**: 형제 앱과 같은 흐름(`Services/Updates` + `App/Updates`). 시작 5초 뒤 하루 1회 자동 확인, 정보 창의 [업데이트 확인]. 서버 주소는 `AppUpdateServer`(`-p:AppUpdateServer=`로 바꿈, 빈 값이면 끔).
+
+## 빌드·테스트·실행
+```
+dotnet build JackBean.slnx
+dotnet test JackBean.slnx
+dotnet run --project src/JackBean.App            # --home --settings --about 로 그 창도 함께 띄움
+./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
+HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
+```
+테스트 137개(Domain 51 · Services 78 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+
+## 확인 상태
+- 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
+- **못 본 것**: 실제 파일 드롭·물어보기 목록, 독 끌기·위치 기억, 여러 모니터, Windows/Linux, 업데이트 흐름(서버에 이 앱이 아직 없다), 설정 창 좁은 배치(<700).
+
+## 아직 없는 것
+오류 스낵바(복사 액션), 빈 상태 화면, 룰 메이커(규칙·앱 편집), 정책 GitHub 동기화, 트레이·전역 단축키, 독 시작 시 다른 앱의 드래그 감지,
+설치 파일·릴리스 워크플로·README, 앱 아이콘의 소품 글리프 교체.

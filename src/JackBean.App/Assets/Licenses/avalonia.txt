@@ -1,0 +1,5 @@
+Avalonia — MIT License (SPDX: MIT)
+https://github.com/AvaloniaUI/Avalonia
+
+원문 필요: NuGet 패키지에 라이선스 원문 파일이 들어 있지 않아서 문구를 옮겨 적지 않았다
+(라이선스 문구를 지어내지 않는다 — conventions/licensing.md). 위 저장소의 LICENSE 를 원본으로 한다.

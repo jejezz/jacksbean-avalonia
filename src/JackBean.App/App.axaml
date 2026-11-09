@@ -1,0 +1,193 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:icons="using:JackBean.App.Icons"
+             xmlns:local="using:JackBean.App"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="JackBean.App.App"
+             RequestedThemeVariant="Default">
+    <Application.Resources>
+        <!-- UI 글꼴: SeoulNamsan 400/700/800 (fonts.md). 폴백은 OS 글꼴. ThemeService 가 설정에 따라 다시 정한다. -->
+        <FontFamily x:Key="AppFont">avares://JacksBean/Assets/Fonts#SeoulNamsan</FontFamily>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+
+
+        <!-- 원본 Flutter 앱의 글자 크기: 본문 13 (ui-ux.md §4). -->
+        <Style Selector="Window">
+            <Setter Property="Icon" Value="avares://JacksBean/Assets/app_icon.ico" />
+            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
+            <Setter Property="FontSize" Value="{DynamicResource FsBody}" />
+            <Setter Property="Background" Value="{DynamicResource AppBg}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextHi}" />
+        </Style>
+
+        <!-- 에디터 메뉴 막대와 그 팝업 -->
+        <Style Selector="MenuItem">
+            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
+            <Setter Property="FontSize" Value="{DynamicResource FsBody}" />
+        </Style>
+
+        <!-- 작은 글자 (11): 코드가 만드는 TextBlock에 Classes="small"로 붙인다 -->
+        <Style Selector="TextBlock.small">
+            <Setter Property="FontSize" Value="{DynamicResource FsSmall}" />
+        </Style>
+
+        <!-- 툴바 아이콘 버튼 30x30, 아이콘 18 -->
+        <Style Selector="Button.tool, ToggleButton.tool">
+            <Setter Property="local:UiScale.Enabled" Value="True" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextMid}" />
+        </Style>
+        <!-- 아이콘 버튼: 배경은 늘 투명. 마우스를 올리면 옅게 깔리고, 쓸 수 없으면 아이콘이 훨씬 희미하다 -->
+        <Style Selector="Button.tool:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.tool:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+        </Style>
+        <Style Selector="Button.tool:disabled /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.tool:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Opacity" Value="0.25" />
+        </Style>
+        <Style Selector="Button.tool icons|DuoIcon, ToggleButton.tool icons|DuoIcon">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="Foreground" Value="{DynamicResource AppPrimary}" />
+        </Style>
+
+        <!-- 패널 카드: 둥근 12, 테두리 2px. 활성 패널은 주색 -->
+        <Style Selector="Border.card">
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppStroke}" />
+            <Setter Property="Background" Value="{DynamicResource AppSurface}" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="Border.card.active">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppPrimary}" />
+        </Style>
+
+
+        <!-- 일반 버튼은 알약 모양 (원본 Flutter). 아이콘 버튼(tool)·열 머리글(header)은 아래에서 따로 정한다 -->
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="18" />
+        </Style>
+
+        <!-- 설정 창 -->
+        <Style Selector="ToggleButton.nav">
+            <Setter Property="local:UiScale.Enabled" Value="True" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextMid}" />
+        </Style>
+        <Style Selector="ToggleButton.nav:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppCursor}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppPrimary}" />
+        </Style>
+        <!-- 분절 버튼: 바깥 틀이 알약 모양, 안의 칸은 각져도 틀에 잘려 둥글게 보인다 -->
+        <Style Selector="Border.segframe">
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppStrokeStrong}" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="ToggleButton.seg">
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextHi}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ToggleButton.seg:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppOnPrimary}" />
+        </Style>
+        <Style Selector="ToggleButton.seg:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="{DynamicResource AppTextHi}" />
+        </Style>
+        <Style Selector="ToggleButton.seg:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppOnPrimary}" />
+        </Style>
+        <Style Selector="ToggleButton.chip">
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Margin" Value="0,0,8,8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppStrokeStrong}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextHi}" />
+        </Style>
+        <Style Selector="ToggleButton.chip:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppPrimary}" />
+            <Setter Property="Background" Value="{DynamicResource AppCursor}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextHi}" />
+        </Style>
+        <Style Selector="Button.picker">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppStrokeStrong}" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="Border.pathbox">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppStroke}" />
+            <Setter Property="Padding" Value="12,0" />
+        </Style>
+
+        <!-- 짧은 질문 창: 패널보다 한 단계 띄운 색 (원본 결정) -->
+        <Style Selector="Window.dialog">
+            <Setter Property="Background" Value="{DynamicResource AppSurfaceHi}" />
+        </Style>
+
+        <!-- 영구 삭제 확인 버튼: 위험색 -->
+        <Style Selector="Button.accent.danger">
+            <Setter Property="Background" Value="{DynamicResource AppDanger}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.accent.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppDanger}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <!-- 작업 목록의 실패 상태 -->
+        <Style Selector="TextBlock.failed">
+            <Setter Property="Foreground" Value="{DynamicResource AppDanger}" />
+        </Style>
+
+        <!-- 상태 표시줄의 오류: 위험색 -->
+        <Style Selector="Border.error TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AppDanger}" />
+        </Style>
+        <!-- 앱 바 포커스 물들임 (ui-ux.md §4): 창이 포커스를 받으면 바가 서서히 강조색으로 물든다 -->
+        <Style Selector="Border.tint">
+            <Setter Property="Background" Value="{DynamicResource AppPrimary}" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="Transitions">
+                <Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseOut" /></Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.tint.active"><Setter Property="Opacity" Value="0.12" /></Style>
+
+        <!-- 내용 안의 파일 이름·경로는 시스템 글꼴 (fonts.md §3), 로그·체크섬은 고정폭 (§4) -->
+        <Style Selector="TextBlock.user, SelectableTextBlock.user">
+            <Setter Property="FontFamily" Value="{DynamicResource AppUserFont}" />
+        </Style>
+        <Style Selector="TextBlock.mono, SelectableTextBlock.mono">
+            <Setter Property="FontFamily" Value="{DynamicResource AppMonoFont}" />
+        </Style>
+    </Application.Styles>
+</Application>
