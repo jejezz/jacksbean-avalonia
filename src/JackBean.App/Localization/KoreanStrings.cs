@@ -95,6 +95,11 @@ public sealed class KoreanStrings : IAppStrings
     public string DockSuggestDrive => "드라이브";
     public string DockRuleSaved => "규칙 저장됨";
     public string DockRuleSaveFailed(string error) => $"규칙을 저장하지 못했습니다: {error}";
+    public string SnackbarCopy => "복사";
+    public string SnackbarCopied => "복사했습니다";
+    public string SnackbarClose => "닫기";
+    public string ErrorUnexpected => "예기치 못한 오류가 났습니다";
+    public string PolicyWarningsFound => "정책 파일에 문제가 있어 일부를 건너뛰었습니다";
     public string HomeRules => "규칙 (위에서부터 처음 맞는 것)";
     public string HomeApps => "앱";
     public string HomeWarnings => "정책 파일 경고";

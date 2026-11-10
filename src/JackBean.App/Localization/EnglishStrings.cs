@@ -95,6 +95,11 @@ public sealed class EnglishStrings : IAppStrings
     public string DockSuggestDrive => "drives";
     public string DockRuleSaved => "rule saved";
     public string DockRuleSaveFailed(string error) => $"Couldn't save the rule: {error}";
+    public string SnackbarCopy => "Copy";
+    public string SnackbarCopied => "Copied";
+    public string SnackbarClose => "Close";
+    public string ErrorUnexpected => "Something went wrong";
+    public string PolicyWarningsFound => "The policy file has problems; some entries were skipped";
     public string HomeRules => "Rules (first match wins)";
     public string HomeApps => "Apps";
     public string HomeWarnings => "Policy file warnings";
