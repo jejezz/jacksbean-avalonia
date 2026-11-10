@@ -112,7 +112,10 @@ public partial class App : Application
                 () => Dispatcher.UIThread.Post(Quit));
             _tray = new TrayService(this, dock);
             Hotkeys = new HotkeyService();
-            Hotkeys.Apply(Settings.Value.GlobalHotkey);
+            // 전역 단축키는 시작이 끝난 뒤(3초 뒤)에 등록한다. 시작하자마자 등록하면 UI 스레드가 멈춘 듯한 증상(알약 위의 대기 커서·유휴 CPU 상승)이
+            // 간헐적으로 났다 — 같은 데이터로 6번씩 시험해 즉시 등록은 5번, 3초 뒤 등록은 0번이었다(원인 경합은 아직 모른다, CLAUDE.md "알려진 문제").
+            if (Settings.Value.GlobalHotkey)
+                _ = Task.Run(async () => { await Task.Delay(3000); Dispatcher.UIThread.Post(() => Hotkeys.Apply(Settings.Value.GlobalHotkey)); });
             Settings.Changed += st => Dispatcher.UIThread.Post(() => Hotkeys.Apply(st.GlobalHotkey));
             Updates = UpdateService.Create(
                 FileUpdateStateStore.BesideSettings(settingsFile),

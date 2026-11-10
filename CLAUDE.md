@@ -69,6 +69,10 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 `JacksBean.exe --quit` 는 떠 있는 앱에 **종료**를 알린다(없으면 아무것도 안 한다) — 설치 프로그램이 쓴다. 확인용 `--snapshot`·`--tool` 은 단일 실행을 건너뛴다.
 Windows 설치 프로그램(`installer/windows/app.iss`)은 트레이에 숨어 있는 앱을 Setup 의 기본 감지(Restart Manager)가 놓치므로 `CloseApplications=no` 로 끄고 **직접** 멈춘다([Code] `StopRunningApp`): 뮤텍스가 있으면 `--quit` 로 정상 종료를 요청하고 몇 초 기다린 뒤, 남은 `JacksBean.exe` 는 `taskkill /F`(뮤텍스·`--quit` 이 없던 옛 버전용). 설치·제거 모두. 뮤텍스 이름(`art.zoomon.jacksbean.avalonia`)은 `SingleInstance` 와 `.iss` 가 같아야 한다. **Inno Setup 이 이 PC 에 없어 `.iss` 는 컴파일해 보지 못했다 — 릴리스 워크플로에서 처음 돈다.**
 
+## 알려진 문제 (다른 PC 에서 이어 볼 때)
+- **시작 직후 알약 위에 대기 커서·유휴 CPU 상승(2026-11-10 해결)**: 설정 `global_hotkey` 가 켜진 채 시작하면 NativeAOT 설치본에서 간헐적으로(6번 중 5번) UI 가 멈춘 듯했다. 같은 데이터로 6번씩: 즉시 등록 5/6, 단축키 끔 0/6, **3초 뒤 등록 0/6** → `App.OnFrameworkInitializationCompleted` 가 단축키를 3초 뒤에 등록한다(등록은 되는 것을 확인). **진짜 원인(시작 중 `WindowsGlobalHotkey.Register` 의 `ready.Wait()` 가 UI 스레드를 막는 경합으로 의심)은 아직 모른다** — 단축키를 UI 스레드가 아닌 곳에서 등록하게 바꾸거나 메시지 전용 창으로 옮기면 근본 해결될 수 있다. 재현: 설치본/AOT 게시본을 실제 `%APPDATA%\JacksBean` 복사본으로 실행해 9초 뒤 알약 위로 커서를 옮겨 `GetCursorInfo` 가 IDC_WAIT 인지 본다(디버그 JIT 빌드와 `--tool` 실행은 재현되지 않았다).
+- 설치 프로그램 `.iss` 는 Inno 가 없는 PC 에서 컴파일해 보지 못했다(릴리스 워크플로에서 처음 돈다).
+
 ## 멀티 윈도우와 내장 도구
 - 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).
   **알약을 펼쳐도 콩은 제자리**: 콩은 정원일 때의 자리(`_idleLeft`)에 그대로 있고 창은 콩의 반대쪽으로 자란다(`GrowsRight`: 화면 왼쪽 절반이면 오른쪽으로 `콩 글자`, 오른쪽 절반이면 왼쪽으로 `글자 콩`). 저장하는 독 위치(`dock_position.right`)는 정원 크기일 때의 오른쪽 끝이다.
