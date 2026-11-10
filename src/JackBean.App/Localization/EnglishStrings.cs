@@ -305,4 +305,6 @@ public sealed class EnglishStrings : IAppStrings
     public string EditorScSelectAll => "Select all";
     public string EditorScDeleteLine => "Delete line";
     public string EditorTooLarge(string name) => $"Files over 5 MB can't be edited: {name}";
+    public string PdfViewerFailed(string error) => $"Couldn't open the PDF: {error}";
+    public string ViewerOpenWithDefaultApp => "Open with Default App";
 }

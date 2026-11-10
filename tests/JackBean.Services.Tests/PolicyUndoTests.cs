@@ -63,9 +63,9 @@ public class PolicyUndoTests
         await s.LoadAsync();
         await s.UpsertAppAsync(new AppUpsert("a", "a.exe", ["{path}"]));
 
-        Assert.True((await s.UpsertRuleAsync(new RuleEdit("pdf", RuleCondition.Extension(["pdf"])!, ["a"]))).Ok);
+        Assert.True((await s.UpsertRuleAsync(new RuleEdit("mine", RuleCondition.Extension(["qqq"])!, ["a"]))).Ok);
         Assert.True((await s.UndoAsync()).Ok);
-        Assert.DoesNotContain("pdf", (await s.LoadAsync()).Rules.Select(r => r.Id));
+        Assert.DoesNotContain("mine", (await s.LoadAsync()).Rules.Select(r => r.Id));
 
         Assert.True((await s.RememberAsync([new(SuggestionKind.Folder)], "a")).Ok);
         Assert.Equal(["a"], (await s.LoadAsync()).Rules.First(r => r.Id == "folders").Choices);

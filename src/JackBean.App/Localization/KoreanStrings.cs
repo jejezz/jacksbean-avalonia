@@ -305,4 +305,6 @@ public sealed class KoreanStrings : IAppStrings
     public string EditorScSelectAll => "모두 선택";
     public string EditorScDeleteLine => "줄 지우기";
     public string EditorTooLarge(string name) => $"5MB를 넘는 파일은 편집할 수 없어요: {name}";
+    public string PdfViewerFailed(string error) => $"PDF를 열지 못했어요: {error}";
+    public string ViewerOpenWithDefaultApp => "기본 앱으로 열기";
 }

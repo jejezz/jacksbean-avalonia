@@ -24,7 +24,7 @@ public class PolicyDocumentTests
         var d = Doc("""[{"id":"img","when":{"kind":"extension","extensions":["PNG",".jpg"]},"open":["viewer"]}]""");
         Assert.Equal("viewer", App(d.Decide(File("a.png"))));
         Assert.Equal("viewer", App(d.Decide(File("A.JPG"))));
-        Assert.Equal("default", App(d.Decide(File("a.txt"))));    // 맞는 규칙이 없으면 운영체제 기본 방식
+        Assert.Equal("default", App(d.Decide(File("a.xyz"))));    // 맞는 규칙이 없으면 운영체제 기본 방식
         Assert.Equal("default", App(d.Decide(Folder("png"))));   // 확장자 규칙은 파일에만 적용된다
     }
 
@@ -95,6 +95,7 @@ public class PolicyDocumentTests
             Assert.Equal("text-editor", App(d.Decide(File("a.txt"))));
             Assert.Equal("text-editor", App(d.Decide(File("a.cs"))));
             Assert.Equal("image-viewer", App(d.Decide(File("a.png"))));
+            Assert.Equal(os == PolicyOs.Linux ? "default" : "pdf-viewer", App(d.Decide(File("a.pdf"))));
             // 폴더는 파일 관리자와 터미널 중에서 고른다(터미널이 없는 OS 는 파일 관리자 하나라 바로 연다). 어느 쪽이든 폴더와 관련된 앱뿐이다.
             var folder = d.Decide(Folder("a"));
             if (d.Apps.ContainsKey("terminal"))
