@@ -26,6 +26,44 @@ public sealed class AppLauncher
     public static IReadOnlyList<string> ExpandArgs(IEnumerable<string> args, string path) =>
         args.Select(a => a == PathsToken ? path : a.Replace("{path}", path, StringComparison.Ordinal)).ToList();   // `{paths}` 도 항목이 하나일 땐 그 경로 하나
 
+    /// <summary>
+    /// 홈 창 [열기](앱이 잘 뜨는지 시험)에서 쓸 인자: 대상(`{path}`·`{paths}`)을 뺀다 — 바로 앞의 `-d` 같은 옵션도 함께 뺀다(`wt.exe -d {path}` → `wt.exe`).
+    /// 대상이 없으면 실패하는 열기 도구(`explorer.exe`·`open`·`xdg-open`)에는 <paramref name="fallbackFolder"/> 를 준다.
+    /// </summary>
+    public static IReadOnlyList<string> ArgsForTryOut(AppEntry app, string fallbackFolder)
+    {
+        var list = new List<string>();
+        foreach (var a in app.Args)
+        {
+            if (a is "{path}" or PathsToken)
+            {
+                if (list.Count > 0 && list[^1].StartsWith('-')) list.RemoveAt(list.Count - 1);
+                continue;
+            }
+            list.Add(a.Replace("{path}", fallbackFolder, StringComparison.Ordinal));
+        }
+        if (list.Count == 0 && Path.GetFileNameWithoutExtension(app.Command).ToLowerInvariant() is "explorer" or "open" or "xdg-open") list.Add(fallbackFolder);
+        return list;
+    }
+
+    /// <summary>대상 없이 앱만 띄운다(<see cref="ArgsForTryOut"/>).</summary>
+    public async Task<LaunchResult> TryOutAsync(AppEntry app, string fallbackFolder)
+    {
+        try
+        {
+            await _spawn(app.Command, ArgsForTryOut(app, fallbackFolder));
+            return LaunchResult.Success;
+        }
+        catch (Win32Exception e)
+        {
+            return new LaunchResult(string.IsNullOrEmpty(e.Message) ? $"{app.Command} 을(를) 실행하지 못했습니다" : e.Message);
+        }
+        catch (Exception e)
+        {
+            return new LaunchResult(e.Message);
+        }
+    }
+
     /// <summary>앱이 여러 항목을 한 번에 받는가: 인자에 `{paths}`(떨어뜨린 경로 전부로 펼쳐진다)가 있으면 그렇다 — 한 번만 띄운다.</summary>
     public static bool AcceptsMany(AppEntry app) => app.Args.Contains(PathsToken);
 

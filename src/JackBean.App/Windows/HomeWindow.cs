@@ -7,9 +7,11 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using JackBean.App.Icons;
 using JackBean.App.Notifications;
+using JackBean.App.Tools;
 using JackBean.App.Views;
 using JackBean.Domain;
 using JackBean.Domain.Policy;
@@ -175,27 +177,9 @@ public sealed class HomeWindow : Window
         tagline.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
         stack.Children.Add(tagline);
 
-        var path = UserText(App.PolicyStore.FilePath, "small");
-        var reload = new Button { Content = s.HomeReload, HorizontalAlignment = HorizontalAlignment.Left };
-        reload.Click += async (_, _) => await ReloadAsync();
-        var openFile = new Button { Content = s.HomeOpenPolicyFile };
-        openFile.Click += (_, _) => OpenPolicyFile();
-        var undo = new Button { Content = s.HomeUndo, IsEnabled = App.PolicyStore.CanUndo };
-        undo.Click += (_, _) => PolicyNotices.Undo();
-        var restore = new Button { Content = s.HomeRestoreDefaults, IsVisible = _policy is { IsFallback: false } };
-        restore.Click += async (_, _) => await RestoreDefaultsAsync();
-        var fileButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { reload, openFile, undo, restore } };
-        if (App.Github.CanSync)
-        {
-            var sync = new Button { Content = App.SyncRunning ? s.SyncRunning : s.HomeSyncNow, IsEnabled = !App.SyncRunning };
-            sync.Click += async (_, _) => await App.SyncNowAsync();
-            fileButtons.Children.Add(sync);
-        }
-        stack.Children.Add(Card(new StackPanel { Spacing = 8, Children = { Heading(s.HomePolicyFile), path, fileButtons } }));
+        if (_policy != null) stack.Children.Add(SummaryStrip(_policy));
 
-        if (_policy == null) return stack;
-
-        if (_policy.Warnings.Count > 0)
+        if (_policy != null && _policy.Warnings.Count > 0)
         {
             var warn = UserText(string.Join(Environment.NewLine, _policy.Warnings), "failed");
             var warnBody = new StackPanel { Spacing = 8, Children = { Heading(s.HomeWarnings), warn } };
@@ -211,36 +195,293 @@ public sealed class HomeWindow : Window
             stack.Children.Add(Card(warnBody));
         }
 
-        if (_policy.Rules.Count == 0 && _policy.Apps.Count == 0)
-        {
+        if (_policy != null && _policy.Rules.Count == 0 && _policy.Apps.Count == 0)
             stack.Children.Add(Card(EmptyState()));   // 규칙도 앱도 없다 — 무엇을 하면 되는지 알려 준다
-            return stack;
+        else if (_policy != null)
+        {
+            stack.Children.Add(RulesCard(_policy));
+            stack.Children.Add(AppsCard(_policy));
         }
 
+        stack.Children.Add(PolicyFileCard());
+        return stack;
+    }
+
+    // --- 요약 띠 ---
+
+    private Border Stat(string label, string value, string? sub = null, string? valueColorKey = null)
+    {
+        var l = new TextBlock { Text = label };
+        l.Classes.Add("small");
+        l.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
+        var v = new TextBlock { Text = value, FontWeight = FontWeight.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
+        v.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsTitle"));
+        if (valueColorKey != null) v.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable(valueColorKey));
+        var panel = new StackPanel { Spacing = 2, Children = { l, v } };
+        if (sub != null)
+        {
+            var t = UserText(sub, "small");
+            t.TextTrimming = TextTrimming.CharacterEllipsis;
+            t.TextWrapping = TextWrapping.NoWrap;
+            t.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
+            panel.Children.Add(t);
+        }
+        var b = new Border { Child = panel, Padding = new Thickness(14, 10), CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(1) };
+        b.Bind(Border.BackgroundProperty, this.GetResourceObservable("AppSurface"));
+        b.Bind(Border.BorderBrushProperty, this.GetResourceObservable("AppStroke"));
+        return b;
+    }
+
+    private Control SummaryStrip(PolicyDocument policy)
+    {
+        var s = Strings.Current;
+        var settings = App.Settings.Value;
+        var connected = !string.IsNullOrEmpty(settings.SyncRepo);
+        var syncSub = connected
+            ? settings.SyncRepo + (settings.SyncLastAt is { } at ? "  ·  " + at.LocalDateTime.ToString("g") : "  ·  " + s.HomeSyncNotYet)
+            : null;
+        var os = policy.Os?.JsonName() ?? PolicyOsExtensions.Current?.JsonName() ?? "";
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*,*,*"), ColumnSpacing = 8 };
+        var stats = new[]
+        {
+            Stat(s.HomeStatRules, policy.Rules.Count.ToString()),
+            Stat(s.HomeStatApps, policy.Apps.Count.ToString(), s.HomeAppsSummary(policy.Apps.Count, policy.Apps.Keys.Count(id => ToolRegistry.IsBuiltIn(policy.Apps[id].Command)))),
+            Stat(s.HomeStatSync, connected ? s.HomeSyncOn : s.HomeSyncOff, syncSub, connected ? "AppPrimary" : null),
+            Stat(s.HomeStatPolicy, Path.GetFileName(App.PolicyStore.FilePath), os.Length > 0 ? os : null),
+        };
+        for (var i = 0; i < stats.Length; i++)
+        {
+            Grid.SetColumn(stats[i], i);
+            grid.Children.Add(stats[i]);
+        }
+        return grid;
+    }
+
+    // --- 규칙 카드: 대상 → 확장자 칩 → 연결한 앱 칩 ---
+
+    private static Border Chip(string text, bool mono, string? iconKey = null, bool accent = false, bool muted = false)
+    {
+        var label = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center };
+        label.Classes.Add("small");
+        if (mono) label.Classes.Add("mono");
+        label.Bind(TextBlock.ForegroundProperty, Application.Current!.GetResourceObservable(accent ? "AppPrimary" : muted ? "AppTextMid" : "AppTextHi"));
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+        if (iconKey != null)
+        {
+            var icon = new DuoIcon { Icon = iconKey, Width = 13, Height = 13, VerticalAlignment = VerticalAlignment.Center };
+            icon.Bind(DuoIcon.ForegroundProperty, Application.Current!.GetResourceObservable(accent ? "AppPrimary" : "AppTextMid"));
+            row.Children.Add(icon);
+        }
+        row.Children.Add(label);
+        var chip = new Border { Child = row, Padding = new Thickness(8, 2), CornerRadius = new CornerRadius(11), BorderThickness = new Thickness(1), Margin = new Thickness(0, 2, 4, 2) };
+        chip.Bind(Border.BackgroundProperty, Application.Current!.GetResourceObservable("AppSurfaceHi"));
+        chip.Bind(Border.BorderBrushProperty, Application.Current!.GetResourceObservable("AppStroke"));
+        return chip;
+    }
+
+    /// <summary>제목에 쓰려고 첫 글자만 대문자로(영어 "drive" → "Drive").</summary>
+    private static string Cap(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
+
+    private static string AppIconKey(AppEntry app) => app.Id switch
+    {
+        "image-viewer" => "image", "text-editor" => "file-text", "pdf-viewer" => "pdf", "video-player" => "video",
+        "audio-player" => "audio", "archive" => "file-zip", "explorer" => "folder", "default" => "monitor", "terminal" => "terminal",
+        _ => "app",
+    };
+
+    private Control RuleRow(Rule rule, int index)
+    {
+        var s = Strings.Current;
+        var label = RulePresentation.Label(rule);
+        var title = label.Kind switch
+        {
+            RuleKind.Drive => Cap(s.DropKindDrive),
+            RuleKind.Folder => Cap(s.DropKindFolder),
+            RuleKind.File => s.HomeOtherFiles,
+            _ => label.HasGroupName ? s.ExtensionGroupName(label.GroupId!) : label.RuleId,
+        };
+        var sub = label.Kind switch
+        {
+            RuleKind.Drive => s.HomeTargetAnyDrive,
+            RuleKind.Folder => s.HomeTargetAnyFolder,
+            RuleKind.File => s.HomeTargetAnyFile,
+            _ => s.HomeTargetFileType,
+        };
+
+        var icon = new DuoIcon { Icon = label.Icon, Width = 20, Height = 20, ColorKey = "AppPrimary", VerticalAlignment = VerticalAlignment.Center };
+        var name = new TextBlock { Text = title, FontWeight = FontWeight.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
+        var subText = new TextBlock { Text = sub, TextTrimming = TextTrimming.CharacterEllipsis };
+        subText.Classes.Add("small");
+        subText.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
+        var nameBox = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { name, subText } };
+
+        var matches = new WrapPanel { VerticalAlignment = VerticalAlignment.Center };
+        if (label.Kind == RuleKind.Extension)
+        {
+            var (shown, more) = RulePresentation.Chips(label.Extensions, 6);
+            foreach (var e in shown) matches.Children.Add(Chip(e, mono: true));
+            if (more > 0) matches.Children.Add(Chip("+" + more, mono: false, muted: true));
+        }
+
+        var arrow = new DuoIcon { Icon = "arrow-right", Width = 16, Height = 16, ColorKey = "AppTextMid", VerticalAlignment = VerticalAlignment.Center };
+        var apps = new WrapPanel { VerticalAlignment = VerticalAlignment.Center };
+        if (rule.Choices.Count == 0) apps.Children.Add(Chip(s.HomeOsDefault, mono: false, "monitor", muted: true));
+        foreach (var id in rule.Choices)
+            apps.Children.Add(Chip(id, mono: false, _policy!.Apps.TryGetValue(id, out var a) ? AppIconKey(a) : "warning", accent: true));
+
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("28,170,*,24,230"), ColumnSpacing = 10 };
+        var cells = new Control[] { icon, nameBox, matches, arrow, apps };
+        for (var i = 0; i < cells.Length; i++) { Grid.SetColumn(cells[i], i); grid.Children.Add(cells[i]); }
+
+        var row = new Border { Child = grid, Padding = new Thickness(8, 8), CornerRadius = new CornerRadius(8), Cursor = new Cursor(StandardCursorType.Hand), Background = Brushes.Transparent };
+        row.Classes.Add("row");
+        var section = rule.When.Kind switch { RuleKind.Drive => RulesEditorSection.Drive, RuleKind.Folder => RulesEditorSection.Folder, RuleKind.File => RulesEditorSection.Default, _ => RulesEditorSection.Files };
+        row.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left) RulesEditorWindow.Open(this, section); };
+        return row;
+    }
+
+    private Control RulesCard(PolicyDocument policy)
+    {
+        var s = Strings.Current;
         var rulesTitle = Heading(s.HomeRules);
         rulesTitle.VerticalAlignment = VerticalAlignment.Center;
         var rulesHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { rulesTitle } };
         var editRules = ToolButton("edit", s.HomeEditRules, () => RulesEditorWindow.Open(this));
         Grid.SetColumn(editRules, 1);
         rulesHeader.Children.Add(editRules);
-        var rules = new StackPanel { Spacing = 4, Children = { rulesHeader } };
+        var rules = new StackPanel { Spacing = 2, Children = { rulesHeader } };
         var n = 1;
-        foreach (var r in _policy.Rules)
-            rules.Children.Add(UserText($"{n++}. {r.Id}  ·  {Describe(r.When)}  →  {(r.Choices.Count == 0 ? s.HomeAsk : string.Join(", ", r.Choices))}"));
-        if (_policy.Rules.Count == 0) rules.Children.Add(Muted(s.HomeNoRules));
-        stack.Children.Add(Card(rules));
+        foreach (var r in policy.Rules) rules.Children.Add(RuleRow(r, n++));
+        if (policy.Rules.Count == 0) rules.Children.Add(Muted(s.HomeNoRules));
+        return Card(rules);
+    }
 
+    // --- 앱 카드: 타일 + [열기] ---
+
+    private Control AppTile(AppEntry app, PolicyDocument policy)
+    {
+        var s = Strings.Current;
+        var builtIn = ToolRegistry.IsBuiltIn(app.Command);
+        var icon = new DuoIcon { Icon = AppIconKey(app), Width = 22, Height = 22, ColorKey = builtIn ? "AppPrimary" : "AppTextMid", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var iconBox = new Border { Child = icon, Width = 36, Height = 36, CornerRadius = new CornerRadius(9), VerticalAlignment = VerticalAlignment.Center };
+        iconBox.Bind(Border.BackgroundProperty, this.GetResourceObservable("AppSurfaceHi"));
+
+        var name = UserText(app.Id);
+        name.FontWeight = FontWeight.Bold;
+        name.TextTrimming = TextTrimming.CharacterEllipsis;
+        name.TextWrapping = TextWrapping.NoWrap;
+        var cmd = UserText(string.Join(' ', new[] { app.Command }.Concat(app.Args)), "small", "mono");
+        cmd.TextTrimming = TextTrimming.CharacterEllipsis;
+        cmd.TextWrapping = TextWrapping.NoWrap;
+        cmd.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
+        ToolTip.SetTip(cmd, string.Join(' ', new[] { app.Command }.Concat(app.Args)));
+        var head = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { name, cmd } };
+        var top = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 10 };
+        Grid.SetColumn(head, 1);
+        top.Children.Add(iconBox);
+        top.Children.Add(head);
+
+        var used = policy.RulesUsing(app.Id).Count;
+        var usage = new TextBlock { Text = used > 0 ? s.HomeAppRuleCount(used) : s.HomeAppUnused, VerticalAlignment = VerticalAlignment.Center };
+        usage.Classes.Add("small");
+        usage.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
+        var foot = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        var left = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        if (builtIn) left.Children.Add(Chip(s.HomeBuiltIn, mono: false, accent: true));
+        left.Children.Add(usage);
+        var open = new Button { Height = 30, Padding = new Thickness(12, 0), VerticalAlignment = VerticalAlignment.Center };
+        open.Content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 6,
+            Children = { new DuoIcon { Icon = "play", Width = 14, Height = 14, VerticalAlignment = VerticalAlignment.Center }, new TextBlock { Text = s.HomeOpenApp, VerticalAlignment = VerticalAlignment.Center } },
+        };
+        ToolTip.SetTip(open, s.HomeOpenAppTip);
+        open.Click += async (_, _) => await OpenAppAsync(app);
+        Grid.SetColumn(open, 1);
+        foot.Children.Add(left);
+        foot.Children.Add(open);
+
+        var tile = new Border
+        {
+            Child = new StackPanel { Spacing = 10, Children = { top, foot } }, Padding = new Thickness(12), Width = 270,
+            CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 8, 8),
+        };
+        tile.Bind(Border.BorderBrushProperty, this.GetResourceObservable("AppStroke"));
+        return tile;
+    }
+
+    private Control AppsCard(PolicyDocument policy)
+    {
+        var s = Strings.Current;
         var appsTitle = Heading(s.HomeApps);
         appsTitle.VerticalAlignment = VerticalAlignment.Center;   // 오른쪽 편집 버튼(30px)과 같은 줄 가운데에 맞춘다
-        var appsHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { appsTitle } };
+        var summary = new TextBlock { Text = s.HomeAppsSummary(policy.Apps.Count, policy.Apps.Values.Count(a => ToolRegistry.IsBuiltIn(a.Command))), VerticalAlignment = VerticalAlignment.Center };
+        summary.Classes.Add("small");
+        summary.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
+        var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { appsTitle, summary } };
+        var appsHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { titleRow } };
         var editApps = ToolButton("edit", s.HomeEditApps, () => AppsEditorWindow.Open(this));
         Grid.SetColumn(editApps, 1);
         appsHeader.Children.Add(editApps);
-        var apps = new StackPanel { Spacing = 4, Children = { appsHeader } };
-        foreach (var a in _policy.Apps.Values) apps.Children.Add(UserText($"{a.Id}  ·  {a.Command} {string.Join(' ', a.Args)}"));
-        if (_policy.Apps.Count == 0) apps.Children.Add(Muted(s.HomeNoApps));
-        stack.Children.Add(Card(apps));
-        return stack;
+        var tiles = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
+        foreach (var a in policy.Apps.Values) tiles.Children.Add(AppTile(a, policy));
+        var body = new StackPanel { Spacing = 2, Children = { appsHeader } };
+        if (policy.Apps.Count == 0) body.Children.Add(Muted(s.HomeNoApps)); else body.Children.Add(tiles);
+        return Card(body);
+    }
+
+    /// <summary>앱을 한 번 열어 본다. 외부 앱은 대상 없이 띄우고(<see cref="AppLauncher.ArgsForTryOut"/>), 내장 도구는 파일을 골라 연다.</summary>
+    private async Task OpenAppAsync(AppEntry app)
+    {
+        var s = Strings.Current;
+        try
+        {
+            if (ToolRegistry.IsBuiltIn(app.Command))
+            {
+                var picked = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = s.HomeOpenAppPick(app.Id), AllowMultiple = AppLauncher.AcceptsMany(app),
+                });
+                var paths = picked.Select(f => f.TryGetLocalPath()).OfType<string>().ToList();
+                if (paths.Count == 0) return;
+                await App.Tools.OpenAsync(app.Command, paths);
+            }
+            else
+            {
+                var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                var result = await App.Router.Launcher.TryOutAsync(app, home);
+                if (!result.Ok) Snackbar.Error(s.DockOpenFailed(result.Error!));
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Error(s.DockOpenFailed(e.Message), e.ToString());
+        }
+    }
+
+    // --- 정책 파일 카드 ---
+
+    private Control PolicyFileCard()
+    {
+        var s = Strings.Current;
+        var path = UserText(App.PolicyStore.FilePath, "small");
+        var reload = new Button { Content = s.HomeReload, HorizontalAlignment = HorizontalAlignment.Left };
+        reload.Click += async (_, _) => await ReloadAsync();
+        var openFile = new Button { Content = s.HomeOpenPolicyFile };
+        openFile.Click += (_, _) => OpenPolicyFile();
+        var undo = new Button { Content = s.HomeUndo, IsEnabled = App.PolicyStore.CanUndo };
+        undo.Click += (_, _) => PolicyNotices.Undo();
+        var restore = new Button { Content = s.HomeRestoreDefaults, IsVisible = _policy is { IsFallback: false } };
+        restore.Click += async (_, _) => await RestoreDefaultsAsync();
+        var fileButtons = new WrapPanel { Orientation = Orientation.Horizontal, Children = { reload, openFile, undo, restore } };
+        foreach (var b in fileButtons.Children) ((Control)b).Margin = new Thickness(0, 0, 8, 8);
+        if (App.Github.CanSync)
+        {
+            var sync = new Button { Content = App.SyncRunning ? s.SyncRunning : s.HomeSyncNow, IsEnabled = !App.SyncRunning, Margin = new Thickness(0, 0, 8, 8) };
+            sync.Click += async (_, _) => await App.SyncNowAsync();
+            fileButtons.Children.Add(sync);
+        }
+        return Card(new StackPanel { Spacing = 8, Children = { Heading(s.HomePolicyFile), path, fileButtons } });
     }
 
     private TextBlock Muted(string text)

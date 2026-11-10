@@ -59,6 +59,22 @@ ICONS = {
     "goto-line": ("list-numbers", "duotone"),
     "save": ("floppy-disk", "duotone"),
     "save-as": ("floppy-disk-back", "duotone"),
+    # 홈 창: 규칙 대상·앱 종류
+    "image": ("image", "duotone"),
+    "audio": ("music-notes", "duotone"),
+    "video": ("film-strip", "duotone"),
+    "pdf": ("file-pdf", "duotone"),
+    "file-doc": ("file-doc", "duotone"),
+    "file-xls": ("file-xls", "duotone"),
+    "file-ppt": ("file-ppt", "duotone"),
+    "file-zip": ("file-zip", "duotone"),
+    "code": ("code", "duotone"),
+    "drive": ("hard-drives", "duotone"),
+    "file": ("file", "duotone"),
+    "play": ("play", "duotone"),
+    "terminal": ("terminal-window", "duotone"),
+    "app": ("app-window", "duotone"),
+    "arrow-right": ("arrow-right", "duotone"),
 }
 
 

@@ -338,4 +338,24 @@ public sealed class EnglishStrings : IAppStrings
     public string VideoPlayerHint => "If it won't play, open it with the default app.";
     public string AudioPlayerFailed(string error) => $"Couldn't open the audio: {error}";
     public string AudioPlayerHint => "If it won't play, open it with the default app.";
+    public string HomeStatRules => "Rules";
+    public string HomeStatApps => "Apps";
+    public string HomeStatSync => "Sync";
+    public string HomeStatPolicy => "Policy file";
+    public string HomeSyncOn => "Connected";
+    public string HomeSyncOff => "Off";
+    public string HomeSyncNotYet => "Not yet";
+    public string HomeOtherFiles => "Everything else";
+    public string HomeTargetFileType => "File type";
+    public string HomeTargetAnyFolder => "Any folder";
+    public string HomeTargetAnyDrive => "Any drive";
+    public string HomeTargetAnyFile => "Files nothing above matches";
+    public string HomeOsDefault => "OS default";
+    public string HomeBuiltIn => "Built in";
+    public string HomeOpenApp => "Open";
+    public string HomeAppRuleCount(int count) => count == 1 ? "1 rule" : $"{count} rules";
+    public string HomeAppUnused => "Not used by a rule";
+    public string HomeOpenAppPick(string app) => $"Pick a file to open with {app}";
+    public string HomeAppsSummary(int total, int builtIn) => $"{total} · {builtIn} built in";
+    public string HomeOpenAppTip => "Open the app once to try it (built-in tools ask for a file).";
 }

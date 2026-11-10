@@ -58,6 +58,7 @@ static class Snapshot
         }
         """);
         await App.Tools.OpenAsync("jackbean:text-editor", sample);
+        foreach (var w in ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows.OfType<HomeWindow>()) w.Height = 1100;   // 카드가 다 보이게
         await Task.Delay(800);
         foreach (var c in configs)
         {
