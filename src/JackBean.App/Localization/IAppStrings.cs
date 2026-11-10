@@ -180,6 +180,9 @@ public interface IAppStrings
     string RuleSaveFailed(string error);
     string RuleDeleted(string name);
     string RuleDeleteFailed(string error);
+    string RuleAppsBrowse { get; }
+    string RuleAppsBrowseTitle { get; }
+    string RuleAppPending(string id);
     string ExtensionGroupName(string id);
     string ViewerFailed(string error);
 }

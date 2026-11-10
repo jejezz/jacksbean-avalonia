@@ -26,7 +26,7 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 홈 창은 **보기 전용**이고 편집은 별도 창에서 한다(JSON 을 직접 고치지 않아도 되게 폼으로). 지금은 **앱 편집 창**(`Views/AppsEditorWindow`: 왼쪽 앱 목록 + 오른쪽 폼 — 이름·실행 파일·인자)만 있고,
 홈 창 "앱" 카드의 [앱 편집]과 빈 상태의 [앱 추가]로 연다. 저장·삭제는 `PolicyStore.UpsertAppAsync/RemoveAppAsync`(임시 파일에 쓰고 교체, 사용자가 적은 모르는 키는 보존, 깨진 파일은 쓰지 않음).
 앱 ID 는 규칙이 가리키는 이름이라 만들 때만 정하고 바꾸지 않으며(`AppRules`), 지울 때 그 앱을 쓰는 규칙은 지우지 않고 "물어보기"로 바꾼다. 정책을 바꾸면 `App.NotifyPolicyChanged()` 로 홈 창 등이 다시 읽는다.
-**규칙 편집 창**(`Views/RulesEditorWindow`, 홈 창 "규칙" 카드의 [규칙 편집]으로 연다)은 네 가지 대상 — 드라이브 · 폴더 · 파일 형식 · 그 밖의 파일 — 을 왼쪽 목록으로 고르고, 대상마다 연결한 앱(0~10개, 순서 바꾸기·빼기·등록된 앱에서 추가)을 고친다.
+**규칙 편집 창**(`Views/RulesEditorWindow`, 홈 창 "규칙" 카드의 [규칙 편집]으로 연다)은 네 가지 대상 — 드라이브 · 폴더 · 파일 형식 · 그 밖의 파일 — 을 왼쪽 목록으로 고르고, 대상마다 연결한 앱(0~10개, 순서 바꾸기·빼기·등록된 앱에서 추가)을 고친다. 등록되지 않은 앱은 [다른 앱 찾아보기…]로 파일을 골라 바로 연결할 수 있다 — 이름은 파일 이름에서 정하고(`AppRules.SuggestId`), 같은 실행 파일이 이미 있으면 그 앱을 쓰며, 새 앱은 규칙을 **저장할 때** 정책의 `apps` 에 등록된다(저장하지 않으면 남지 않는다).
 파일 형식 구역은 확장자 규칙 목록 + 묶음 칩(누르면 그 묶음의 확장자가 들어가고 빠진다) + 확장자 입력칸이며, 저장 전에 `RuleCheck`로 겹침·한도·없는 앱을 보여 준다(저장할 때 서비스가 한 번 더 막는다). 규칙 ID 는 사용자가 정하지 않는다(묶음과 똑같으면 묶음 이름, 아니면 `ext-첫확장자`). 규칙 모델은 아래.
 
 ## 규칙 모델 (정책 파일 schema 2)
@@ -68,7 +68,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 196개(Domain 83 · Services 105 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 205개(Domain 92 · Services 105 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
