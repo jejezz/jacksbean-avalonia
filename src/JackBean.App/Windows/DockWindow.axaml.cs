@@ -46,6 +46,7 @@ public partial class DockWindow : Window
     private readonly DispatcherTimer _movedTimer = new() { Interval = MovedSaveDelay };
 
     private bool _hovering;
+    private bool _renderedHover; // 마지막으로 그린 모양이 "끌어다 놓는 중"이었는지
     private IReadOnlyList<DroppedItem> _last = [];
     private string? _status;
     private bool _statusIsError;
@@ -66,7 +67,16 @@ public partial class DockWindow : Window
         // 줄이기는 스레드 풀 타이머에서 불리므로 UI 스레드로 넘겨서 창 속성을 만진다.
         _expansion = new DockExpansion(expanded =>
         {
-            void Apply() => ResizeTo(expanded ? new Size(ActiveWidth, IdleSize) : new Size(IdleSize, IdleSize));
+            void Apply()
+            {
+                if (!expanded)
+                {
+                    // 기다리는 사이 다시 들어왔거나 결과를 보여 주는 중이면 줄이지 않는다.
+                    if (_hovering || _last.Count > 0 || _pickAsks != null) return;
+                    Render(); // 모양(알약 → 정원)도 창과 함께, 지연 뒤에 바뀐다
+                }
+                ResizeTo(expanded ? new Size(ActiveWidth, IdleSize) : new Size(IdleSize, IdleSize));
+            }
             if (Dispatcher.UIThread.CheckAccess()) Apply(); else Dispatcher.UIThread.Post(Apply);
         });
 
@@ -74,7 +84,7 @@ public partial class DockWindow : Window
         AddHandler(DragDrop.DragEnterEvent, OnDragEnter);
         AddHandler(DragDrop.DragLeaveEvent, OnDragLeave);
         AddHandler(DragDrop.DropEvent, OnDrop);
-        AddHandler(DragDrop.DragOverEvent, (_, e) => e.DragEffects = _pickAsks == null ? DragDropEffects.Copy : DragDropEffects.None);
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
 
         PointerPressed += OnPointerPressed;
         DoubleTapped += (_, _) => OpenHome();
@@ -180,15 +190,25 @@ public partial class DockWindow : Window
         if (_pickAsks != null) return; // 고르는 중에는 새 드래그를 받지 않는다
         _hovering = true;
         _last = [];
-        Render();
+        // 이미 알약으로 그려져 있으면 다시 그리지 않는다 — 자식 컨트롤을 갈아 끼우면 포인터 아래 대상이 바뀌어
+        // Leave/Enter 가 다시 불리고, 그것이 깜박임으로 이어진다.
+        if (!_renderedHover) Render();
+        _expansion.Expand(); // 키우기는 바로
+    }
+
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = _pickAsks == null ? DragDropEffects.Copy : DragDropEffects.None;
+        if (_pickAsks != null) return;
+        // 위에 머무는 동안은 줄이기 예약을 계속 취소한다(Leave 가 자식 경계에서 잘못 불려도 안전).
+        _hovering = true;
         _expansion.Expand();
     }
 
     private void OnDragLeave(object? sender, DragEventArgs e)
     {
         if (_pickAsks != null) return;
-        _hovering = false;
-        Render();
+        _hovering = false; // 상태만 — 모양과 창 크기는 지연(ShrinkDelay) 뒤 함께 줄인다
         if (_last.Count == 0) _expansion.ShrinkSoon(); // 떨어뜨린 직후에도 불릴 수 있다
     }
 
@@ -293,6 +313,8 @@ public partial class DockWindow : Window
     {
         var palette = App.Settings.Value.Palette;
         var chooser = _pickAsks != null;
+        _renderedHover = _hovering;
+        PillContent.IsHitTestVisible = chooser; // 글자·그림이 드롭 대상을 가로채 Leave/Enter 를 만들지 않게
         var radius = chooser ? 20 : 36;
         Pill.CornerRadius = new CornerRadius(radius);
         // 평소엔 테마 강조색 2px, 끌어다 놓으려고 들어왔을 때는 4px 그라데이션.
