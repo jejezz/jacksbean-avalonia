@@ -94,6 +94,8 @@ public class PolicyDocumentTests
             Assert.Equal("default", App(d.Decide(File("a.xyz"))));
             Assert.Equal("text-editor", App(d.Decide(File("a.txt"))));
             Assert.Equal("archive", App(d.Decide(File("a.zip"))));
+            Assert.Equal(os == PolicyOs.Linux ? "default" : "video-player", App(d.Decide(File("a.mp4"))));
+            Assert.Equal("default", App(d.Decide(File("a.mkv"))));   // 웹뷰가 못 여는 형식은 OS 기본 앱
             Assert.Equal("text-editor", App(d.Decide(File("a.cs"))));
             Assert.Equal("image-viewer", App(d.Decide(File("a.png"))));
             Assert.Equal(os == PolicyOs.Linux ? "default" : "pdf-viewer", App(d.Decide(File("a.pdf"))));

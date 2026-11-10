@@ -334,4 +334,6 @@ public sealed class EnglishStrings : IAppStrings
     public string ArchiveCompressing => "Compressing…";
     public string ArchiveExtracted(string folder) => $"Extracted to {folder}";
     public string ArchiveCompressed(string zip) => $"Created {zip}";
+    public string VideoPlayerFailed(string error) => $"Couldn't open the video: {error}";
+    public string VideoPlayerHint => "If it won't play, open it with the default app.";
 }
