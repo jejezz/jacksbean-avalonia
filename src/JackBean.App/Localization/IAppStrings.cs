@@ -94,6 +94,11 @@ public interface IAppStrings
     string DockSuggestDrive { get; }
     string DockRuleSaved { get; }
     string DockRuleSaveFailed(string error);
+    string SnackbarCopy { get; }
+    string SnackbarCopied { get; }
+    string SnackbarClose { get; }
+    string ErrorUnexpected { get; }
+    string PolicyWarningsFound { get; }
     string HomeRules { get; }
     string HomeApps { get; }
     string HomeWarnings { get; }
