@@ -40,7 +40,6 @@ internal sealed class SnackbarWindow : Window
 
         var icon = new DuoIcon { Icon = isError ? "warning" : "check", ColorKey = isError ? "AppDanger" : "AppPrimary", VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) };
         var text = new TextBlock { Text = notification.Message, TextWrapping = TextWrapping.Wrap, MaxWidth = 380, VerticalAlignment = VerticalAlignment.Center };
-        text.Classes.Add("user"); // 파일 이름·경로가 섞이므로 시스템 글꼴 (fonts.md §3)
         text.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsBody"));
         text.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextHi"));
 
