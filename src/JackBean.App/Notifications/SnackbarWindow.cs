@@ -21,7 +21,7 @@ internal sealed class SnackbarWindow : Window
     private readonly Button _copyButton;
     private readonly DuoIcon _copyIcon = new() { Icon = "copy" };
 
-    public SnackbarWindow(Notification notification)
+    public SnackbarWindow(Notification notification, string? actionLabel = null, Action? action = null)
     {
         _notification = notification;
         var isError = notification.Kind == NotificationKind.Error;
@@ -40,11 +40,16 @@ internal sealed class SnackbarWindow : Window
 
         var icon = new DuoIcon { Icon = isError ? "warning" : "check", ColorKey = isError ? "AppDanger" : "AppPrimary", VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) };
         var text = new TextBlock { Text = notification.Message, TextWrapping = TextWrapping.Wrap, MaxWidth = 380, VerticalAlignment = VerticalAlignment.Center };
-        text.Classes.Add("user"); // 파일 이름·경로가 섞이므로 시스템 글꼴 (fonts.md §3)
         text.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsBody"));
         text.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextHi"));
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Top };
+        if (actionLabel != null && action != null)
+        {
+            var act = new Button { Content = actionLabel, VerticalAlignment = VerticalAlignment.Center };
+            act.Click += (_, _) => { action(); Close(); };
+            buttons.Children.Add(act);
+        }
         _copyButton = ToolButton(_copyIcon, Strings.Current.SnackbarCopy, CopyAsync);
         if (isError) buttons.Children.Add(_copyButton);
         buttons.Children.Add(ToolButton(new DuoIcon { Icon = "x" }, Strings.Current.SnackbarClose, Close));

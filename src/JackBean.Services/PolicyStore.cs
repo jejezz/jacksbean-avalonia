@@ -14,6 +14,11 @@ public sealed record SaveResult(string? Error)
     public static SaveResult Success { get; } = new((string?)null);
 }
 
+public sealed record ResetResult(string? Error, string? BackupPath)
+{
+    public bool Ok => Error == null;
+}
+
 /// <summary>이 OS의 정책 파일(`policy.&lt;os&gt;.json`)을 읽고, 없으면 기본 정책으로 만든다.</summary>
 public sealed class PolicyStore
 {
@@ -68,7 +73,33 @@ public sealed class PolicyStore
         catch (Exception e) when (e is FormatException or JsonException)
         {
             var fb = PolicyDocument.FromJson(defaults);
-            return new PolicyDocument(fb.Apps, fb.Rules, [$"{FilePath}: {e.Message} — 기본 정책을 씁니다(파일은 그대로 둠)"]);
+            return new PolicyDocument(fb.Apps, fb.Rules, [$"{FilePath}: {e.Message} — 기본 정책을 씁니다(파일은 그대로 둠)"], isFallback: true);
+        }
+    }
+
+    /// <summary>
+    /// 정책 파일을 기본 정책으로 다시 만든다. 지금 파일은 지우지 않고 같은 폴더에 `.broken-날짜시각` 으로 옮겨 둔다
+    /// (손으로 고친 내용을 되찾을 수 있게). 파일이 없으면 그냥 만든다. 돌려주는 값의 <see cref="ResetResult.BackupPath"/> 가 옮긴 곳.
+    /// </summary>
+    public async Task<ResetResult> ResetToDefaultsAsync(DateTime? now = null)
+    {
+        try
+        {
+            string? backup = null;
+            if (File.Exists(FilePath))
+            {
+                backup = $"{FilePath}.broken-{(now ?? DateTime.Now):yyyyMMdd-HHmmss}";
+                File.Move(FilePath, backup, overwrite: true);
+            }
+            System.IO.Directory.CreateDirectory(Directory);
+            var tmp = FilePath + ".tmp";
+            await File.WriteAllTextAsync(tmp, Serialize(PolicyDocument.DefaultJson(Os)));
+            File.Move(tmp, FilePath, overwrite: true);
+            return new ResetResult(null, backup);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return new ResetResult(e.Message, null);
         }
     }
 

@@ -9,10 +9,12 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using JackBean.App.Icons;
+using JackBean.App.Notifications;
 using JackBean.App.Views;
 using JackBean.Domain;
 using JackBean.Domain.Policy;
 using JackBean.Domain.Window;
+using JackBean.Services;
 
 namespace JackBean.App.Windows;
 
@@ -175,20 +177,71 @@ public sealed class HomeWindow : Window
 
         if (_policy.Warnings.Count > 0)
         {
-            var warn = UserText(string.Join('\n', _policy.Warnings), "failed");
-            stack.Children.Add(Card(new StackPanel { Spacing = 4, Children = { Heading(s.HomeWarnings), warn } }));
+            var warn = UserText(string.Join(Environment.NewLine, _policy.Warnings), "failed");
+            var warnBody = new StackPanel { Spacing = 8, Children = { Heading(s.HomeWarnings), warn } };
+            if (_policy.IsFallback)
+            {
+                // 파일 전체를 못 읽었다 — 기본 정책으로 다시 만들 수 있게 한다(지금 파일은 .broken-날짜 로 옮겨 둔다).
+                var note = new TextBlock { Text = s.HomeFallbackNote, TextWrapping = TextWrapping.Wrap };
+                var reset = new Button { Content = s.HomeResetPolicy, Classes = { "accent" }, HorizontalAlignment = HorizontalAlignment.Left };
+                reset.Click += async (_, _) => await ResetPolicyAsync();
+                warnBody.Children.Add(note);
+                warnBody.Children.Add(reset);
+            }
+            stack.Children.Add(Card(warnBody));
+        }
+
+        if (_policy.Rules.Count == 0 && _policy.Apps.Count == 0)
+        {
+            stack.Children.Add(Card(EmptyState()));   // 규칙도 앱도 없다 — 무엇을 하면 되는지 알려 준다
+            return stack;
         }
 
         var rules = new StackPanel { Spacing = 4, Children = { Heading(s.HomeRules) } };
         var n = 1;
         foreach (var r in _policy.Rules)
             rules.Children.Add(UserText($"{n++}. {r.Id}  ·  {Describe(r.When)}  →  {r.Open ?? s.HomeAsk}"));
+        if (_policy.Rules.Count == 0) rules.Children.Add(Muted(s.HomeNoRules));
         stack.Children.Add(Card(rules));
 
         var apps = new StackPanel { Spacing = 4, Children = { Heading(s.HomeApps) } };
         foreach (var a in _policy.Apps.Values) apps.Children.Add(UserText($"{a.Id}  ·  {a.Command} {string.Join(' ', a.Args)}"));
+        if (_policy.Apps.Count == 0) apps.Children.Add(Muted(s.HomeNoApps));
         stack.Children.Add(Card(apps));
         return stack;
+    }
+
+    private TextBlock Muted(string text)
+    {
+        var t = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
+        t.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
+        return t;
+    }
+
+    /// <summary>빈 상태(ui-ux.md §6): 48px 아이콘, 한 줄 안내, 주 행동 버튼 하나.</summary>
+    private Control EmptyState()
+    {
+        var icon = new DuoIcon { Icon = "tray", ColorKey = "AppTextMid", Width = 48, Height = 48, HorizontalAlignment = HorizontalAlignment.Center };
+        var line = Muted(Strings.Current.HomeEmpty);
+        line.TextAlignment = TextAlignment.Center;
+        line.HorizontalAlignment = HorizontalAlignment.Center;
+        var open = new Button { Content = Strings.Current.HomeOpenPolicyFile, Classes = { "accent" }, HorizontalAlignment = HorizontalAlignment.Center };
+        open.Click += (_, _) => OpenPolicyFile();
+        return new StackPanel { Spacing = 12, Margin = new Thickness(0, 24), Children = { icon, line, open } };
+    }
+
+    private void OpenPolicyFile()
+    {
+        try { new OpenWithDefaultApp().Open(App.PolicyStore.FilePath); }
+        catch (FileOperationException e) { Snackbar.Error(Strings.Current.DockOpenFailed(e.Message)); }
+    }
+
+    private async Task ResetPolicyAsync()
+    {
+        var result = await App.PolicyStore.ResetToDefaultsAsync();
+        if (!result.Ok) { Snackbar.Error(Strings.Current.HomeResetFailed(result.Error!)); return; }
+        await ReloadAsync();
+        Snackbar.Info(Strings.Current.HomeResetDone(result.BackupPath));
     }
 
     private static string Describe(RuleCondition c) => c.Kind switch

@@ -106,5 +106,15 @@ public sealed class KoreanStrings : IAppStrings
     public string HomePolicyFile => "정책 파일";
     public string HomeReload => "다시 읽기";
     public string HomeAsk => "물어보기";
+    public string HomeEmpty => "아직 규칙과 앱이 없습니다. 독에 파일이나 폴더를 끌어다 놓아 시작하세요.";
+    public string HomeOpenPolicyFile => "정책 파일 열기";
+    public string HomeNoRules => "규칙이 없습니다 — 모든 항목을 물어봅니다.";
+    public string HomeNoApps => "등록된 앱이 없습니다.";
+    public string HomeFallbackNote => "정책 파일을 읽지 못해 기본 정책을 쓰고 있습니다. 파일은 그대로 두었습니다.";
+    public string HomeResetPolicy => "기본 정책 다시 만들기";
+    public string HomeResetDone(string? backup) => backup == null ? "기본 정책을 만들었습니다." : $"기본 정책을 다시 만들었습니다. 이전 파일은 {backup} 에 있습니다.";
+    public string HomeResetFailed(string error) => $"기본 정책을 만들지 못했습니다: {error}";
+    public string DockNoApps => "등록된 앱이 없어 고를 수 없습니다. 홈 창에서 정책 파일을 확인하세요.";
+    public string SnackbarOpenHome => "홈 창 열기";
     public string ViewerFailed(string error) => $"이미지를 열지 못했습니다: {error}";
 }

@@ -236,13 +236,16 @@ public partial class DockWindow : Window
         Render();
 
         var plan = await App.Router.RouteAsync(items);
-        if (plan.Policy.Warnings.Count > 0) Snackbar.Error(Strings.Current.PolicyWarningsFound, string.Join(Environment.NewLine, plan.Policy.Warnings));
+        if (plan.Policy.Warnings.Count > 0)
+            Snackbar.Error(Strings.Current.PolicyWarningsFound, string.Join(Environment.NewLine, plan.Policy.Warnings),
+                plan.Policy.IsFallback ? Strings.Current.SnackbarOpenHome : null, plan.Policy.IsFallback ? App.OpenHome : null); // 파일을 못 읽었으면 복구 버튼이 있는 홈 창으로
         var failure = plan.Failures.FirstOrDefault();
         var missing = plan.Outcomes.OfType<AppNotInPolicy>().FirstOrDefault();
         var opened = plan.Outcomes.OfType<Opened>().FirstOrDefault();
         if (failure != null) { SetError(Strings.Current.DockOpenFailed(failure.Error)); }
         else if (missing != null) { SetError(Strings.Current.DockAppMissing(missing.AppId)); }
         else if (opened != null) _status = Strings.Current.DockOpenedWith(opened.App.Id);
+        else if (plan.AskOutcomes.Count > 0 && plan.Policy.Apps.Count == 0) SetError(Strings.Current.DockNoApps, offerHome: true); // 고를 앱이 없다 — 조용히 사라지지 않게
         Render();
 
         var asks = plan.AskOutcomes;
@@ -251,7 +254,12 @@ public partial class DockWindow : Window
     }
 
     /// <summary>알약 부제목에 오류를 올리고, 원문을 복사할 수 있는 알림도 띄운다(알약은 한 줄이라 길면 잘린다).</summary>
-    private void SetError(string message) { _status = message; _statusIsError = true; Snackbar.Error(message); }
+    private void SetError(string message, bool offerHome = false)
+    {
+        _status = message;
+        _statusIsError = true;
+        Snackbar.Error(message, null, offerHome ? Strings.Current.SnackbarOpenHome : null, offerHome ? App.OpenHome : null);
+    }
 
     private void ScheduleClear() { _clearTimer.Stop(); _clearTimer.Start(); }
 
