@@ -1,0 +1,6 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="JackBean.App.Tools.EditorStyles">
+    <!-- 내장 에디터(AvaloniaEdit) 기본 스타일. 에디터를 처음 열 때만 앱 스타일에 더한다(EditorWindow.EnsureStyles). -->
+    <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+</Styles>

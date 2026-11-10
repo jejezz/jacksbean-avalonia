@@ -50,6 +50,15 @@ ICONS = {
     # 설정 창: 동작
     "sliders": ("sliders-horizontal", "duotone"),
     "cloud": ("cloud-arrow-up", "duotone"),
+    # 텍스트 에디터
+    "undo": ("arrow-counter-clockwise", "duotone"),
+    "redo": ("arrow-clockwise", "duotone"),
+    "search": ("magnifying-glass", "duotone"),
+    "replace": ("swap", "duotone"),
+    "wrap": ("arrow-u-down-left", "duotone"),
+    "goto-line": ("list-numbers", "duotone"),
+    "save": ("floppy-disk", "duotone"),
+    "save-as": ("floppy-disk-back", "duotone"),
 }
 
 
