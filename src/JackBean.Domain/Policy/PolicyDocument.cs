@@ -113,8 +113,9 @@ public sealed class PolicyDocument
 {
     public const int SchemaVersion = 1;
 
-    public PolicyDocument(IReadOnlyDictionary<string, AppEntry>? apps = null, IReadOnlyList<Rule>? rules = null, IReadOnlyList<string>? warnings = null)
+    public PolicyDocument(IReadOnlyDictionary<string, AppEntry>? apps = null, IReadOnlyList<Rule>? rules = null, IReadOnlyList<string>? warnings = null, bool isFallback = false)
     {
+        IsFallback = isFallback;
         Apps = apps ?? new Dictionary<string, AppEntry>();
         Rules = rules ?? [];
         Warnings = warnings ?? [];
@@ -122,6 +123,9 @@ public sealed class PolicyDocument
 
     public IReadOnlyDictionary<string, AppEntry> Apps { get; }
     public IReadOnlyList<Rule> Rules { get; }
+
+    /// <summary>파일 전체를 읽지 못해 기본 정책을 대신 쓰는 중이다(파일은 그대로 있다). 규칙 하나만 건너뛴 경우는 false.</summary>
+    public bool IsFallback { get; }
 
     /// <summary>읽다가 건너뛴 것들의 이유.</summary>
     public IReadOnlyList<string> Warnings { get; }

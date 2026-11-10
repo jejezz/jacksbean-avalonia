@@ -21,7 +21,7 @@ internal sealed class SnackbarWindow : Window
     private readonly Button _copyButton;
     private readonly DuoIcon _copyIcon = new() { Icon = "copy" };
 
-    public SnackbarWindow(Notification notification)
+    public SnackbarWindow(Notification notification, string? actionLabel = null, Action? action = null)
     {
         _notification = notification;
         var isError = notification.Kind == NotificationKind.Error;
@@ -45,6 +45,12 @@ internal sealed class SnackbarWindow : Window
         text.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextHi"));
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Top };
+        if (actionLabel != null && action != null)
+        {
+            var act = new Button { Content = actionLabel, VerticalAlignment = VerticalAlignment.Center };
+            act.Click += (_, _) => { action(); Close(); };
+            buttons.Children.Add(act);
+        }
         _copyButton = ToolButton(_copyIcon, Strings.Current.SnackbarCopy, CopyAsync);
         if (isError) buttons.Children.Add(_copyButton);
         buttons.Children.Add(ToolButton(new DuoIcon { Icon = "x" }, Strings.Current.SnackbarClose, Close));

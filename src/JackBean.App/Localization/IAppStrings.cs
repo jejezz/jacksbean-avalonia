@@ -105,5 +105,15 @@ public interface IAppStrings
     string HomePolicyFile { get; }
     string HomeReload { get; }
     string HomeAsk { get; }
+    string HomeEmpty { get; }
+    string HomeOpenPolicyFile { get; }
+    string HomeNoRules { get; }
+    string HomeNoApps { get; }
+    string HomeFallbackNote { get; }
+    string HomeResetPolicy { get; }
+    string HomeResetDone(string? backup);
+    string HomeResetFailed(string error);
+    string DockNoApps { get; }
+    string SnackbarOpenHome { get; }
     string ViewerFailed(string error);
 }
