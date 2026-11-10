@@ -103,7 +103,7 @@ public sealed class HomeWindow : Window
     private void SavePlacement()
     {
         if (!_trackPlacement || WindowState is WindowState.Minimized or WindowState.FullScreen) return;
-        var next = PlacementMath.Updated(App.Settings.Value.Window, Position.X, Position.Y, ClientSize.Width, ClientSize.Height, RenderScaling,
+        var next = PlacementMath.Updated(App.Settings.Value.Window, Position.X, Position.Y, ClientSize.Width, ClientSize.Height, DesktopScaling,
             maximized: WindowState == WindowState.Maximized);
         if (next is not null && next != App.Settings.Value.Window) App.Settings.Update(s => s with { Window = next });
     }

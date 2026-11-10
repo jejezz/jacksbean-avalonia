@@ -116,14 +116,14 @@ internal sealed class SnackbarWindow : Window
             var screen = (dock != null ? dock.Screens.ScreenFromWindow(dock) : null) ?? Screens.Primary;
             if (screen != null)
             {
-                var scale = RenderScaling;
+                var scale = DesktopScaling;
                 var work = screen.WorkingArea;
                 var w = (int)Math.Ceiling(Bounds.Width * scale);
                 var h = (int)Math.Ceiling(Bounds.Height * scale);
                 int x, y;
                 if (dock != null)
                 {
-                    var dockScale = dock.RenderScaling;
+                    var dockScale = dock.DesktopScaling;
                     var right = dock.Position.X + (int)Math.Round(dock.Bounds.Width * dockScale);
                     var top = dock.Position.Y;
                     var bottom = top + (int)Math.Round(dock.Bounds.Height * dockScale);
