@@ -316,4 +316,6 @@ public interface IAppStrings
     string ArchiveCompressing { get; }
     string ArchiveExtracted(string folder);
     string ArchiveCompressed(string zip);
+    string VideoPlayerFailed(string error);
+    string VideoPlayerHint { get; }
 }

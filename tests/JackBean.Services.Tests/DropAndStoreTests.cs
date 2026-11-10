@@ -134,7 +134,7 @@ public class StoreAndRouterTests
         fail = false;
         var ok = await router.ChooseAsync(term, plan.AskOutcomes, remember: true);
         Assert.Equal(SuggestionKind.Folder, Assert.Single(ok.SavedRules).Kind);
-        Assert.Equal(8, (await Store(t).LoadAsync()).Rules.Count);   // 기본 folders 규칙을 고칠 뿐 새 규칙이 쌓이지 않는다
+        Assert.Equal(PolicyDocument.DefaultJson(PolicyOs.Windows)["rules"]!.AsArray().Count, (await Store(t).LoadAsync()).Rules.Count);   // 기본 folders 규칙을 고칠 뿐 새 규칙이 쌓이지 않는다
         var again = await router.RouteAsync([PathClassifier.Classify(dir)]);
         Assert.IsType<Opened>(Assert.Single(again.Outcomes));
     }
