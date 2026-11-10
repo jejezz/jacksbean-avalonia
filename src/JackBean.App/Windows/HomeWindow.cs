@@ -207,7 +207,7 @@ public sealed class HomeWindow : Window
         var rules = new StackPanel { Spacing = 4, Children = { Heading(s.HomeRules) } };
         var n = 1;
         foreach (var r in _policy.Rules)
-            rules.Children.Add(UserText($"{n++}. {r.Id}  ·  {Describe(r.When)}  →  {r.Open ?? s.HomeAsk}"));
+            rules.Children.Add(UserText($"{n++}. {r.Id}  ·  {Describe(r.When)}  →  {(r.Choices.Count == 0 ? s.HomeAsk : string.Join(", ", r.Choices))}"));
         if (_policy.Rules.Count == 0) rules.Children.Add(Muted(s.HomeNoRules));
         stack.Children.Add(Card(rules));
 

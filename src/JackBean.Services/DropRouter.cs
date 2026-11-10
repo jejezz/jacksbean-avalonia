@@ -12,6 +12,22 @@ public sealed record RoutePlan(IReadOnlyList<RouteOutcome> Outcomes, PolicyDocum
     public IReadOnlyList<NeedsChoice> AskOutcomes => Outcomes.OfType<NeedsChoice>().ToList();
     public IReadOnlyList<DroppedItem> Asks => AskOutcomes.Select(o => o.Item).ToList();
     public IReadOnlyList<OpenFailed> Failures => Outcomes.OfType<OpenFailed>().ToList();
+
+    /// <summary>
+    /// 앱 고르기에 보여 줄 앱. 항목마다 "그 앱들만"이 다를 수 있어서 **모두에게 맞는 앱**(교집합, 규칙에 적힌 순서)만 보인다 —
+    /// 고른 앱 하나로 항목을 전부 여니까, 어느 항목에도 안 맞는 앱을 내놓지 않는다. 교집합이 비면 등록된 앱 전부.
+    /// </summary>
+    public IReadOnlyList<AppEntry> ChoiceApps()
+    {
+        var all = Policy.Apps.Values.ToList();
+        IReadOnlyList<AppEntry>? common = null;
+        foreach (var ask in AskOutcomes)
+        {
+            var mine = ask.Candidates ?? all;
+            common = common == null ? mine : common.Where(a => mine.Any(m => m.Id == a.Id)).ToList();
+        }
+        return common is { Count: > 0 } ? common : all;
+    }
 }
 
 public sealed record ChoiceResult(IReadOnlyList<RouteOutcome> Outcomes, IReadOnlyList<RuleSuggestion>? Saved = null, string? SaveError = null)
@@ -41,7 +57,7 @@ public sealed class DropRouter
             outcomes.Add(policy.Decide(item) switch
             {
                 OpenWith o => await OpenAsync(o.App, item),
-                Ask a => new NeedsChoice(item, a.RuleId),
+                Ask a => new NeedsChoice(item, a.RuleId, a.Candidates),
                 MissingApp m => new AppNotInPolicy(item, m.AppId),
                 _ => new Skipped(item),
             });

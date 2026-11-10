@@ -93,15 +93,25 @@ public sealed class RuleCondition
     }
 }
 
-public sealed record Rule(string Id, RuleCondition When, string? Open);
+/// <summary>
+/// 규칙 하나: 조건에 맞으면 <see cref="Choices"/> 의 앱으로 연다. 앱이 1개면 바로 열고, 2개 이상이면 **그 앱들만** 골라서 묻고,
+/// 0개면 등록된 앱 전부를 보여 주며 묻는다. 한 규칙에 최대 <see cref="PolicyLimits.MaxAppsPerRule"/>개.
+/// </summary>
+public sealed record Rule(string Id, RuleCondition When, IReadOnlyList<string> Choices)
+{
+    public Rule(string id, RuleCondition when, string? open) : this(id, when, open == null ? [] : [open]) { }
+
+    /// <summary>앱이 정확히 1개일 때 그 앱(Flutter 판이 읽는 `open`). 0개나 2개 이상이면 null.</summary>
+    public string? Open => Choices.Count == 1 ? Choices[0] : null;
+}
 
 public abstract record Decision;
 
 /// <summary>앱으로 연다.</summary>
 public sealed record OpenWith(AppEntry App, string RuleId) : Decision;
 
-/// <summary>사용자에게 어떤 앱으로 열지 묻는다(규칙이 "물어보기"이거나 맞는 규칙이 없다).</summary>
-public sealed record Ask(string? RuleId = null) : Decision;
+/// <summary>사용자에게 어떤 앱으로 열지 묻는다(규칙이 "물어보기"이거나 앱이 2개 이상이거나 맞는 규칙이 없다). Candidates = 고를 수 있는 앱(null 이면 등록된 앱 전부).</summary>
+public sealed record Ask(string? RuleId = null, IReadOnlyList<AppEntry>? Candidates = null) : Decision;
 
 /// <summary>규칙은 맞았는데 그 앱이 정책의 `apps`에 없다.</summary>
 public sealed record MissingApp(string AppId, string RuleId) : Decision;
@@ -128,7 +138,7 @@ public sealed class PolicyDocument
     public bool IsFallback { get; }
 
     /// <summary>이 앱을 여는 규칙들(앱을 지우거나 고치기 전에 영향받는 규칙을 알려 주려고).</summary>
-    public IReadOnlyList<Rule> RulesUsing(string appId) => Rules.Where(r => r.Open == appId).ToList();
+    public IReadOnlyList<Rule> RulesUsing(string appId) => Rules.Where(r => r.Choices.Contains(appId)).ToList();
 
     /// <summary>읽다가 건너뛴 것들의 이유.</summary>
     public IReadOnlyList<string> Warnings { get; }
@@ -171,16 +181,18 @@ public sealed class PolicyDocument
                 var obj = (JsonObject)raw!;
                 var when = RuleCondition.Parse(obj["when"]);
                 if (when == null) { warnings.Add($"규칙 \"{id}\": 조건(when)을 알 수 없어 건너뜀"); continue; }
-                var openNode = obj["open"];
-                string? open = null;
-                if (openNode != null)
+                var choices = RuleChoices.Read(obj);
+                if (choices == null) { warnings.Add($"규칙 \"{id}\": open/choices 가 올바른 앱 이름이 아니라 건너뜀"); continue; }
+                if (choices.Count > PolicyLimits.MaxAppsPerRule)
                 {
-                    open = RuleCondition.Str(openNode);
-                    if (open == null) { warnings.Add($"규칙 \"{id}\": open 이 문자열이 아니라 건너뜀"); continue; }
+                    warnings.Add($"규칙 \"{id}\": 앱이 {PolicyLimits.MaxAppsPerRule}개를 넘어 앞 {PolicyLimits.MaxAppsPerRule}개만 씀");
+                    choices = choices.Take(PolicyLimits.MaxAppsPerRule).ToList();
                 }
-                rules.Add(new Rule(id, when, open));
+                rules.Add(new Rule(id, when, choices));
             }
         }
+        // 한도를 넘긴 파일도 지우지 않고 그대로 읽는다(손으로 고친 것일 수 있다). 알리기만 한다.
+        if (rules.Count > PolicyLimits.MaxRules) warnings.Add($"규칙이 {rules.Count}개로 한도 {PolicyLimits.MaxRules}개를 넘음");
         return new PolicyDocument(apps, rules, warnings);
     }
 
@@ -191,8 +203,11 @@ public sealed class PolicyDocument
         foreach (var rule in Rules)
         {
             if (!rule.When.Matches(item)) continue;
-            if (rule.Open == null) return new Ask(rule.Id);
-            return Apps.TryGetValue(rule.Open, out var app) ? new OpenWith(app, rule.Id) : new MissingApp(rule.Open, rule.Id);
+            if (rule.Choices.Count == 0) return new Ask(rule.Id);
+            var apps = rule.Choices.Where(Apps.ContainsKey).Select(id => Apps[id]).ToList();
+            if (apps.Count == 0) return new MissingApp(rule.Choices[0], rule.Id);
+            if (rule.Choices.Count == 1) return new OpenWith(apps[0], rule.Id);
+            return new Ask(rule.Id, apps);   // 2개 이상: 그 앱들만 고르게 한다(정책에 없는 앱은 뺀다)
         }
         return new Ask();
     }
