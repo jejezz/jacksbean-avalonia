@@ -150,7 +150,7 @@ public static class PolicyMerger
         }
 
         // 3) 없는 앱을 가리키는 규칙은 그 앱을 뺀다.
-        var appIds = apps.Select(a => a.Id).ToHashSet();
+        var appIds = apps.Select(a => a.Id).Concat(KnownApps.BuiltInTools).ToHashSet();   // 내장 도구는 파일에 없어도 있는 앱이다
         foreach (var (id, node) in rules)
         {
             if (node is not JsonObject rule || RuleChoices.Read(rule) is not { } choices) continue;

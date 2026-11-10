@@ -70,7 +70,7 @@ public class PolicyDocumentTests
              {"id":"good","when":{"kind":"folder"},"open":["ok"]},
              "not a map"]
             """, """{"ok":{"command":"ok.exe"},"nocmd":{"args":["{path}"]},"badargs":{"command":"x","args":"oops"}}""");
-        Assert.Equal(["ok"], d.Apps.Keys);
+        Assert.Equal(["ok"], d.Apps.Keys.Where(k => !d.IsImplicitApp(k)));
         Assert.Equal(["{path}"], d.Apps["ok"].Args);
         Assert.Equal(["good"], d.Rules.Select(r => r.Id));
         Assert.Equal(7, d.Warnings.Count);
@@ -91,7 +91,10 @@ public class PolicyDocumentTests
             var d = PolicyDocument.FromJson(PolicyDocument.DefaultJson(os));
             Assert.Empty(d.Warnings);
             Assert.Equal("explorer", App(d.Decide(Drive)));
-            Assert.Equal("default", App(d.Decide(File("a.txt"))));
+            Assert.Equal("default", App(d.Decide(File("a.xyz"))));
+            Assert.Equal("text-editor", App(d.Decide(File("a.txt"))));
+            Assert.Equal("text-editor", App(d.Decide(File("a.cs"))));
+            Assert.Equal("image-viewer", App(d.Decide(File("a.png"))));
             // 폴더는 파일 관리자와 터미널 중에서 고른다(터미널이 없는 OS 는 파일 관리자 하나라 바로 연다). 어느 쪽이든 폴더와 관련된 앱뿐이다.
             var folder = d.Decide(Folder("a"));
             if (d.Apps.ContainsKey("terminal"))
@@ -104,5 +107,21 @@ public class PolicyDocumentTests
         }
         Assert.False(PolicyDocument.DefaultJson(PolicyOs.Linux)["apps"]!.AsObject().ContainsKey("terminal"));
         Assert.True(PolicyDocument.DefaultJson(PolicyOs.Windows)["apps"]!.AsObject().ContainsKey("terminal"));
+    }
+
+    [Fact]
+    public void BuiltInToolsAreAlwaysThere()
+    {
+        // 파일의 apps 에 적지 않아도 내장 도구는 앱 목록에 있고, 그것을 가리키는 규칙이 열린다.
+        var json = new System.Text.Json.Nodes.JsonObject { ["schema"] = 2, ["os"] = "windows" };
+        var d = PolicyDocument.FromJson(json);
+        Assert.True(d.Apps.ContainsKey("text-editor"));
+        Assert.True(d.IsImplicitApp("text-editor"));
+        Assert.Equal("jackbean:image-viewer", d.Apps["image-viewer"].Command);
+        // 파일에 같은 이름이 있으면 파일이 이긴다(내장이 아니다).
+        json["apps"] = new System.Text.Json.Nodes.JsonObject { ["text-editor"] = new System.Text.Json.Nodes.JsonObject { ["command"] = "notepad.exe" } };
+        var d2 = PolicyDocument.FromJson(json);
+        Assert.Equal("notepad.exe", d2.Apps["text-editor"].Command);
+        Assert.False(d2.IsImplicitApp("text-editor"));
     }
 }

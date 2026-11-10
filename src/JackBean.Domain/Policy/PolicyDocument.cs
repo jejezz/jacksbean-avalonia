@@ -122,12 +122,26 @@ public sealed class PolicyDocument
     {
         IsFallback = isFallback;
         Os = os;
-        Apps = apps ?? new Dictionary<string, AppEntry>();
+        // 내장 도구는 파일에 적지 않아도 앱 목록에 늘 있다(파일에 같은 이름이 있으면 그것을 쓴다).
+        var all = apps is null ? new Dictionary<string, AppEntry>() : new Dictionary<string, AppEntry>(apps);
+        foreach (var id in KnownApps.BuiltInTools)
+        {
+            if (all.ContainsKey(id)) continue;
+            var spec = KnownApps.Catalog[id].Windows!;
+            all[id] = new AppEntry(id, spec.Command, spec.Args);
+            _implicit.Add(id);
+        }
+        Apps = all;
         Rules = rules ?? [];
         Warnings = warnings ?? [];
     }
 
     public IReadOnlyDictionary<string, AppEntry> Apps { get; }
+
+    private readonly HashSet<string> _implicit = [];
+
+    /// <summary>파일에는 없고 내장 도구라서 더해진 앱인가(지울 수 없다).</summary>
+    public bool IsImplicitApp(string id) => _implicit.Contains(id);
     public IReadOnlyList<Rule> Rules { get; }
 
     /// <summary>이 정책이 쓰이는 OS(정책 파일의 `os`).</summary>
@@ -224,10 +238,10 @@ public sealed class PolicyDocument
     /// 이 OS의 기본 정책: 카탈로그가 아는 앱만. 드라이브는 파일 관리자로, 파일은 시스템 기본 앱으로 열고,
     /// 폴더는 파일 관리자와 터미널 중에서 고르게 한다(터미널이 없는 OS 는 파일 관리자 하나). 설치 경로를 모르는 앱은 일부러 넣지 않는다.
     /// </summary>
-    public static JsonObject DefaultJson(PolicyOs os)
+    public static JsonObject DefaultJson(PolicyOs os, bool toolRules = true)
     {
         var apps = new JsonObject();
-        foreach (var id in new[] { "explorer", "default", "terminal" })
+        foreach (var id in toolRules ? new[] { "explorer", "default", "terminal", "image-viewer", "text-editor" } : new[] { "explorer", "default", "terminal" })
         {
             var spec = KnownApps.Catalog[id].On(os);
             if (spec != null) apps[id] = spec.ToJson();
@@ -237,11 +251,22 @@ public sealed class PolicyDocument
             ["schema"] = SchemaVersion,
             ["os"] = os.JsonName(),
             ["apps"] = apps,
-            ["rules"] = new JsonArray(
-                Rule("drives", RuleCondition.Drive, Present("explorer")),
-                Rule("folders", RuleCondition.Folder, Present("explorer", "terminal")),
-                Rule("files", RuleCondition.File, Present("default"))),
+            ["rules"] = new JsonArray(Rules().ToArray<JsonNode?>()),
         };
+
+        IEnumerable<JsonObject> Rules()
+        {
+            // 내장 도구: 이미지 뷰어가 그릴 수 있는 형식, 텍스트·코드는 내장 에디터. (시험은 toolRules=false 로 도구 규칙 없는 기본 정책을 쓴다.)
+            if (toolRules)
+            {
+                yield return Rule("images", RuleCondition.Extension(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico"])!, Present("image-viewer"));
+                yield return Rule("text", RuleCondition.Extension(ExtensionGroups.Find("text")!.Extensions)!, Present("text-editor"));
+                yield return Rule("code", RuleCondition.Extension(ExtensionGroups.Find("code")!.Extensions)!, Present("text-editor"));
+            }
+            yield return Rule("drives", RuleCondition.Drive, Present("explorer"));
+            yield return Rule("folders", RuleCondition.Folder, Present("explorer", "terminal"));
+            yield return Rule("files", RuleCondition.File, Present("default"));
+        }
 
         string[] Present(params string[] ids) => ids.Where(apps.ContainsKey).ToArray();
 

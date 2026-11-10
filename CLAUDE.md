@@ -62,7 +62,7 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 - 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).
 - 정책의 앱 `command`가 `jackbean:<id>`면 프로세스를 띄우지 않고 `ToolRegistry`가 `IBuiltInTool.CreateWindow(path)`로 창을 연다(파일 하나당 창 하나).
   텍스트 에디터·PDF 뷰어·압축 도구는 `IBuiltInTool`을 구현해 `App.OnFrameworkInitializationCompleted`에서 `Tools.Register`한다. 도구: `image-viewer`, `text-editor`(AvaloniaEdit + TextMate 구문 강조, 5MB 한도, UTF-8·BOM·줄바꿈 보존, 찾기·바꾸기·줄 이동; 파일 로직은 `Services/Text`). 같은 도구로 같은 파일을 다시 열면 열려 있는 창을 앞으로 가져온다(`ToolRegistry`).
-  **도구 공통 조건**: 등록은 가벼운 팩토리만, 무거운 초기화·스타일 로드(`EditorStyles`)는 `CreateWindow` 안에서 — 안 쓸 때 메모리·시작 시간이 늘지 않아야 한다. 정책에 연결하려면 앱의 `command` 를 `jackbean:text-editor` 로 적는다(기본 정책에는 아직 넣지 않았다).
+  **도구 공통 조건**: 등록은 가벼운 팩토리만, 무거운 초기화·스타일 로드(`EditorStyles`)는 `CreateWindow` 안에서 — 안 쓸 때 메모리·시작 시간이 늘지 않아야 한다. 정책에 연결하려면 앱의 `command` 를 `jackbean:text-editor` 로 적는다— **내장 도구는 정책 파일에 적지 않아도 앱 목록에 늘 있다**(`KnownApps.BuiltInTools` → `PolicyDocument.Apps` 가 더함, `IsImplicitApp`; 합치기 복구도 이 앱을 있는 것으로 본다). 새 기본 정책은 이미지(`png jpg jpeg gif webp bmp ico`) → 이미지 뷰어, 텍스트·코드 묶음 → 에디터 규칙(`images` `text` `code`)을 포함한다(이미 있는 정책 파일은 그대로 — 새로 만들거나 [기본 정책 다시 만들기]를 할 때만).
   형제 앱에 에디터(`EditorWindow`)·뷰어(`ViewerWindow`)·압축(`ArchiveService`)이 이미 있으니 새로 만들지 말고 가져온다.
 
 ## 규약 적용
@@ -85,7 +85,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 297개(Domain 104 · Services 183 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 299개(Domain 106 · Services 183 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
