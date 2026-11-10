@@ -83,3 +83,33 @@ public class MultiPathTests
         Assert.All(outcomes, o => Assert.IsType<Opened>(o));
     }
 }
+
+/// <summary>홈 창 [열기]: 대상 없이 앱만 띄우는 인자.</summary>
+public class TryOutArgsTests
+{
+    private static AppEntry App(string command, params string[] args) => new("t", command, args);
+
+    [Fact]
+    public void TargetArgsAreDroppedTogetherWithTheirFlag()
+    {
+        Assert.Empty(AppLauncher.ArgsForTryOut(App("wt.exe", "-d", "{path}"), "C:/Users/me"));
+        Assert.Equal(["-a", "Terminal"], AppLauncher.ArgsForTryOut(App("open", "-a", "Terminal", "{path}"), "/Users/me"));
+        Assert.Equal(["--wait", "x"], AppLauncher.ArgsForTryOut(App("code", "--wait", "x", "{paths}"), "/home/me"));   // 대상 바로 앞이 옵션이 아니면 옵션은 남는다
+        Assert.Empty(AppLauncher.ArgsForTryOut(App("code", "--new-window", "{paths}"), "/home/me"));          // 대상 바로 앞 옵션은 대상의 짝이라 함께 뺀다
+        Assert.Empty(AppLauncher.ArgsForTryOut(App("notepad.exe", "{path}"), "C:/Users/me"));
+    }
+
+    [Fact]
+    public void FileOpenersGetTheFolderSoTheyDoNotFail()
+    {
+        Assert.Equal(["C:/Users/me"], AppLauncher.ArgsForTryOut(App("explorer.exe", "{path}"), "C:/Users/me"));
+        Assert.Equal(["/Users/me"], AppLauncher.ArgsForTryOut(App("open", "{path}"), "/Users/me"));
+        Assert.Equal(["/home/me"], AppLauncher.ArgsForTryOut(App("/usr/bin/xdg-open", "{path}"), "/home/me"));
+    }
+
+    [Fact]
+    public void EmbeddedPathTokensAreReplacedWithTheFolder()
+    {
+        Assert.Equal(["--dir=/home/me"], AppLauncher.ArgsForTryOut(App("tool", "--dir={path}"), "/home/me"));
+    }
+}

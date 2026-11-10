@@ -320,4 +320,24 @@ public interface IAppStrings
     string VideoPlayerHint { get; }
     string AudioPlayerFailed(string error);
     string AudioPlayerHint { get; }
+    string HomeStatRules { get; }
+    string HomeStatApps { get; }
+    string HomeStatSync { get; }
+    string HomeStatPolicy { get; }
+    string HomeSyncOn { get; }
+    string HomeSyncOff { get; }
+    string HomeSyncNotYet { get; }
+    string HomeOtherFiles { get; }
+    string HomeTargetFileType { get; }
+    string HomeTargetAnyFolder { get; }
+    string HomeTargetAnyDrive { get; }
+    string HomeTargetAnyFile { get; }
+    string HomeOsDefault { get; }
+    string HomeBuiltIn { get; }
+    string HomeOpenApp { get; }
+    string HomeAppRuleCount(int count);
+    string HomeAppUnused { get; }
+    string HomeOpenAppPick(string app);
+    string HomeAppsSummary(int total, int builtIn);
+    string HomeOpenAppTip { get; }
 }

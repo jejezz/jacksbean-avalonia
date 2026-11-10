@@ -23,6 +23,11 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 홈 창의 [기본 정책 다시 만들기]가 `PolicyStore.ResetToDefaultsAsync` 로 새로 만든다(이전 파일은 `.broken-날짜시각`으로 옮겨 둔다). 규칙 하나만 건너뛴 경우는 경고만 보이고 복구 버튼은 없다.
 파일이 멀쩡할 때는 정책 카드의 **[기본 정책으로 되돌리기]**(`PolicyStore.RestoreDefaultsAsync`)가 늘 있다: 확인 대화상자 뒤 규칙·앱만 기본 정책으로 바꾸고(모르는 최상위 키는 보존) 이전 내용을 `.backup-날짜시각` 으로 남기며 [실행 취소]로 되돌릴 수 있다 — 새 기본 규칙을 받고 싶을 때.
 
+## 홈 창 구성
+위에서부터: **요약 띠**(규칙 수 · 앱 수[내장 개수] · 동기화 상태·저장소·마지막 시각 · 정책 파일 이름과 OS) → 경고(있으면) → **규칙 카드** → **앱 카드** → 정책 파일 카드(경로·[다시 읽기][정책 파일 열기][마지막 변경 되돌리기][기본 정책으로 되돌리기][지금 동기화]).
+규칙 카드는 한 줄이 `아이콘 · 대상 이름(+종류) → 확장자 칩(앞 6개 + `+N`) → 연결한 앱 칩`이고, 줄을 누르면 규칙 편집 창이 그 종류의 구역으로 열린다. 줄의 모양은 `Domain/Policy/RulePresentation`(제목: 규칙 id 가 묶음 id 와 같거나 `images` 처럼 복수형이면 묶음 이름, 아이콘: 묶음별).
+앱 카드는 타일(아이콘 · 이름 · 명령 한 줄 · [내장] 배지 · 쓰는 규칙 수 · **[열기]**)이다. **[열기]** 는 앱을 한 번 띄워 보는 시험이다: 외부 앱은 대상 없이 실행하고(`AppLauncher.ArgsForTryOut` — `{path}`·`{paths}` 와 그 바로 앞 옵션을 빼고, `explorer.exe`·`open`·`xdg-open` 에는 사용자 폴더를 준다), 내장 도구는 파일 선택 창을 거쳐 그 파일로 연다(`{paths}` 를 받는 앱은 여러 개). 실패하면 스낵바.
+
 ## 정책 동기화 (GitHub)
 설정 창 "동기화" 구역: **GitHub 로그인 → 저장소 고르기(새로 만들기/기존 선택) → [지금 동기화]**(홈 창 정책 카드에도 같은 버튼). **버튼으로 직접**만 한다(자동 동기화 없음). 같은 방식을 Notes2Hub(`../../FLUTTER/notes2hub-flutter`)가 먼저 쓴다 — 참고: `lib/github/device_flow.dart`, `github_api.dart`, `sync/sync_service.dart`.
 - **로그인**(`Services/GitHub`): 브라우저 로그인(Device Flow, `DeviceFlow`) — 코드를 보여 주고 브라우저를 열면 사용자가 승인하고 앱이 토큰을 기다린다. **Client ID 가 있어야 한다**(`AppIdentity.GitHubClientId` ← `Directory.Build.props` 의 `AppGitHubClientId`; 로컬은 git 제외 파일 `Directory.Build.local.props`(견본 `.example`), 배포는 `-p:AppGitHubClientId=`). Client ID 가 없는 빌드는 **토큰(PAT, repo 권한) 입력 로그인만** 보인다. 토큰은 **OS 보안 저장소에만**(`ITokenStore`: Windows 자격 증명 관리자 · macOS 키체인(`security`) · Linux `secret-tool`, 없으면 이번 실행 동안만 메모리) — 설정 파일(`sync_login` = 이름만, `sync_repo` = `소유자/이름`)·로그·정책 파일에는 남기지 않는다.
@@ -88,7 +93,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 314개(Domain 106 · Services 198 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 326개(Domain 111 · Services 201 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.

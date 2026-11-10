@@ -68,6 +68,10 @@
             <Setter Property="Background" Value="{DynamicResource AppSurface}" />
             <Setter Property="ClipToBounds" Value="True" />
         </Style>
+        <!-- 홈 창 규칙 줄: 올려 두면 강조 -->
+        <Style Selector="Border.row:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+        </Style>
         <Style Selector="Border.card.active">
             <Setter Property="BorderBrush" Value="{DynamicResource AppPrimary}" />
         </Style>

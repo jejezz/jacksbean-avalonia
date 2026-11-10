@@ -338,4 +338,24 @@ public sealed class KoreanStrings : IAppStrings
     public string VideoPlayerHint => "재생되지 않는 형식이면 기본 앱으로 여세요.";
     public string AudioPlayerFailed(string error) => $"음악을 열지 못했어요: {error}";
     public string AudioPlayerHint => "재생되지 않는 형식이면 기본 앱으로 여세요.";
+    public string HomeStatRules => "규칙";
+    public string HomeStatApps => "앱";
+    public string HomeStatSync => "동기화";
+    public string HomeStatPolicy => "정책 파일";
+    public string HomeSyncOn => "연결됨";
+    public string HomeSyncOff => "꺼짐";
+    public string HomeSyncNotYet => "아직 안 함";
+    public string HomeOtherFiles => "그 밖의 파일";
+    public string HomeTargetFileType => "파일 형식";
+    public string HomeTargetAnyFolder => "모든 폴더";
+    public string HomeTargetAnyDrive => "모든 드라이브";
+    public string HomeTargetAnyFile => "위에 안 맞는 파일";
+    public string HomeOsDefault => "운영체제 기본";
+    public string HomeBuiltIn => "내장";
+    public string HomeOpenApp => "열기";
+    public string HomeAppRuleCount(int count) => $"규칙 {count}개";
+    public string HomeAppUnused => "쓰는 규칙 없음";
+    public string HomeOpenAppPick(string app) => $"{app}로 열 파일 고르기";
+    public string HomeAppsSummary(int total, int builtIn) => $"{total}개 · 내장 {builtIn}개";
+    public string HomeOpenAppTip => "앱을 한 번 열어 봅니다(내장 도구는 파일을 고릅니다).";
 }
