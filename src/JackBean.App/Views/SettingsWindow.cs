@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -51,7 +52,7 @@ public sealed class SettingsWindow : Window
         window.Show();
     }
 
-    enum Section { Appearance, Behavior }
+    enum Section { Appearance, Behavior, Sync }
 
     readonly Grid _root = new();
     readonly StackPanel _nav = new() { Spacing = 4 };
@@ -146,10 +147,12 @@ public sealed class SettingsWindow : Window
         _nav.Children.Clear();
         var s = Strings.Current;
         AddNavItem(Section.Appearance, s.SettingsSectionAppearance, "palette");
-        if (HasBehaviorSettings) AddNavItem(Section.Behavior, s.SettingsSectionBehavior, "sliders");   // 이 OS 에서 쓸 수 있는 동작 설정이 있을 때만
+        if (HasBehaviorSettings) AddNavItem(Section.Behavior, s.SettingsSectionBehavior, "sliders");
+        AddNavItem(Section.Sync, s.SettingsSectionSync, "cloud");   // 이 OS 에서 쓸 수 있는 동작 설정이 있을 때만
 
         var page = new StackPanel { Spacing = 8, MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left };
-        if (_section == Section.Behavior && HasBehaviorSettings) BuildBehavior(page);
+        if (_section == Section.Sync) BuildSync(page);
+        else if (_section == Section.Behavior && HasBehaviorSettings) BuildBehavior(page);
         else BuildAppearance(page);
         _scroll.Content = page;
         OnSettingsChanged(App.Settings.Value);
@@ -194,7 +197,68 @@ public sealed class SettingsWindow : Window
         Rebuild();
     }
 
+    void BuildSync(StackPanel page)
+    {
+        var s = Strings.Current;
+        TextBlock Small(string text, double opacity = 0.8)
+        {
+            var t = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Opacity = opacity };
+            t.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsSmall"));
+            return t;
+        }
+
+        page.Children.Add(Heading(s.SyncTitle, first: true));
+        page.Children.Add(new TextBlock { Text = s.SyncDescription, TextWrapping = TextWrapping.Wrap });
+
+        page.Children.Add(Heading(s.SyncRepoLabel));
+        var box = new TextBox { Text = App.Settings.Value.SyncRepository ?? "", Watermark = "https://github.com/…/….git" };
+        box.Bind(TextBox.FontFamilyProperty, this.GetResourceObservable("AppUserFont"));   // 주소는 사용자가 적는 글
+        void Commit()
+        {
+            var value = box.Text?.Trim() ?? "";
+            var next = value.Length == 0 ? null : value;
+            if (next != App.Settings.Value.SyncRepository) App.Settings.Update(x => x with { SyncRepository = next });
+        }
+        box.LostFocus += (_, _) => Commit();
+        box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { Commit(); e.Handled = true; } };
+        page.Children.Add(box);
+        page.Children.Add(Small(s.SyncRepoHint));
+
+        var syncButton = new Button { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 12, 0, 0) };
+        syncButton.Classes.Add("accent");
+        var status = Small("");
+        var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+        summary.Classes.Add("user");
+        void Refresh()
+        {
+            var hasRepo = !string.IsNullOrWhiteSpace(App.Settings.Value.SyncRepository);
+            syncButton.Content = App.SyncRunning ? s.SyncRunning : s.SyncNow;
+            syncButton.IsEnabled = hasRepo && !App.SyncRunning;
+            var last = App.Settings.Value.SyncLastAt;
+            status.Text = last is { } at ? s.SyncLast(at.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)) : s.SyncNever;
+            summary.Text = App.LastSyncSummary ?? "";
+            summary.IsVisible = summary.Text.Length > 0;
+        }
+        syncButton.Click += async (_, _) => { Commit(); Refresh(); await App.SyncNowAsync(); };
+        Action onSync = () => Dispatcher.UIThread.Post(Refresh);
+        App.SyncChanged += onSync;
+        Closed += (_, _) => App.SyncChanged -= onSync;
+        _refreshers.Add(Refresh);   // 설정(저장소 주소·마지막 동기화 시각)이 바뀌면 다시 그린다
+        Refresh();
+        page.Children.Add(syncButton);
+        page.Children.Add(status);
+        page.Children.Add(summary);
+        page.Children.Add(Small(s.SyncOsNote, 0.7));
+    }
+
     static bool HasBehaviorSettings => App.Startup.IsSupported || App.Hotkeys.IsSupported;
+
+    /// <summary>확인용(--snapshot): "동기화" 구역으로 넘어간다.</summary>
+    internal void ShowSync()
+    {
+        _section = Section.Sync;
+        Rebuild();
+    }
 
     void BuildBehavior(StackPanel page)
     {

@@ -15,6 +15,7 @@ using JackBean.Domain.Policy;
 using JackBean.Domain.Settings;
 using JackBean.Services;
 using JackBean.Services.Startup;
+using JackBean.Services.Sync;
 using JackBean.Services.Updates;
 
 namespace JackBean.App;
@@ -42,6 +43,18 @@ public partial class App : Application
     /// <summary>로그인할 때 자동 시작(시작 프로그램). 등록 여부는 OS 에 있는 등록이 원본이다.</summary>
     internal static IStartupRegistration Startup { get; private set; } = null!;
 
+    /// <summary>정책을 GitHub 와 동기화한다(컴퓨터의 git 명령 사용).</summary>
+    internal static PolicySync Sync { get; private set; } = null!;
+
+    /// <summary>동기화가 돌고 있다(버튼을 막는다).</summary>
+    internal static bool SyncRunning { get; private set; }
+
+    /// <summary>마지막 동기화 결과를 사람이 읽을 글로(설정 창에 보인다). 이번 실행에서 한 적이 없으면 null.</summary>
+    internal static string? LastSyncSummary { get; private set; }
+
+    /// <summary>동기화가 시작되거나 끝났다 — 버튼·안내를 다시 그린다.</summary>
+    internal static event Action? SyncChanged;
+
     private TrayService? _tray;
 
     /// <summary>업데이트 확인·설치. 서버 주소가 없는 빌드(<c>-p:AppUpdateServer=</c>)나 로컬 빌드는 null.</summary>
@@ -59,6 +72,7 @@ public partial class App : Application
         Settings = new SettingsController(new JsonSettingsRepository(settingsFile));
 
         PolicyStore = new PolicyStore(os, Path.GetDirectoryName(settingsFile));
+        Sync = new PolicySync(PolicyStore, Path.Combine(PolicyStore.Directory, "sync"));
         Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName);
         Tools = new ToolRegistry();
         Tools.Register(new ImageViewerTool());
@@ -118,6 +132,40 @@ public partial class App : Application
             || previous.TextScale != s.TextScale || previous.UiFontFamily != s.UiFontFamily)
             ThemeService.Apply(s);
         if (previous is null || previous.Locale != s.Locale) Strings.Apply(s.Locale);
+    }
+
+    /// <summary>
+    /// 지금 정책을 동기화한다(설정 창·홈 창의 버튼). 이미 돌고 있거나 저장소 주소가 없으면 아무것도 하지 않는다.
+    /// 끝나면 결과를 알림으로 알리고, 받은 변경이 있으면 열린 창들이 정책을 다시 읽게 한다.
+    /// </summary>
+    internal static async Task SyncNowAsync()
+    {
+        var repository = Settings.Value.SyncRepository;
+        if (SyncRunning || string.IsNullOrWhiteSpace(repository)) return;
+        SyncRunning = true;
+        SyncChanged?.Invoke();
+        var s = Strings.Current;
+        try
+        {
+            var result = await Task.Run(() => Sync.SyncAsync(repository));
+            if (!result.Ok)
+            {
+                LastSyncSummary = s.SyncFailed(result.Error ?? "");
+                Notifications.Snackbar.Error(LastSyncSummary);
+                return;
+            }
+            var conflicts = result.MergeNotes.Count(n => n.Kind == MergeNoteKind.ConflictResolved);
+            var headline = s.SyncDone(result.ChangedLocal, result.ChangedRemote);
+            LastSyncSummary = string.Join('\n', new[] { headline }.Concat(result.MergeNotes.Select(s.SyncNote)));
+            Settings.Update(x => x with { SyncLastAt = DateTimeOffset.Now });
+            if (result.ChangedLocal) NotifyPolicyChanged();
+            Notifications.Snackbar.Info(conflicts > 0 ? $"{headline} {s.SyncConflicts(conflicts)}" : headline);
+        }
+        finally
+        {
+            SyncRunning = false;
+            SyncChanged?.Invoke();
+        }
     }
 
     /// <summary>독을 숨기거나 다시 보인다.</summary>

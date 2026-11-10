@@ -49,6 +49,7 @@ ICONS = {
     "arrow-down": ("arrow-down", "duotone"),
     # 설정 창: 동작
     "sliders": ("sliders-horizontal", "duotone"),
+    "cloud": ("cloud-arrow-up", "duotone"),
 }
 
 

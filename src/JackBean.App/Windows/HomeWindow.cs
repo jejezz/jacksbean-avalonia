@@ -33,7 +33,8 @@ public sealed class HomeWindow : Window
         AddHandler(KeyDownEvent, OnKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         Strings.Changed += OnLanguageChanged;
         App.PolicyChanged += OnPolicyChanged;
-        Closed += (_, _) => { Strings.Changed -= OnLanguageChanged; App.PolicyChanged -= OnPolicyChanged; };
+        App.SyncChanged += OnSyncChanged;
+        Closed += (_, _) => { Strings.Changed -= OnLanguageChanged; App.PolicyChanged -= OnPolicyChanged; App.SyncChanged -= OnSyncChanged; };
         Activated += (_, _) => _tint.Classes.Set("active", true);
         Deactivated += (_, _) => _tint.Classes.Set("active", false);
         PositionChanged += (_, _) => SavePlacement();
@@ -50,6 +51,8 @@ public sealed class HomeWindow : Window
     private void OnLanguageChanged() => Dispatcher.UIThread.Post(Build);
 
     /// <summary>편집 창(또는 복구)이 정책을 바꿨다 — 홈 창은 보기 전용이라 다시 읽어 보여 주기만 한다.</summary>
+    private void OnSyncChanged() => Dispatcher.UIThread.Post(Build);
+
     private void OnPolicyChanged() => Dispatcher.UIThread.Post(async () => await ReloadAsync());
 
     private async Task ReloadAsync()
@@ -180,6 +183,12 @@ public sealed class HomeWindow : Window
         var undo = new Button { Content = s.HomeUndo, IsEnabled = App.PolicyStore.CanUndo };
         undo.Click += (_, _) => PolicyNotices.Undo();
         var fileButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { reload, openFile, undo } };
+        if (!string.IsNullOrWhiteSpace(App.Settings.Value.SyncRepository))
+        {
+            var sync = new Button { Content = App.SyncRunning ? s.SyncRunning : s.HomeSyncNow, IsEnabled = !App.SyncRunning };
+            sync.Click += async (_, _) => await App.SyncNowAsync();
+            fileButtons.Children.Add(sync);
+        }
         stack.Children.Add(Card(new StackPanel { Spacing = 8, Children = { Heading(s.HomePolicyFile), path, fileButtons } }));
 
         if (_policy == null) return stack;
