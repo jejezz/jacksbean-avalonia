@@ -27,16 +27,20 @@ public sealed partial class RulesEditorWindow : Window
 {
     private static RulesEditorWindow? _instance;
 
-    /// <summary>규칙 편집 창을 연다. 이미 열려 있으면 앞으로 가져온다. <paramref name="start"/> = 처음 보여 줄 구역.</summary>
-    public static void Open(Window origin, RulesEditorSection start = RulesEditorSection.Drive)
+    /// <summary>
+    /// 규칙 편집 창을 연다. 이미 열려 있으면 앞으로 가져온다. <paramref name="start"/> = 보여 줄 구역,
+    /// <paramref name="ruleId"/> = 파일 형식 구역에서 고를 규칙(홈 창에서 그 규칙 줄을 눌러 열 때 — 없으면 첫 규칙).
+    /// </summary>
+    public static void Open(Window origin, RulesEditorSection start = RulesEditorSection.Drive, string? ruleId = null)
     {
         if (_instance is { } open)
         {
             if (open.WindowState == WindowState.Minimized) open.WindowState = WindowState.Normal;
             open.Activate();
+            if (ruleId != null || (Section)start != open._section) open.GoTo((Section)start, ruleId);
             return;
         }
-        var window = new RulesEditorWindow((Section)start);
+        var window = new RulesEditorWindow((Section)start) { _initialExt = ruleId };
         _instance = window;
         WindowPlacementHelper.OpenNear(origin, window);
     }
@@ -52,6 +56,7 @@ public sealed partial class RulesEditorWindow : Window
     private PolicyDocument? _policy;
     private Section _section;
     private string? _extRuleId;   // 파일 형식 구역에서 고른 규칙(없으면 null)
+    private string? _initialExt;  // 열 때 고를 파일 형식 규칙(홈 창에서 그 줄을 눌렀을 때)
     private bool _isNewExt;       // 파일 형식 구역에서 새 규칙을 만드는 중
     private bool _saving;
     private bool _syncing;
@@ -132,7 +137,11 @@ public sealed partial class RulesEditorWindow : Window
         _policy = await App.PolicyStore.LoadAsync();
         if (selectExt != null) { _extRuleId = selectExt; _isNewExt = false; }
         if (_section == Section.Files && !_isNewExt && (first || _extRuleId == null || ExtRules().All(r => r.Id != _extRuleId)))
-            _extRuleId = ExtRules().FirstOrDefault()?.Id;
+        {
+            // 처음 열 때는 눌러서 온 규칙을, 없으면 첫 규칙을 고른다.
+            _extRuleId = first && _initialExt != null && ExtRules().Any(r => r.Id == _initialExt) ? _initialExt : ExtRules().FirstOrDefault()?.Id;
+            _initialExt = null;
+        }
         BuildNav();
         if (keepForm) return;
         LoadDraft();
@@ -184,6 +193,20 @@ public sealed partial class RulesEditorWindow : Window
         _section = section;
         _isNewExt = false;
         _extRuleId = section == Section.Files ? ExtRules().FirstOrDefault()?.Id : null;
+        BuildNav();
+        LoadDraft();
+        BuildPage();
+    }
+
+    /// <summary>이미 열린 창을 다른 구역·규칙으로 옮긴다(고치던 내용이 있으면 버릴지 묻는다).</summary>
+    private async void GoTo(Section section, string? ruleId)
+    {
+        var target = section == Section.Files ? (ruleId != null && ExtRules().Any(r => r.Id == ruleId) ? ruleId : null) : null;
+        if (section == _section && (section != Section.Files || target == null || (!_isNewExt && target == _extRuleId))) return;
+        if (!await ConfirmDiscardAsync()) return;
+        _section = section;
+        _isNewExt = false;
+        _extRuleId = section == Section.Files ? target ?? ExtRules().FirstOrDefault()?.Id : null;
         BuildNav();
         LoadDraft();
         BuildPage();

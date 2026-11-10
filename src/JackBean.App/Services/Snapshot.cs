@@ -42,7 +42,7 @@ static class Snapshot
         await App.PolicyStore.UpsertRuleAsync(new Services.RuleEdit("pdf", Domain.Policy.RuleCondition.Extension(["pdf"])!, ["default"]));
         App.NotifyPolicyChanged();
         AppsEditorWindow.Open(dock);
-        RulesEditorWindow.Open(dock, RulesEditorSection.Files);
+        RulesEditorWindow.Open(dock, RulesEditorSection.Files, "video");   // 홈 창에서 규칙 줄을 눌렀을 때처럼 그 규칙을 고른다
         Notifications.Snackbar.Error(Strings.Current.DockOpenFailed("D:/작업/보고서 최종.pdf 을(를) 실행하지 못했습니다 — 파일 형식과 연결된 앱이 없습니다"), "System.ComponentModel.Win32Exception: 지정된 파일을 찾을 수 없습니다");
         // 텍스트 에디터(구문 강조 포함): 예시 C# 파일을 연다.
         var sample = Path.Combine(dir, "Sample.cs");
