@@ -190,6 +190,71 @@ public sealed class KoreanStrings : IAppStrings
     public string HomeUndo => "마지막 변경 되돌리기";
     public string PolicyUndone => "방금 변경을 되돌렸습니다.";
     public string PolicyUndoFailed(string error) => $"되돌리지 못했습니다: {error}";
+    public string TrayHideDock => "독 숨기기";
+    public string TrayShowDock => "독 보이기";
+    public string SettingsSectionBehavior => "동작";
+    public string SettingsHotkey => "전역 단축키";
+    public string SettingsHotkeyToggle(string combo) => $"{combo} 로 독 숨기기·보이기";
+    public string SettingsHotkeyNote => "어느 앱에 있어도 눌립니다. 다른 앱이 같은 단축키를 쓰고 있으면 켜지지 않습니다.";
+    public string HotkeyFailed(string combo) => $"{combo} 단축키를 켜지 못했습니다. 다른 앱이 쓰고 있을 수 있습니다.";
+    public string SettingsStartup => "시작 프로그램";
+    public string SettingsStartupToggle => "로그인할 때 자동으로 시작";
+    public string SettingsStartupNote => "컴퓨터에 로그인하면 독이 바로 뜹니다.";
+    public string StartupFailed(string error) => $"시작 프로그램 설정을 바꾸지 못했습니다: {error}";
+    public string HomeSyncNow => "지금 동기화";
+    public string SettingsSectionSync => "동기화";
+    public string SyncTitle => "정책 동기화 (GitHub)";
+    public string SyncDescription => "정책 파일을 GitHub 저장소에 올리고 받아서 여러 PC 에서 같은 규칙을 씁니다. git 을 설치하지 않아도 되고, 로그인 토큰은 이 PC 의 보안 저장소(자격 증명 관리자·키체인)에만 보관합니다.";
+    public string SyncSignedInAs(string login) => $"{login} 으로 로그인되어 있습니다.";
+    public string SyncSignIn => "GitHub 로그인";
+    public string SyncSignOut => "로그아웃";
+    public string SyncReauth => "로그인이 만료되었거나 거절되었습니다. 다시 로그인하세요.";
+    public string SyncRepoLabel => "저장소";
+    public string SyncRepoNone => "동기화할 저장소를 아직 고르지 않았습니다.";
+    public string SyncRepoCurrent(string repo) => repo;
+    public string SyncChooseRepo => "저장소 선택…";
+    public string SyncNoSecureStore => "이 PC 에서는 보안 저장소를 쓸 수 없어 이번 실행 동안만 로그인 상태가 유지됩니다.";
+    public string GitHubLoginTitle => "GitHub 로그인";
+    public string GitHubLoginWait => "브라우저에서 아래 코드를 입력하고 승인하세요. (브라우저가 자동으로 열립니다)";
+    public string GitHubLoginWaiting => "승인을 기다리는 중…";
+    public string GitHubOpenBrowser => "브라우저 열기";
+    public string GitHubCopyCode => "코드 복사";
+    public string GitHubTokenAdvanced => "토큰으로 로그인 (고급)";
+    public string GitHubTokenHint => "repo 권한이 있는 GitHub 개인 액세스 토큰을 붙여 넣습니다. 토큰은 이 PC 의 보안 저장소에만 보관됩니다.";
+    public string GitHubSignInButton => "로그인";
+    public string GitHubNoClientId => "이 빌드에는 브라우저 로그인이 설정되어 있지 않아 토큰으로만 로그인할 수 있습니다.";
+    public string GitHubLoginFailed(string error) => $"로그인하지 못했습니다: {error}";
+    public string RepoDialogTitle => "동기화할 저장소";
+    public string RepoLoading => "저장소 목록을 불러오는 중…";
+    public string RepoNone => "쓸 수 있는 저장소가 없습니다. 위에서 새로 만드세요.";
+    public string RepoAppRepo => "이 앱이 쓰던 저장소";
+    public string RepoPublicWarning => "공개 저장소 — 정책이 누구에게나 보입니다";
+    public string RepoPublicConfirm(string repo) => $"‘{repo}’ 는 공개 저장소라 정책(앱 경로 등)이 누구에게나 보입니다. 그래도 연결할까요?";
+    public string RepoCreateTitle => "새 저장소 만들기";
+    public string RepoExistingTitle => "또는 기존 저장소 선택";
+    public string RepoCreateButton => "만들기 (비공개)";
+    public string RepoConnect => "연결";
+    public string RepoConnected(string repo) => $"‘{repo}’ 저장소에 연결했습니다.";
+    public string RepoFailed(string error) => $"저장소를 다루지 못했습니다: {error}";
+    public string SyncNow => "지금 동기화";
+    public string SyncRunning => "동기화하는 중…";
+    public string SyncNever => "아직 동기화한 적이 없습니다.";
+    public string SyncLast(string when) => $"마지막 동기화: {when}";
+    public string SyncDone(bool received, bool pushed) => received && pushed ? "변경을 주고받았습니다." : received ? "GitHub 의 변경을 받았습니다." : pushed ? "이 PC 의 변경을 올렸습니다." : "이미 같습니다 — 바뀐 것이 없습니다.";
+    public string SyncFailed(string error) => $"동기화하지 못했습니다: {error}";
+    public string SyncConflicts(int count) => $"충돌 {count}개는 더 최근에 고친 쪽으로 합쳤습니다.";
+    public string SyncNote(JackBean.Domain.Policy.MergeNote note)
+    {
+        var what = (note.Item == JackBean.Domain.Policy.MergeItemKind.App ? "앱" : "규칙") + $" ‘{note.Id}’";
+        return note.Kind switch
+        {
+            JackBean.Domain.Policy.MergeNoteKind.ConflictResolved => $"{what}: 양쪽에서 고쳐서 더 최근인 {(note.Detail == "remote" ? "GitHub" : "이 PC")} 것을 썼습니다.",
+            JackBean.Domain.Policy.MergeNoteKind.RemovedWithTheOtherSide => $"{what}: {(note.Detail == "remote" ? "GitHub" : "다른 PC")} 에서 지워서 함께 지웠습니다.",
+            JackBean.Domain.Policy.MergeNoteKind.KeptEditedOverDelete => $"{what}: 지워졌지만 {(note.Detail == "remote" ? "GitHub" : "이 PC")} 에서 그 뒤에 고쳐서 남겼습니다.",
+            _ => $"{what}: 합친 뒤 맞지 않는 부분을 고쳤습니다({note.Detail}).",
+        };
+    }
+    public string SyncOsNote => "정책 파일은 OS 별(policy.windows.json 등)이라 같은 OS 를 쓰는 PC 끼리 공유됩니다. 같은 항목을 양쪽에서 고치면 더 최근에 고친 쪽을 씁니다.";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "이미지", "audio" => "음악·음성", "video" => "영상", "pdf" => "PDF", "document" => "문서",

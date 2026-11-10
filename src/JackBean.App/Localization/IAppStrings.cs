@@ -187,6 +187,61 @@ public interface IAppStrings
     string HomeUndo { get; }
     string PolicyUndone { get; }
     string PolicyUndoFailed(string error);
+    string TrayHideDock { get; }
+    string TrayShowDock { get; }
+    string SettingsSectionBehavior { get; }
+    string SettingsHotkey { get; }
+    string SettingsHotkeyToggle(string combo);
+    string SettingsHotkeyNote { get; }
+    string HotkeyFailed(string combo);
+    string SettingsStartup { get; }
+    string SettingsStartupToggle { get; }
+    string SettingsStartupNote { get; }
+    string StartupFailed(string error);
+    string HomeSyncNow { get; }
+    string SettingsSectionSync { get; }
+    string SyncTitle { get; }
+    string SyncDescription { get; }
+    string SyncSignedInAs(string login);
+    string SyncSignIn { get; }
+    string SyncSignOut { get; }
+    string SyncReauth { get; }
+    string SyncRepoLabel { get; }
+    string SyncRepoNone { get; }
+    string SyncRepoCurrent(string repo);
+    string SyncChooseRepo { get; }
+    string SyncNoSecureStore { get; }
+    string GitHubLoginTitle { get; }
+    string GitHubLoginWait { get; }
+    string GitHubLoginWaiting { get; }
+    string GitHubOpenBrowser { get; }
+    string GitHubCopyCode { get; }
+    string GitHubTokenAdvanced { get; }
+    string GitHubTokenHint { get; }
+    string GitHubSignInButton { get; }
+    string GitHubNoClientId { get; }
+    string GitHubLoginFailed(string error);
+    string RepoDialogTitle { get; }
+    string RepoLoading { get; }
+    string RepoNone { get; }
+    string RepoAppRepo { get; }
+    string RepoPublicWarning { get; }
+    string RepoPublicConfirm(string repo);
+    string RepoCreateTitle { get; }
+    string RepoExistingTitle { get; }
+    string RepoCreateButton { get; }
+    string RepoConnect { get; }
+    string RepoConnected(string repo);
+    string RepoFailed(string error);
+    string SyncNow { get; }
+    string SyncRunning { get; }
+    string SyncNever { get; }
+    string SyncLast(string when);
+    string SyncDone(bool received, bool pushed);
+    string SyncFailed(string error);
+    string SyncConflicts(int count);
+    string SyncNote(JackBean.Domain.Policy.MergeNote note);
+    string SyncOsNote { get; }
     string ExtensionGroupName(string id);
     string ViewerFailed(string error);
 }

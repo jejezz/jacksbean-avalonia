@@ -53,6 +53,29 @@ static class Snapshot
                     if (w is not DockWindow) Save(w, Path.Combine(dir, $"{c.Name}-{w.GetType().Name}.png"));
             });
         }
+        // 설정 창의 "동작" 구역(전역 단축키 스위치)도 한 장 남긴다.
+        await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            var settingsWindow = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows.OfType<SettingsWindow>().FirstOrDefault();
+            if (settingsWindow == null) return;
+            settingsWindow.ShowBehavior();
+            await Task.Delay(500);
+            Save(settingsWindow, Path.Combine(dir, "behavior-SettingsWindow.png"));
+            App.Settings.Update(x => x with { SyncRepo = "octo/jacksbean-policy", SyncLastAt = DateTimeOffset.Now.AddMinutes(-3) });
+            settingsWindow.ShowSync();
+            await Task.Delay(500);
+            Save(settingsWindow, Path.Combine(dir, "sync-SettingsWindow.png"));
+            // 저장소 창: 만들 때 예외가 나지 않는지(같은 컨트롤을 두 번 담는 실수 등)도 이것으로 걸러진다. 로그인하지 않았으니 목록 대신 오류 안내가 보인다.
+            _ = Dialogs.GitHubRepoDialog.ShowAsync(settingsWindow);
+            await Task.Delay(1800);
+            var repoDialog = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows.OfType<Dialogs.GitHubRepoDialog>().FirstOrDefault();
+            if (repoDialog != null) { Save(repoDialog, Path.Combine(dir, "repo-GitHubRepoDialog.png")); repoDialog.CloseFromState(); }
+            // 로그인 창(이 빌드에 Client ID 가 없으면 토큰 입력만 보인다).
+            _ = Dialogs.GitHubLoginDialog.ShowAsync(settingsWindow);
+            await Task.Delay(600);
+            var login = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows.OfType<Dialogs.GitHubLoginDialog>().FirstOrDefault();
+            if (login != null) { Save(login, Path.Combine(dir, "login-GitHubLoginDialog.png")); login.CloseFromState(); }
+        });
         App.Quit();
     }
 

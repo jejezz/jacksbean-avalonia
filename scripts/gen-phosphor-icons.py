@@ -47,6 +47,9 @@ ICONS = {
     # 규칙 편집 창: 앱 순서 바꾸기
     "arrow-up": ("arrow-up", "duotone"),
     "arrow-down": ("arrow-down", "duotone"),
+    # 설정 창: 동작
+    "sliders": ("sliders-horizontal", "duotone"),
+    "cloud": ("cloud-arrow-up", "duotone"),
 }
 
 

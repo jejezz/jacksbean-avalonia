@@ -22,6 +22,20 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 홈 창은 규칙·앱이 모두 없으면 빈 상태 카드(규약 ui-ux §6)를, 한쪽만 없으면 한 줄 안내를 보인다. 정책 파일 **전체**를 못 읽으면(`PolicyDocument.IsFallback`) 기본 정책을 대신 쓰되 파일은 그대로 두고,
 홈 창의 [기본 정책 다시 만들기]가 `PolicyStore.ResetToDefaultsAsync` 로 새로 만든다(이전 파일은 `.broken-날짜시각`으로 옮겨 둔다). 규칙 하나만 건너뛴 경우는 경고만 보이고 복구 버튼은 없다.
 
+## 정책 동기화 (GitHub)
+설정 창 "동기화" 구역: **GitHub 로그인 → 저장소 고르기(새로 만들기/기존 선택) → [지금 동기화]**(홈 창 정책 카드에도 같은 버튼). **버튼으로 직접**만 한다(자동 동기화 없음). 같은 방식을 Notes2Hub(`../../FLUTTER/notes2hub-flutter`)가 먼저 쓴다 — 참고: `lib/github/device_flow.dart`, `github_api.dart`, `sync/sync_service.dart`.
+- **로그인**(`Services/GitHub`): 브라우저 로그인(Device Flow, `DeviceFlow`) — 코드를 보여 주고 브라우저를 열면 사용자가 승인하고 앱이 토큰을 기다린다. **Client ID 가 있어야 한다**(`AppIdentity.GitHubClientId` ← `Directory.Build.props` 의 `AppGitHubClientId`; 로컬은 git 제외 파일 `Directory.Build.local.props`(견본 `.example`), 배포는 `-p:AppGitHubClientId=`). Client ID 가 없는 빌드는 **토큰(PAT, repo 권한) 입력 로그인만** 보인다. 토큰은 **OS 보안 저장소에만**(`ITokenStore`: Windows 자격 증명 관리자 · macOS 키체인(`security`) · Linux `secret-tool`, 없으면 이번 실행 동안만 메모리) — 설정 파일(`sync_login` = 이름만, `sync_repo` = `소유자/이름`)·로그·정책 파일에는 남기지 않는다.
+- **저장소**: 새로 만들기(비공개, `auto_init` — 빈 저장소는 Contents API 로 올리기 어렵다) 또는 계정의 저장소 중 선택. 연결하면 GitHub 토픽 `jacksbean` 을 붙여서 다른 PC 에서 로그인하면 그 저장소가 맨 위에 제안된다. 공개 저장소는 경고 후 확인.
+- **동기화**(`GitHubSyncService` → `PolicySync` → `IPolicyRemote`): **git 이 필요 없다** — GitHub REST Contents API 로 저장소 루트의 `policy.<os>.json` 하나를 읽고 쓴다. 읽을 때 받은 sha 를 올릴 때 함께 보내서 그 사이 다른 PC 가 올렸으면 409/422(`GitHubConflictException`) → 다시 읽어 합친다(최대 3번). 흐름: 원격 파일 읽기 → 원격·이 PC·base(`sync/base.<os>.json`, 마지막 동기화 때의 모습)를 `PolicyMerger` 로 **앱·규칙 단위 3-way 합치기** → 이 PC 파일 고치기(`PolicyStore.ReplaceAsync`, 실행 취소 기록을 비운다) → 달라졌으면 올리기 → base 갱신. 어느 쪽 파일이 깨져 있으면 아무것도 쓰지 않는다. 401 은 "다시 로그인"(`NeedsReauth`), 네트워크 실패는 `Offline`.
+- OS 별 파일(`policy.<os>.json`)을 각자 동기화한다(같은 OS 끼리 공유). 합치기 규칙: 한쪽만 바뀌면 그쪽, 양쪽이 다르게 바뀌면 `updated` 가 더 최근인 쪽(같으면 이 PC), 한쪽에서 지운 것은 이쪽이 그 뒤로 안 고쳤으면 따라 지우고 고쳤으면 남긴다, base 가 없으면(처음) 합집합. 합친 뒤 어긋난 것은 편집 때와 같은 규칙으로 고친다(확장자는 한 규칙에만, 드라이브·폴더·파일 규칙은 하나씩, 없는 앱은 규칙에서 뺌). 앱도 `updated` 를 가진다.
+- 시험은 가짜 GitHub 서버(`FakeGitHub`, HttpMessageHandler)로 한다 — 사용자·저장소·토픽·Contents API(sha 잠금)·Device Flow.
+
+## 트레이·전역 단축키·시작 프로그램
+**시작 프로그램**(로그인할 때 자동 시작)은 설정 창 "동작" 구역의 스위치다(`Services/Startup`). 등록 여부는 설정 파일이 아니라 OS 의 등록이 원본이다(스위치가 늘 실제 상태를 보인다): Windows `HKCU\…\Run` 값, macOS `~/Library/LaunchAgents/<앱 ID>.plist`, Linux `~/.config/autostart/jacksbean.desktop`.
+실행 명령은 지금 실행 중인 앱의 경로(`LaunchCommand.Current` — 개발 중 `dotnet run` 이면 `dotnet "…dll"`). 등록하지 못하면 알림을 띄우고 스위치를 되돌린다.
+알림 영역 아이콘(`Tray/TrayService`, Avalonia `TrayIcon` — macOS 는 메뉴 막대; 그림은 독과 같은 "새싹이 난 콩" `dock_icon.png`)이 항상 있다: 누르면 독 숨기기·보이기, 메뉴는 독 숨기기·보이기 / 홈 / 설정 / 정보 / 종료. 독 메뉴에도 [독 숨기기]가 있다(`DockWindow.ToggleVisible`, 숨겨도 위치는 기억하고 다음 실행에는 다시 보인다).
+전역 단축키 **Ctrl+Alt+J**(독 숨기기·보이기)는 설정 창 "동작" 구역의 스위치로 켠다(`global_hotkey`, 기본 꺼짐 — 다른 앱과 겹칠 수 있어서). `Services/Hotkeys`: Windows 만(`WindowsGlobalHotkey` — 전용 스레드에서 `RegisterHotKey` + 메시지 루프), 그 밖의 OS 는 `IsSupported=false` 라 설정 항목이 숨는다(macOS 는 접근성 권한, Linux Wayland 는 막혀 있다). 등록에 실패하면(다른 앱이 쓰는 중) 알림을 띄우고 설정을 다시 끈다(`HotkeyService`). 조합을 바꾸는 화면은 아직 없다.
+
 ## 정책 편집(룰 메이커)
 홈 창은 **보기 전용**이고 편집은 별도 창에서 한다(JSON 을 직접 고치지 않아도 되게 폼으로). 지금은 **앱 편집 창**(`Views/AppsEditorWindow`: 왼쪽 앱 목록 + 오른쪽 폼 — 이름·실행 파일·인자)만 있고,
 홈 창 "앱" 카드의 [앱 편집]과 빈 상태의 [앱 추가]로 연다. 저장·삭제는 `PolicyStore.UpsertAppAsync/RemoveAppAsync`(임시 파일에 쓰고 교체, 사용자가 적은 모르는 키는 보존, 깨진 파일은 쓰지 않음).
@@ -56,7 +70,7 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 - **문구**: `IAppStrings`(인터페이스 → `KoreanStrings` → `EnglishStrings` 순으로 모두 추가, 빠뜨리면 컴파일 오류). 코드는 `Strings.Current`, XAML은 `{DynamicResource Str.*}`(새 문구를 XAML에서 쓰면 `Strings.PublishResources`에 더한다).
 - **글꼴(fonts.md)**: SeoulNamsan 400/700/800 번들 + 설정에서 시스템 글꼴 선택. 파일 이름·경로는 `user` 클래스(시스템 글꼴), 고정폭은 `mono`.
 - **아이콘(icons.md)**: Phosphor Duotone 하나(`Icons/DuoIcon`). 쓸 아이콘은 `scripts/gen-phosphor-icons.py`의 `ICONS`에 더하고 다시 돌린다(`PhosphorIcons.g.cs`는 직접 고치지 않는다). 단, `+` `x` `✓` 같은 단순 기호는 18px 에서 채움 사각형이 윤곽을 흐리므로 `OUTLINE_ONLY` 에 넣어 **윤곽 층만** 쓴다(규약 "Duotone 하나로 통일"의 이 앱 한정 예외 — 같은 duotone 파일의 윤곽 층이라 선 모양은 같다).
-- **설정**: 저장 키 `theme_mode accent_palette text_scale app_locale ui_font_family window_placement dock_position`. `SettingsController.Update(...)`로 바꾸면 바로 적용·(모아서)저장되고 열린 모든 창이 따라온다.
+- **설정**: 저장 키 `theme_mode accent_palette text_scale app_locale ui_font_family window_placement dock_position global_hotkey sync_repo sync_login sync_last_at`. `SettingsController.Update(...)`로 바꾸면 바로 적용·(모아서)저장되고 열린 모든 창이 따라온다.
 - **창 위치**: 홈 창은 `PlacementMath`로 기억·복원(window-placement.md), 새 독립 창은 `WindowPlacementHelper.OpenNear`.
 - **창 제목**: 홈 창(앱 창)은 `Jack’s Bean`, 그 밖의 보조 창·대화상자는 항상 `창 이름 — Jack’s Bean`(`WindowTitle.Of`). 새 창을 만들면 이것으로 제목을 정한다.
 - **단축키**: 설정 ⌘,/Ctrl+, · 정보 F1 · 새로 고침 F5/⌘R · 창 닫기 ⌘W · 대화상자 Esc. macOS 메뉴 막대에 정보·설정·종료.
@@ -70,7 +84,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 215개(Domain 92 · Services 115 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 260개(Domain 104 · Services 146 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.

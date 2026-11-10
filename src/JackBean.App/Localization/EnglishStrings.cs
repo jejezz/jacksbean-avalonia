@@ -190,6 +190,71 @@ public sealed class EnglishStrings : IAppStrings
     public string HomeUndo => "Undo last change";
     public string PolicyUndone => "Undid the last change.";
     public string PolicyUndoFailed(string error) => $"Couldn't undo: {error}";
+    public string TrayHideDock => "Hide dock";
+    public string TrayShowDock => "Show dock";
+    public string SettingsSectionBehavior => "Behavior";
+    public string SettingsHotkey => "Global shortcut";
+    public string SettingsHotkeyToggle(string combo) => $"Hide or show the dock with {combo}";
+    public string SettingsHotkeyNote => "Works from any app. It won't turn on if another app already uses the same shortcut.";
+    public string HotkeyFailed(string combo) => $"Couldn't turn on the {combo} shortcut. Another app may be using it.";
+    public string SettingsStartup => "Startup";
+    public string SettingsStartupToggle => "Start automatically when I sign in";
+    public string SettingsStartupNote => "The dock appears as soon as you sign in to the computer.";
+    public string StartupFailed(string error) => $"Couldn't change the startup setting: {error}";
+    public string HomeSyncNow => "Sync now";
+    public string SettingsSectionSync => "Sync";
+    public string SyncTitle => "Policy sync (GitHub)";
+    public string SyncDescription => "Upload and download the policy file through a GitHub repository so several PCs share the same rules. You don’t need git, and the sign-in token is kept only in this PC’s secure storage (Credential Manager, Keychain).";
+    public string SyncSignedInAs(string login) => $"Signed in as {login}.";
+    public string SyncSignIn => "Sign in to GitHub";
+    public string SyncSignOut => "Sign out";
+    public string SyncReauth => "Your sign-in expired or was rejected. Please sign in again.";
+    public string SyncRepoLabel => "Repository";
+    public string SyncRepoNone => "No repository chosen for syncing yet.";
+    public string SyncRepoCurrent(string repo) => repo;
+    public string SyncChooseRepo => "Choose repository…";
+    public string SyncNoSecureStore => "Secure storage isn’t available on this PC, so you stay signed in only for this run.";
+    public string GitHubLoginTitle => "Sign in to GitHub";
+    public string GitHubLoginWait => "Enter the code below in your browser and approve. (The browser opens automatically.)";
+    public string GitHubLoginWaiting => "Waiting for approval…";
+    public string GitHubOpenBrowser => "Open browser";
+    public string GitHubCopyCode => "Copy code";
+    public string GitHubTokenAdvanced => "Sign in with a token (advanced)";
+    public string GitHubTokenHint => "Paste a GitHub personal access token with the repo scope. The token is kept only in this PC’s secure storage.";
+    public string GitHubSignInButton => "Sign in";
+    public string GitHubNoClientId => "Browser sign-in isn’t configured in this build, so you can only sign in with a token.";
+    public string GitHubLoginFailed(string error) => $"Couldn’t sign in: {error}";
+    public string RepoDialogTitle => "Repository to sync";
+    public string RepoLoading => "Loading repositories…";
+    public string RepoNone => "No repositories available. Create one above.";
+    public string RepoAppRepo => "Used by this app before";
+    public string RepoPublicWarning => "Public repository — everyone can see the policy";
+    public string RepoPublicConfirm(string repo) => $"“{repo}” is a public repository, so the policy (app paths, …) would be visible to everyone. Connect anyway?";
+    public string RepoCreateTitle => "Create a new repository";
+    public string RepoExistingTitle => "Or pick an existing one";
+    public string RepoCreateButton => "Create (private)";
+    public string RepoConnect => "Connect";
+    public string RepoConnected(string repo) => $"Connected to “{repo}”.";
+    public string RepoFailed(string error) => $"Couldn’t handle the repository: {error}";
+    public string SyncNow => "Sync now";
+    public string SyncRunning => "Syncing…";
+    public string SyncNever => "Never synced yet.";
+    public string SyncLast(string when) => $"Last synced: {when}";
+    public string SyncDone(bool received, bool pushed) => received && pushed ? "Exchanged changes." : received ? "Received changes from GitHub." : pushed ? "Uploaded this PC’s changes." : "Already identical — nothing changed.";
+    public string SyncFailed(string error) => $"Couldn't sync: {error}";
+    public string SyncConflicts(int count) => $"{count} conflict(s) were merged in favor of the more recent edit.";
+    public string SyncNote(JackBean.Domain.Policy.MergeNote note)
+    {
+        var what = (note.Item == JackBean.Domain.Policy.MergeItemKind.App ? "App" : "Rule") + $" “{note.Id}”";
+        return note.Kind switch
+        {
+            JackBean.Domain.Policy.MergeNoteKind.ConflictResolved => $"{what}: edited on both sides; used the more recent one ({(note.Detail == "remote" ? "GitHub" : "this PC")}).",
+            JackBean.Domain.Policy.MergeNoteKind.RemovedWithTheOtherSide => $"{what}: removed because it was deleted on {(note.Detail == "remote" ? "GitHub" : "the other PC")}.",
+            JackBean.Domain.Policy.MergeNoteKind.KeptEditedOverDelete => $"{what}: kept because it was edited on {(note.Detail == "remote" ? "GitHub" : "this PC")} after being deleted.",
+            _ => $"{what}: fixed something that didn’t fit after merging ({note.Detail}).",
+        };
+    }
+    public string SyncOsNote => "The policy file is per OS (policy.windows.json, …), so only PCs running the same OS share it. If both sides edit the same item, the more recent edit wins.";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "Images", "audio" => "Music & voice", "video" => "Video", "pdf" => "PDF", "document" => "Documents",

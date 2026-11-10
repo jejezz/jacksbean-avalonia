@@ -1,9 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using JackBean.App.Tray;
 using JackBean.Domain;
 using JackBean.Domain.Settings;
 using JackBean.Domain.Theme;
@@ -50,7 +52,7 @@ public sealed class SettingsWindow : Window
         window.Show();
     }
 
-    enum Section { Appearance }
+    enum Section { Appearance, Behavior, Sync }
 
     readonly Grid _root = new();
     readonly StackPanel _nav = new() { Spacing = 4 };
@@ -145,9 +147,13 @@ public sealed class SettingsWindow : Window
         _nav.Children.Clear();
         var s = Strings.Current;
         AddNavItem(Section.Appearance, s.SettingsSectionAppearance, "palette");
+        if (HasBehaviorSettings) AddNavItem(Section.Behavior, s.SettingsSectionBehavior, "sliders");
+        AddNavItem(Section.Sync, s.SettingsSectionSync, "cloud");   // 이 OS 에서 쓸 수 있는 동작 설정이 있을 때만
 
         var page = new StackPanel { Spacing = 8, MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left };
-        BuildAppearance(page);
+        if (_section == Section.Sync) BuildSync(page);
+        else if (_section == Section.Behavior && HasBehaviorSettings) BuildBehavior(page);
+        else BuildAppearance(page);
         _scroll.Content = page;
         OnSettingsChanged(App.Settings.Value);
     }
@@ -181,6 +187,141 @@ public sealed class SettingsWindow : Window
         var block = new TextBlock { Text = text, FontWeight = FontWeight.Bold, Margin = new Thickness(0, first ? 0 : 20, 0, 4) };
         block.Bind(TextBlock.FontSizeProperty, Application.Current!.GetResourceObservable("FsMid"));
         return block;
+    }
+
+    /// <summary>확인용(--snapshot): "동작" 구역으로 넘어간다. 이 OS 에 그 구역이 없으면 아무것도 하지 않는다.</summary>
+    internal void ShowBehavior()
+    {
+        if (!HasBehaviorSettings) return;
+        _section = Section.Behavior;
+        Rebuild();
+    }
+
+    void BuildSync(StackPanel page)
+    {
+        var s = Strings.Current;
+        TextBlock Small(string text, double opacity = 0.8)
+        {
+            var t = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Opacity = opacity };
+            t.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsSmall"));
+            return t;
+        }
+
+        page.Children.Add(Heading(s.SyncTitle, first: true));
+        page.Children.Add(new TextBlock { Text = s.SyncDescription, TextWrapping = TextWrapping.Wrap });
+
+        // 로그인
+        page.Children.Add(Heading(s.SyncSignIn));
+        var github = App.Github;
+        if (github.LoggedIn)
+        {
+            page.Children.Add(new TextBlock { Text = s.SyncSignedInAs(github.Login!), TextWrapping = TextWrapping.Wrap });
+            var signOut = new Button { Content = s.SyncSignOut, HorizontalAlignment = HorizontalAlignment.Left };
+            signOut.Click += (_, _) => { github.SignOut(); Rebuild(); };
+            page.Children.Add(signOut);
+            if (!github.TokenPersistent) page.Children.Add(Small(s.SyncNoSecureStore));
+        }
+        if (!github.LoggedIn || github.NeedsReauth)
+        {
+            if (github.NeedsReauth)
+            {
+                var warn = new TextBlock { Text = s.SyncReauth, TextWrapping = TextWrapping.Wrap };
+                warn.Classes.Add("failed");
+                page.Children.Add(warn);
+            }
+            var signIn = new Button { Content = s.SyncSignIn, HorizontalAlignment = HorizontalAlignment.Left };
+            signIn.Classes.Add("accent");
+            signIn.Click += async (_, _) => { if (await Dialogs.GitHubLoginDialog.ShowAsync(this)) Rebuild(); };
+            page.Children.Add(signIn);
+        }
+
+        // 저장소
+        page.Children.Add(Heading(s.SyncRepoLabel));
+        page.Children.Add(new TextBlock { Text = github.Repo is { Length: > 0 } repo ? s.SyncRepoCurrent(repo) : s.SyncRepoNone, TextWrapping = TextWrapping.Wrap, Classes = { "user" } });
+        var choose = new Button { Content = s.SyncChooseRepo, HorizontalAlignment = HorizontalAlignment.Left, IsEnabled = github.LoggedIn };
+        choose.Click += async (_, _) => { if (await Dialogs.GitHubRepoDialog.ShowAsync(this)) Rebuild(); };
+        page.Children.Add(choose);
+
+        // 동기화
+        var syncButton = new Button { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 16, 0, 0) };
+        syncButton.Classes.Add("accent");
+        var status = Small("");
+        var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+        summary.Classes.Add("user");
+        void Refresh()
+        {
+            syncButton.Content = App.SyncRunning ? s.SyncRunning : s.SyncNow;
+            syncButton.IsEnabled = App.Github.CanSync && !App.SyncRunning;
+            var last = App.Settings.Value.SyncLastAt;
+            status.Text = last is { } at ? s.SyncLast(at.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)) : s.SyncNever;
+            summary.Text = App.LastSyncSummary ?? "";
+            summary.IsVisible = summary.Text.Length > 0;
+        }
+        syncButton.Click += async (_, _) => await App.SyncNowAsync();
+        Action onSync = () => Dispatcher.UIThread.Post(() => { if (_section == Section.Sync) Rebuild(); });   // 동기화가 끝나면 로그인 상태(만료 등)까지 다시 그린다
+        App.SyncChanged += onSync;
+        Closed += (_, _) => App.SyncChanged -= onSync;
+        _refreshers.Add(Refresh);
+        Refresh();
+        page.Children.Add(syncButton);
+        page.Children.Add(status);
+        page.Children.Add(summary);
+        page.Children.Add(Small(s.SyncOsNote, 0.7));
+    }
+
+    static bool HasBehaviorSettings => App.Startup.IsSupported || App.Hotkeys.IsSupported;
+
+    /// <summary>확인용(--snapshot): "동기화" 구역으로 넘어간다.</summary>
+    internal void ShowSync()
+    {
+        _section = Section.Sync;
+        Rebuild();
+    }
+
+    void BuildBehavior(StackPanel page)
+    {
+        var s = Strings.Current;
+        var first = true;
+        TextBlock Note(string text)
+        {
+            var note = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
+            note.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsSmall"));
+            return note;
+        }
+
+        if (App.Startup.IsSupported)
+        {
+            page.Children.Add(Heading(s.SettingsStartup, first: first));
+            first = false;
+            var startup = new ToggleSwitch { IsChecked = App.Startup.IsEnabled(), OnContent = s.SettingsStartupToggle, OffContent = s.SettingsStartupToggle };
+            var syncing = false;
+            startup.IsCheckedChanged += (_, _) =>
+            {
+                if (syncing) return;
+                var on = startup.IsChecked == true;
+                if (App.Startup.SetEnabled(on, out var error)) return;
+                Notifications.Snackbar.Error(Strings.Current.StartupFailed(error ?? ""));
+                syncing = true;                                  // 바꾸지 못했으니 스위치를 원래대로 돌린다
+                startup.IsChecked = App.Startup.IsEnabled();
+                syncing = false;
+            };
+            page.Children.Add(startup);
+            page.Children.Add(Note(s.SettingsStartupNote));
+        }
+
+        if (App.Hotkeys.IsSupported)
+        {
+            page.Children.Add(Heading(s.SettingsHotkey, first: first));
+            var toggle = new ToggleSwitch { IsChecked = App.Settings.Value.GlobalHotkey, OnContent = s.SettingsHotkeyToggle(HotkeyService.Combo), OffContent = s.SettingsHotkeyToggle(HotkeyService.Combo) };
+            toggle.IsCheckedChanged += (_, _) =>
+            {
+                var on = toggle.IsChecked == true;
+                if (on != App.Settings.Value.GlobalHotkey) App.Settings.Update(x => x with { GlobalHotkey = on });
+            };
+            _refreshers.Add(() => toggle.IsChecked = App.Settings.Value.GlobalHotkey);   // 켜지 못해 설정이 다시 꺼지면 스위치도 따라간다
+            page.Children.Add(toggle);
+            page.Children.Add(Note(s.SettingsHotkeyNote));
+        }
     }
 
     void BuildAppearance(StackPanel page)

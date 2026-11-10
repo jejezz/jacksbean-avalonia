@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using JackBean.App.Notifications;
 using JackBean.App.Tools;
+using JackBean.App.Tray;
 using JackBean.App.Updates;
 using JackBean.App.Views;
 using JackBean.App.Windows;
@@ -13,6 +14,9 @@ using JackBean.Domain;
 using JackBean.Domain.Policy;
 using JackBean.Domain.Settings;
 using JackBean.Services;
+using JackBean.Services.GitHub;
+using JackBean.Services.Startup;
+using JackBean.Services.Sync;
 using JackBean.Services.Updates;
 
 namespace JackBean.App;
@@ -34,6 +38,26 @@ public partial class App : Application
 
     internal static ToolRegistry Tools { get; private set; } = null!;
 
+    /// <summary>전역 단축키(독 숨기기·보이기). 이 OS 에서 쓸 수 없으면 <see cref="HotkeyService.IsSupported"/> 가 false.</summary>
+    internal static HotkeyService Hotkeys { get; private set; } = null!;
+
+    /// <summary>로그인할 때 자동 시작(시작 프로그램). 등록 여부는 OS 에 있는 등록이 원본이다.</summary>
+    internal static IStartupRegistration Startup { get; private set; } = null!;
+
+    /// <summary>GitHub 로그인·저장소 연결·정책 동기화(REST, git 불필요). 토큰은 OS 보안 저장소에만 있다.</summary>
+    internal static GitHubSyncService Github { get; private set; } = null!;
+
+    /// <summary>동기화가 돌고 있다(버튼을 막는다).</summary>
+    internal static bool SyncRunning { get; private set; }
+
+    /// <summary>마지막 동기화 결과를 사람이 읽을 글로(설정 창에 보인다). 이번 실행에서 한 적이 없으면 null.</summary>
+    internal static string? LastSyncSummary { get; private set; }
+
+    /// <summary>동기화가 시작되거나 끝났다 — 버튼·안내를 다시 그린다.</summary>
+    internal static event Action? SyncChanged;
+
+    private TrayService? _tray;
+
     /// <summary>업데이트 확인·설치. 서버 주소가 없는 빌드(<c>-p:AppUpdateServer=</c>)나 로컬 빌드는 null.</summary>
     internal static UpdateService? Updates { get; private set; }
 
@@ -49,6 +73,10 @@ public partial class App : Application
         Settings = new SettingsController(new JsonSettingsRepository(settingsFile));
 
         PolicyStore = new PolicyStore(os, Path.GetDirectoryName(settingsFile));
+        // --snapshot(확인용)은 진짜 로그인 토큰을 읽거나 건드리지 않는다.
+        ITokenStore tokens = Environment.GetCommandLineArgs().Contains("--snapshot") ? new MemoryTokenStore() : TokenStores.Create();
+        Github = new GitHubSyncService(Settings, tokens, PolicyStore, Path.Combine(PolicyStore.Directory, "sync"));
+        Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName);
         Tools = new ToolRegistry();
         Tools.Register(new ImageViewerTool());
         // `jackbean:` 로 시작하는 명령은 프로세스를 띄우지 않고 내장 도구가 연다. 나머지는 셸 없이 프로세스로.
@@ -73,12 +101,16 @@ public partial class App : Application
             var dock = new DockWindow();
             desktop.MainWindow = dock;
             dock.Show();
+            _tray = new TrayService(this, dock);
+            Hotkeys = new HotkeyService();
+            Hotkeys.Apply(Settings.Value.GlobalHotkey);
+            Settings.Changed += st => Dispatcher.UIThread.Post(() => Hotkeys.Apply(st.GlobalHotkey));
             Updates = UpdateService.Create(
                 FileUpdateStateStore.BesideSettings(settingsFile),
                 owner: () => desktop.Windows.OfType<HomeWindow>().FirstOrDefault(w => w.IsActive) ?? desktop.Windows.OfType<HomeWindow>().FirstOrDefault(),
                 isBusy: () => false);
             Updates?.StartAutomaticCheck();
-            desktop.Exit += (_, _) => Settings.Dispose(); // 종료할 때 마지막 변경까지 저장
+            desktop.Exit += (_, _) => { Hotkeys.Dispose(); _tray?.Dispose(); Settings.Dispose(); }; // 종료할 때 단축키를 풀고 마지막 변경까지 저장
 
             // 확인용 인자: `--home` `--settings` `--about` 으로 그 창도 함께 띄운다.
             foreach (var arg in desktop.Args ?? [])
@@ -103,6 +135,45 @@ public partial class App : Application
             || previous.TextScale != s.TextScale || previous.UiFontFamily != s.UiFontFamily)
             ThemeService.Apply(s);
         if (previous is null || previous.Locale != s.Locale) Strings.Apply(s.Locale);
+    }
+
+    /// <summary>
+    /// 지금 정책을 동기화한다(설정 창·홈 창의 버튼). 이미 돌고 있거나 저장소 주소가 없으면 아무것도 하지 않는다.
+    /// 끝나면 결과를 알림으로 알리고, 받은 변경이 있으면 열린 창들이 정책을 다시 읽게 한다.
+    /// </summary>
+    internal static async Task SyncNowAsync()
+    {
+        if (SyncRunning || !Github.CanSync) return;
+        SyncRunning = true;
+        SyncChanged?.Invoke();
+        var s = Strings.Current;
+        try
+        {
+            var result = await Task.Run(() => Github.SyncAsync());
+            if (!result.Ok)
+            {
+                LastSyncSummary = result.AuthFailed ? s.SyncReauth : s.SyncFailed(result.Error ?? "");
+                Notifications.Snackbar.Error(LastSyncSummary);
+                return;
+            }
+            var conflicts = result.MergeNotes.Count(n => n.Kind == MergeNoteKind.ConflictResolved);
+            var headline = s.SyncDone(result.ChangedLocal, result.ChangedRemote);
+            LastSyncSummary = string.Join('\n', new[] { headline }.Concat(result.MergeNotes.Select(s.SyncNote)));
+            Settings.Update(x => x with { SyncLastAt = DateTimeOffset.Now });
+            if (result.ChangedLocal) NotifyPolicyChanged();
+            Notifications.Snackbar.Info(conflicts > 0 ? $"{headline} {s.SyncConflicts(conflicts)}" : headline);
+        }
+        finally
+        {
+            SyncRunning = false;
+            SyncChanged?.Invoke();
+        }
+    }
+
+    /// <summary>독을 숨기거나 다시 보인다.</summary>
+    internal static void ToggleDock()
+    {
+        if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: DockWindow dock }) dock.ToggleVisible();
     }
 
     /// <summary>홈 창을 연다(이미 있으면 앞으로).</summary>

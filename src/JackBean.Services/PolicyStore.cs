@@ -173,7 +173,7 @@ public sealed class PolicyStore
     /// 앱을 넣거나 고친다. 있는 앱이면 command·args 만 바꾸고 그 앱의 나머지 키(사용자가 적은 것)는 그대로 둔다.
     /// ID 는 규칙이 가리키는 이름이라 여기서 바꾸지 않는다.
     /// </summary>
-    public Task<SaveResult> UpsertAppAsync(AppUpsert app) => MutateAsync(decoded =>
+    public Task<SaveResult> UpsertAppAsync(AppUpsert app, DateTime? now = null) => MutateAsync(decoded =>
     {
         if (decoded["apps"] is not null and not JsonObject) return new SaveResult("정책 파일의 apps 가 객체가 아닙니다");
         var apps = decoded["apps"] as JsonObject;
@@ -181,6 +181,7 @@ public sealed class PolicyStore
         if (apps[app.Id] is not JsonObject node) apps[app.Id] = node = new JsonObject();
         node["command"] = app.Command;
         node["args"] = new JsonArray(app.Args.Select(a => (JsonNode?)JsonValue.Create(a)).ToArray());
+        node["updated"] = Stamp(now);   // 동기화할 때 어느 쪽이 더 최근에 고쳤는지 가리는 데 쓴다
         return null;
     });
 
@@ -336,4 +337,30 @@ public sealed class PolicyStore
         JsonNode.Parse(text) as JsonObject ?? throw new FormatException("최상위가 객체가 아닙니다");
 
     private static string Serialize(JsonObject o) => o.ToJsonString(Indented) + "\n";
+
+    /// <summary>정책 파일에 쓰는 모양 그대로의 글(동기화가 저장소 파일을 같은 모양으로 쓰려고).</summary>
+    public static string SerializePolicy(JsonObject policy) => Serialize(policy);
+
+    /// <summary>
+    /// 정책 파일을 통째로 바꾼다(동기화가 합친 결과를 쓸 때). 읽을 수 있는 이 OS 의 정책일 때만 쓰고, 임시 파일에 쓴 뒤 교체한다.
+    /// 앱 안에서 한 변경이 아니라 동기화의 결과라서 실행 취소 기록은 비운다.
+    /// </summary>
+    public async Task<SaveResult> ReplaceAsync(JsonObject policy)
+    {
+        try
+        {
+            if (RuleCondition.Str(policy["os"]) != Os.JsonName()) return new SaveResult($"정책의 os 가 {Os.JsonName()} 이 아닙니다: {policy["os"]}");
+            PolicyDocument.FromJson(policy);   // schema 가 맞는지(아니면 FormatException)
+            System.IO.Directory.CreateDirectory(Directory);
+            var tmp = FilePath + ".tmp";
+            await File.WriteAllTextAsync(tmp, Serialize(policy));
+            File.Move(tmp, FilePath, overwrite: true);
+            _previousText = _lastWrittenText = null;
+            return SaveResult.Success;
+        }
+        catch (Exception e) when (e is FormatException or IOException or UnauthorizedAccessException)
+        {
+            return new SaveResult(e.Message);
+        }
+    }
 }
