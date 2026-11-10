@@ -21,6 +21,8 @@ static class Snapshot
         Directory.CreateDirectory(dir);
         var configs = new (string Name, ThemeMode Mode, ColorPalette Palette, double Scale, AppLocale? Lang)[]
         {
+            ("dark-saturn-en", ThemeMode.Dark, ColorPalette.Saturn, 1.0, AppLocale.English),   // README 스크린샷(영어)
+            ("light-saturn-en", ThemeMode.Light, ColorPalette.Saturn, 1.0, AppLocale.English),
             ("dark-saturn", ThemeMode.Dark, ColorPalette.Saturn, 1.0, AppLocale.Korean),
             ("light-saturn", ThemeMode.Light, ColorPalette.Saturn, 1.0, AppLocale.Korean),
             ("dark-rose-large-en", ThemeMode.Dark, ColorPalette.Rose, 1.3, AppLocale.English),
