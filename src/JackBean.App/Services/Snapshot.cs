@@ -65,6 +65,11 @@ static class Snapshot
             settingsWindow.ShowSync();
             await Task.Delay(500);
             Save(settingsWindow, Path.Combine(dir, "sync-SettingsWindow.png"));
+            // 저장소 창: 만들 때 예외가 나지 않는지(같은 컨트롤을 두 번 담는 실수 등)도 이것으로 걸러진다. 로그인하지 않았으니 목록 대신 오류 안내가 보인다.
+            _ = Dialogs.GitHubRepoDialog.ShowAsync(settingsWindow);
+            await Task.Delay(1800);
+            var repoDialog = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows.OfType<Dialogs.GitHubRepoDialog>().FirstOrDefault();
+            if (repoDialog != null) { Save(repoDialog, Path.Combine(dir, "repo-GitHubRepoDialog.png")); repoDialog.CloseFromState(); }
             // 로그인 창(이 빌드에 Client ID 가 없으면 토큰 입력만 보인다).
             _ = Dialogs.GitHubLoginDialog.ShowAsync(settingsWindow);
             await Task.Delay(600);

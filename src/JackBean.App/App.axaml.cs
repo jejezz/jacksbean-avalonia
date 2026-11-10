@@ -73,7 +73,9 @@ public partial class App : Application
         Settings = new SettingsController(new JsonSettingsRepository(settingsFile));
 
         PolicyStore = new PolicyStore(os, Path.GetDirectoryName(settingsFile));
-        Github = new GitHubSyncService(Settings, TokenStores.Create(), PolicyStore, Path.Combine(PolicyStore.Directory, "sync"));
+        // --snapshot(확인용)은 진짜 로그인 토큰을 읽거나 건드리지 않는다.
+        ITokenStore tokens = Environment.GetCommandLineArgs().Contains("--snapshot") ? new MemoryTokenStore() : TokenStores.Create();
+        Github = new GitHubSyncService(Settings, tokens, PolicyStore, Path.Combine(PolicyStore.Directory, "sync"));
         Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName);
         Tools = new ToolRegistry();
         Tools.Register(new ImageViewerTool());
