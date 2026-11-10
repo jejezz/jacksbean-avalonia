@@ -92,4 +92,4 @@ HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snap
 
 ## 아직 없는 것
 정책 GitHub 동기화, 트레이·전역 단축키, 독 시작 시 다른 앱의 드래그 감지,
-설치 파일·릴리스 워크플로·README, 앱 아이콘의 소품 글리프 교체.
+앱 아이콘의 소품 글리프 교체, 데모 GIF. 설치 파일(`installer/`)·릴리스 워크플로(`.github/workflows/release.yml`)·README 는 작성했지만 Windows AOT 게시만 확인했고 Inno/Linux/macOS/워크플로는 아직 돌려 보지 않았다.
