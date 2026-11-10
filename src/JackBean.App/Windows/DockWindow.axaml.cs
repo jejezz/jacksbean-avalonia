@@ -1,7 +1,9 @@
 // 독: 화면 가장자리에 항상 떠 있는 작은 창. 드래그가 들어오면 커지고, 떨어뜨리면 정책(규칙)에 따라 앱으로 보낸다.
 // 규칙이 "물어보기"이거나 맞는 규칙이 없으면 독이 아래로 늘어나 앱 목록을 보여 준다.
 //
-// Avalonia 는 창 크기를 DIP, 위치를 물리 픽셀로 주고 모니터별 배율(Screen.Scaling)을 직접 알려 준다.
+// Avalonia 는 창 크기를 DIP, 위치를 "데스크톱 좌표"로 준다 — 그 배율은 DesktopScaling(= Screen.Scaling)이고 RenderScaling 과 다를 수 있다.
+// Windows 는 데스크톱 좌표가 물리 픽셀이라 둘이 같지만, macOS 는 포인트라 DesktopScaling=1, RenderScaling=2(레티나)다.
+// 위치 계산에 RenderScaling 을 쓰면 macOS 에서 펼칠 때 창이 두 배 멀리 옮겨가 포인터를 벗어나고 드롭이 오지 않는다.
 // 독 ↔ 창 전환은 없다 — 창(홈, 도구)은 **별도 창**으로 독과 함께 뜬다.
 
 using Avalonia;
@@ -167,7 +169,7 @@ public partial class DockWindow : Window
     {
         get
         {
-            var scale = RenderScaling;
+            var scale = DesktopScaling;
             var center = new PixelPoint((int)Math.Round(_idleLeft + IdleSize * scale / 2), Position.Y + (int)Math.Round(IdleSize * scale / 2));
             var screen = ScreenAt(center);
             if (screen == null) return false;
@@ -179,7 +181,7 @@ public partial class DockWindow : Window
     /// <summary>크기를 바꾸되 콩(정원 크기일 때의 자리)을 지킨다 — 가장자리에 붙은 독이 화면 밖으로 밀리지 않고 콩의 반대쪽으로 자란다.</summary>
     private void ResizeTo(Size size)
     {
-        var scale = RenderScaling;
+        var scale = DesktopScaling;
         _placing = true;
         var left = GrowsRight ? _idleLeft : _idleLeft + IdleSize * scale - size.Width * scale;
         var target = new PixelPoint((int)Math.Round(left), Position.Y);
@@ -194,13 +196,13 @@ public partial class DockWindow : Window
     private void OnPositionChanged(object? sender, PixelPointEventArgs e)
     {
         if (_placing || !_userMoving) return;
-        _idleLeft = GrowsRight ? e.Point.X : e.Point.X + (Width - IdleSize) * RenderScaling;
+        _idleLeft = GrowsRight ? e.Point.X : e.Point.X + (Width - IdleSize) * DesktopScaling;
         _movedTimer.Stop();
         _movedTimer.Start(); // 끌기가 멈춘 뒤 한 번만 저장한다
     }
 
     private void RememberPosition() =>
-        App.Settings.Update(x => x with { Dock = new DockPosition(_idleLeft + IdleSize * RenderScaling, Position.Y, RenderScaling) });
+        App.Settings.Update(x => x with { Dock = new DockPosition(_idleLeft + IdleSize * DesktopScaling, Position.Y, DesktopScaling) });
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
