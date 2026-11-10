@@ -207,7 +207,7 @@ public sealed class GitHubRepoDialog : DialogBase
                 heading,
                 new TextBlock { Text = s.RepoCreateTitle, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 8, 0, 0) }, createRow,
                 new TextBlock { Text = s.RepoExistingTitle, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 12, 0, 0) },
-                _status, new ScrollViewer { Content = _list, MaxHeight = 260 }, _status, close,
+                _status, new ScrollViewer { Content = _list, MaxHeight = 260 }, close,
             },
         };
         Dismissed += () => _result.TrySetResult(false);
@@ -226,7 +226,7 @@ public sealed class GitHubRepoDialog : DialogBase
     private void Fail(string message)
     {
         _status.Text = message;
-        _status.Classes.Add("failed");
+        _status.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppDanger"));   // 오류는 위험색으로
         _status.IsVisible = true;
     }
 
