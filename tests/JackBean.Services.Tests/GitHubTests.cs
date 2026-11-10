@@ -384,7 +384,7 @@ public sealed class GitHubSyncServiceTests : IDisposable
         Assert.Contains("\"viewer\"", _gh.Files[Policy].Text);                // GitHub 에 올라갔다
 
         await b.Store.UpsertAppAsync(new AppUpsert("player", "player.exe", ["{path}"]));
-        await b.Store.UpsertRuleAsync(Ext("music", ["mp3"], "player"));
+        await b.Store.UpsertRuleAsync(Ext("music", ["qqq2"], "player"));
         var second = await b.Service.SyncAsync();
         Assert.True(second.Ok, second.Error);
         Assert.True(second.ChangedLocal);                                      // A 것을 받았고

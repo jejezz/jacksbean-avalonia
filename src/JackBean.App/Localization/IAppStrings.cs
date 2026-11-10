@@ -318,4 +318,6 @@ public interface IAppStrings
     string ArchiveCompressed(string zip);
     string VideoPlayerFailed(string error);
     string VideoPlayerHint { get; }
+    string AudioPlayerFailed(string error);
+    string AudioPlayerHint { get; }
 }

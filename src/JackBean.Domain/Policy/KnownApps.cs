@@ -65,7 +65,7 @@ public static class KnownApps
     /// 앱 안에 들어 있는 도구(`jackbean:` 명령). 정책 파일의 `apps` 에 적지 않아도 늘 쓸 수 있다(<see cref="PolicyDocument.Apps"/> 가 더해 준다) —
     /// 운영체제 기본 방식(`default`)처럼. 파일에 같은 이름이 있으면 파일이 이긴다.
     /// </summary>
-    public static readonly IReadOnlyList<string> BuiltInTools = ["image-viewer", "text-editor", "pdf-viewer", "archive", "video-player"];
+    public static readonly IReadOnlyList<string> BuiltInTools = ["image-viewer", "text-editor", "pdf-viewer", "archive", "video-player", "audio-player"];
 
     /// <summary>기본 제공 카탈로그. 새로 확실히 아는 앱이 생기면 여기에 더한다.</summary>
     public static readonly IReadOnlyDictionary<string, KnownApp> Catalog = new Dictionary<string, KnownApp>
@@ -81,6 +81,8 @@ public static class KnownApps
         ["pdf-viewer"] = new(new LaunchSpec("jackbean:pdf-viewer"), new LaunchSpec("jackbean:pdf-viewer"), new LaunchSpec("jackbean:pdf-viewer")),
         // 앱 안에 들어 있는 비디오 플레이어(OS 웹뷰가 재생한다 — 웹뷰가 아는 형식만, Linux 는 웹뷰가 없을 수 있어 기본 정책에는 넣지 않는다).
         ["video-player"] = new(new LaunchSpec("jackbean:video-player"), new LaunchSpec("jackbean:video-player"), new LaunchSpec("jackbean:video-player")),
+        // 앱 안에 들어 있는 오디오 플레이어(비디오 플레이어와 같은 OS 웹뷰 방식 — Linux 는 웹뷰가 없을 수 있어 기본 정책에는 넣지 않는다).
+        ["audio-player"] = new(new LaunchSpec("jackbean:audio-player"), new LaunchSpec("jackbean:audio-player"), new LaunchSpec("jackbean:audio-player")),
         // 앱 안에 들어 있는 압축 도구(zip 풀기·압축하기). `{paths}` 라 떨어뜨린 항목 전부를 한 번에 받는다.
         ["archive"] = new(new LaunchSpec("jackbean:archive", ["{paths}"]), new LaunchSpec("jackbean:archive", ["{paths}"]), new LaunchSpec("jackbean:archive", ["{paths}"])),
         // 앱 안에 들어 있는 텍스트 에디터.
