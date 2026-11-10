@@ -175,3 +175,55 @@ public class StoreAndRouterTests
         Assert.Equal("folders", s[0].BeforeRuleId);
     }
 }
+
+public class PolicyResetTests
+{
+    static PolicyStore Store(TempDir t) => new(PolicyOs.Windows, t.Path);
+
+    [Fact]
+    public async Task BrokenFileIsFallbackAndResetRestoresDefaultsKeepingBackup()
+    {
+        using var t = new TempDir();
+        var store = Store(t);
+        await File.WriteAllTextAsync(store.FilePath, "{ 깨진 json");
+
+        var broken = await store.LoadAsync();
+        Assert.True(broken.IsFallback);
+        Assert.NotEmpty(broken.Warnings);
+
+        var result = await store.ResetToDefaultsAsync(new DateTime(2026, 11, 10, 15, 30, 12));
+        Assert.True(result.Ok);
+        Assert.EndsWith(".broken-20261110-153012", result.BackupPath);
+        Assert.Equal("{ 깨진 json", await File.ReadAllTextAsync(result.BackupPath!));   // 이전 내용은 남는다
+
+        var fixedDoc = await store.LoadAsync();
+        Assert.False(fixedDoc.IsFallback);
+        Assert.Empty(fixedDoc.Warnings);
+    }
+
+    [Fact]
+    public async Task ResetWithoutFileJustCreatesIt()
+    {
+        using var t = new TempDir();
+        var store = Store(t);
+        var result = await store.ResetToDefaultsAsync();
+        Assert.True(result.Ok);
+        Assert.Null(result.BackupPath);
+        Assert.True(File.Exists(store.FilePath));
+    }
+
+    [Fact]
+    public async Task SkippedRuleWarnsButIsNotFallback()
+    {
+        using var t = new TempDir();
+        var store = Store(t);
+        await store.LoadAsync(); // 기본 정책 생성
+        var json = JsonNode.Parse(await File.ReadAllTextAsync(store.FilePath))!.AsObject();
+        ((JsonArray)json["rules"]!).Add(new JsonObject { ["id"] = "깨진-규칙" });   // when/open 이 없는 규칙
+        await File.WriteAllTextAsync(store.FilePath, json.ToJsonString());
+
+        var doc = await store.LoadAsync();
+        Assert.NotEmpty(doc.Warnings);
+        Assert.False(doc.IsFallback);   // 파일 전체는 읽었다 — 기본 정책으로 덮는 복구를 권하지 않는다
+    }
+}

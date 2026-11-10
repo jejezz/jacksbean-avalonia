@@ -106,5 +106,15 @@ public sealed class EnglishStrings : IAppStrings
     public string HomePolicyFile => "Policy file";
     public string HomeReload => "Reload";
     public string HomeAsk => "Ask";
+    public string HomeEmpty => "No rules or apps yet. Drop a file or folder on the dock to get started.";
+    public string HomeOpenPolicyFile => "Open policy file";
+    public string HomeNoRules => "No rules — everything will ask.";
+    public string HomeNoApps => "No apps registered.";
+    public string HomeFallbackNote => "The policy file couldn't be read, so the default policy is in use. The file was left untouched.";
+    public string HomeResetPolicy => "Recreate default policy";
+    public string HomeResetDone(string? backup) => backup == null ? "Created the default policy." : $"Recreated the default policy. The previous file is at {backup}.";
+    public string HomeResetFailed(string error) => $"Couldn't create the default policy: {error}";
+    public string DockNoApps => "No apps are registered, so there is nothing to choose. Check the policy file in the home window.";
+    public string SnackbarOpenHome => "Open home";
     public string ViewerFailed(string error) => $"Couldn't open the image: {error}";
 }

@@ -31,6 +31,10 @@ ICONS = {
     "copy": ("copy", "duotone"),
     "check": ("check", "duotone"),
     "x": ("x", "duotone"),
+    # 빈 상태·정책 복구
+    "tray": ("tray", "duotone"),
+    "file-text": ("file-text", "duotone"),
+    "reset": ("arrow-counter-clockwise", "duotone"),
 }
 
 
