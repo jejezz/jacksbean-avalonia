@@ -18,7 +18,7 @@ public sealed class ImageViewerTool : IBuiltInTool
     {
         var window = new Window
         {
-            Title = $"{Path.GetFileName(path)} — {AppIdentity.DisplayName}",
+            Title = WindowTitle.Of(Path.GetFileName(path)),
             Width = 900,
             Height = 640,
             MinWidth = 240,

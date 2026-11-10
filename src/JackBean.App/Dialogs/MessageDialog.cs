@@ -30,7 +30,7 @@ public sealed class MessageDialog : DialogBase
 
     MessageDialog(string title, string message, string[] buttons, int defaultIndex, int cancelIndex)
     {
-        Title = title;
+        Title = WindowTitle.Of(title);
         MinWidth = 440;
         MaxWidth = 640;
 

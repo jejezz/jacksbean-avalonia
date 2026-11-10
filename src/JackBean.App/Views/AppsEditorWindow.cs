@@ -56,7 +56,7 @@ public sealed class AppsEditorWindow : Window
     private AppsEditorWindow()
     {
         Width = 880; Height = 560; MinWidth = 640; MinHeight = 420;
-        Title = Strings.Current.AppsEditorTitle;
+        Title = WindowTitle.Of(Strings.Current.AppsEditorTitle);
 
         var divider = new Border { Width = 1 };
         divider.Bind(Border.BackgroundProperty, this.GetResourceObservable("AppStroke"));
@@ -82,7 +82,7 @@ public sealed class AppsEditorWindow : Window
         Opened += async (_, _) => await ReloadAsync(selectFirst: true);
     }
 
-    private void OnLanguageChanged() => Dispatcher.UIThread.Post(() => { Title = Strings.Current.AppsEditorTitle; BuildList(); BuildForm(); });
+    private void OnLanguageChanged() => Dispatcher.UIThread.Post(() => { Title = WindowTitle.Of(Strings.Current.AppsEditorTitle); BuildList(); BuildForm(); });
 
     /// <summary>다른 곳(홈 창의 복구 등)이 정책을 바꿨다. 내 저장이 불러낸 알림은 무시하고, 고치던 내용이 있으면 폼은 그대로 둔다.</summary>
     private void OnPolicyChanged() => Dispatcher.UIThread.Post(async () =>
