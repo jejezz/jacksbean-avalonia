@@ -63,8 +63,9 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 - 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).
   **알약을 펼쳐도 콩은 제자리**: 콩은 정원일 때의 자리(`_idleLeft`)에 그대로 있고 창은 콩의 반대쪽으로 자란다(`GrowsRight`: 화면 왼쪽 절반이면 오른쪽으로 `콩 글자`, 오른쪽 절반이면 왼쪽으로 `글자 콩`). 저장하는 독 위치(`dock_position.right`)는 정원 크기일 때의 오른쪽 끝이다.
 - 정책의 앱 `command`가 `jackbean:<id>`면 프로세스를 띄우지 않고 `ToolRegistry`가 `IBuiltInTool.CreateWindow(path)`로 창을 연다(파일 하나당 창 하나).
-  텍스트 에디터·PDF 뷰어·압축 도구는 `IBuiltInTool`을 구현해 `App.OnFrameworkInitializationCompleted`에서 `Tools.Register`한다. 도구: `image-viewer`, `pdf-viewer`(OS 웹뷰 `NativeWebView` 로 PDF 를 연다 — WebView2 데이터 폴더는 `%LOCALAPPDATA%\JacksBean\WebView2`, 웹뷰가 없거나 실패하면 [기본 앱으로 열기]), `text-editor`(AvaloniaEdit + TextMate 구문 강조, 5MB 한도, UTF-8·BOM·줄바꿈 보존, 찾기·바꾸기·줄 이동; 파일 로직은 `Services/Text`). 같은 도구로 같은 파일을 다시 열면 열려 있는 창을 앞으로 가져온다(`ToolRegistry`).
-  **도구 공통 조건**: 등록은 가벼운 팩토리만, 무거운 초기화·스타일 로드(`EditorStyles`)는 `CreateWindow` 안에서 — 안 쓸 때 메모리·시작 시간이 늘지 않아야 한다. 정책에 연결하려면 앱의 `command` 를 `jackbean:text-editor` 로 적는다— **내장 도구는 정책 파일에 적지 않아도 앱 목록에 늘 있다**(`KnownApps.BuiltInTools` → `PolicyDocument.Apps` 가 더함, `IsImplicitApp`; 합치기 복구도 이 앱을 있는 것으로 본다). 새 기본 정책은 이미지(`png jpg jpeg gif webp bmp ico`) → 이미지 뷰어, `pdf` → PDF 뷰어(Linux 제외), 텍스트·코드 묶음 → 에디터 규칙(`images` `pdf` `text` `code`)을 포함한다(이미 있는 정책 파일은 그대로 — 새로 만들거나 [기본 정책 다시 만들기]를 할 때만).
+  텍스트 에디터·PDF 뷰어·압축 도구는 `IBuiltInTool`을 구현해 `App.OnFrameworkInitializationCompleted`에서 `Tools.Register`한다. 도구: `image-viewer`, `archive`(zip 풀기·압축하기 — `Services/Archive/ArchiveService`, 표준 라이브러리만; 하나의 .zip 이면 풀기 창, 그 밖의 항목은 압축하기 창; 이미 있는 파일은 덮어쓰지 않고 멈추고 폴더 밖으로 나가는 zip 항목은 거절), `pdf-viewer`(OS 웹뷰 `NativeWebView` 로 PDF 를 연다 — WebView2 데이터 폴더는 `%LOCALAPPDATA%\JacksBean\WebView2`, 웹뷰가 없거나 실패하면 [기본 앱으로 열기]), `text-editor`(AvaloniaEdit + TextMate 구문 강조, 5MB 한도, UTF-8·BOM·줄바꿈 보존, 찾기·바꾸기·줄 이동; 파일 로직은 `Services/Text`). 같은 도구로 같은 파일을 다시 열면 열려 있는 창을 앞으로 가져온다(`ToolRegistry`).
+  **여러 항목을 한 번에**: 앱의 `args` 에 `{paths}` 가 있으면(`AppLauncher.AcceptsMany`) 같은 앱으로 열 항목을 모아 **한 번만** 띄우고 경로를 인자 여러 개로 펼친다(`ExpandArgsMany`, `DropRouter` 가 앱별로 묶음). `{path}` 만 있는 앱은 항목마다 따로. 내장 도구는 `IBuiltInTool.CreateWindow(IReadOnlyList<string>)` 로 받는다(기본은 첫 항목만).
+  **도구 공통 조건**: 등록은 가벼운 팩토리만, 무거운 초기화·스타일 로드(`EditorStyles`)는 `CreateWindow` 안에서 — 안 쓸 때 메모리·시작 시간이 늘지 않아야 한다. 정책에 연결하려면 앱의 `command` 를 `jackbean:text-editor` 로 적는다— **내장 도구는 정책 파일에 적지 않아도 앱 목록에 늘 있다**(`KnownApps.BuiltInTools` → `PolicyDocument.Apps` 가 더함, `IsImplicitApp`; 합치기 복구도 이 앱을 있는 것으로 본다). 새 기본 정책은 이미지(`png jpg jpeg gif webp bmp ico`) → 이미지 뷰어, `pdf` → PDF 뷰어(Linux 제외), `zip` → 압축 도구, 텍스트·코드 묶음 → 에디터 규칙(`images` `pdf` `zip` `text` `code`)과 폴더 규칙에 압축하기(`folders`: 파일 관리자·터미널·압축하기 중 고르기)를 포함한다(이미 있는 정책 파일은 그대로 — 새로 만들거나 [기본 정책 다시 만들기]를 할 때만).
   형제 앱에 에디터(`EditorWindow`)·뷰어(`ViewerWindow`)·압축(`ArchiveService`)이 이미 있으니 새로 만들지 말고 가져온다.
 
 ## 규약 적용
@@ -87,7 +88,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 300개(Domain 106 · Services 184 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 314개(Domain 106 · Services 198 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.

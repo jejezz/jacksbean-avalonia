@@ -70,7 +70,7 @@ public class PolicyUndoTests
         Assert.True((await s.RememberAsync([new(SuggestionKind.Folder)], "a")).Ok);
         Assert.Equal(["a"], (await s.LoadAsync()).Rules.First(r => r.Id == "folders").Choices);
         Assert.True((await s.UndoAsync()).Ok);
-        Assert.Equal(["explorer", "terminal"], (await s.LoadAsync()).Rules.First(r => r.Id == "folders").Choices);   // 기본 정책으로 돌아온다
+        Assert.Equal(["explorer", "terminal", "archive"], (await s.LoadAsync()).Rules.First(r => r.Id == "folders").Choices);   // 기본 정책으로 돌아온다
 
         Assert.True((await s.RemoveRuleAsync("files")).Ok);
         Assert.True((await s.UndoAsync()).Ok);

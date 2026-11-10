@@ -24,7 +24,42 @@ public sealed class AppLauncher
 
     /// <summary>`args`의 `{path}`를 path 로 바꾼다(그 밖의 글자는 건드리지 않는다).</summary>
     public static IReadOnlyList<string> ExpandArgs(IEnumerable<string> args, string path) =>
-        args.Select(a => a.Replace("{path}", path, StringComparison.Ordinal)).ToList();
+        args.Select(a => a == PathsToken ? path : a.Replace("{path}", path, StringComparison.Ordinal)).ToList();   // `{paths}` 도 항목이 하나일 땐 그 경로 하나
+
+    /// <summary>앱이 여러 항목을 한 번에 받는가: 인자에 `{paths}`(떨어뜨린 경로 전부로 펼쳐진다)가 있으면 그렇다 — 한 번만 띄운다.</summary>
+    public static bool AcceptsMany(AppEntry app) => app.Args.Contains(PathsToken);
+
+    public const string PathsToken = "{paths}";
+
+    /// <summary>`args`의 `{paths}` 를 경로 전부로 펼치고(인자 하나씩), `{path}` 는 첫 경로로 바꾼다.</summary>
+    public static IReadOnlyList<string> ExpandArgsMany(IEnumerable<string> args, IReadOnlyList<string> paths)
+    {
+        var list = new List<string>();
+        foreach (var a in args)
+        {
+            if (a == PathsToken) list.AddRange(paths);
+            else list.Add(a.Replace("{path}", paths.Count > 0 ? paths[0] : "", StringComparison.Ordinal));
+        }
+        return list;
+    }
+
+    /// <summary>여러 항목을 앱 하나로 한 번에 연다(<see cref="AcceptsMany"/> 인 앱).</summary>
+    public async Task<LaunchResult> LaunchManyAsync(AppEntry app, IReadOnlyList<string> paths)
+    {
+        try
+        {
+            await _spawn(app.Command, ExpandArgsMany(app.Args, paths));
+            return LaunchResult.Success;
+        }
+        catch (Win32Exception e)
+        {
+            return new LaunchResult(string.IsNullOrEmpty(e.Message) ? $"{app.Command} 을(를) 실행하지 못했습니다" : e.Message);
+        }
+        catch (Exception e)
+        {
+            return new LaunchResult(e.Message);
+        }
+    }
 
     public async Task<LaunchResult> LaunchAsync(AppEntry app, string path)
     {
