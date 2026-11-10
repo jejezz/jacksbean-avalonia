@@ -55,6 +55,10 @@ Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+; The app is a tray app that may be running with no visible window, which Setup's own "close applications" detection
+; (Restart Manager) misses — so Setup stops it itself (see [Code]) and Setup's own auto-close is turned off.
+CloseApplications=no
+RestartApplications=no
 ; No license page: MIT apps have nothing to agree to (conventions/licensing.md §4).
 
 [Languages]
@@ -76,3 +80,39 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+// The app holds a named mutex while it runs (src/JackBean.App/Services/SingleInstance.cs — AppIdentity.Id, keep the two in sync).
+const
+  AppMutexName = 'art.zoomon.jacksbean.avalonia';
+
+// Stops a running copy before files are replaced or removed: ask it to quit (`--quit`, understood by versions that
+// hold the mutex), wait a few seconds, then end whatever is left (older versions had no mutex and no --quit).
+procedure StopRunningApp(const ExePath: String);
+var
+  ResultCode, I: Integer;
+begin
+  if CheckForMutexes(AppMutexName) and FileExists(ExePath) then
+  begin
+    Exec(ExePath, '--quit', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    for I := 1 to 20 do
+    begin
+      if not CheckForMutexes(AppMutexName) then Break;
+      Sleep(250);
+    end;
+  end;
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM {#MyAppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(500);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  StopRunningApp(ExpandConstant('{app}\{#MyAppExeName}'));
+end;
+
+function InitializeUninstall(): Boolean;
+begin
+  Result := True;
+  StopRunningApp(ExpandConstant('{app}\{#MyAppExeName}'));
+end;
