@@ -201,6 +201,31 @@ public sealed class EnglishStrings : IAppStrings
     public string SettingsStartupToggle => "Start automatically when I sign in";
     public string SettingsStartupNote => "The dock appears as soon as you sign in to the computer.";
     public string StartupFailed(string error) => $"Couldn't change the startup setting: {error}";
+    public string HomeSyncNow => "Sync now";
+    public string SettingsSectionSync => "Sync";
+    public string SyncTitle => "Policy sync (GitHub)";
+    public string SyncDescription => "Upload and download the policy file through a GitHub repository so several PCs share the same rules. Sign-in uses this PC’s git setup (credential manager, SSH keys), so the app never stores a password or token.";
+    public string SyncRepoLabel => "Repository address";
+    public string SyncRepoHint => "Example: https://github.com/you/jacksbean-policy.git — an empty repository is fine. Press Enter or click elsewhere to save.";
+    public string SyncNow => "Sync now";
+    public string SyncRunning => "Syncing…";
+    public string SyncNever => "Never synced yet.";
+    public string SyncLast(string when) => $"Last synced: {when}";
+    public string SyncDone(bool received, bool pushed) => received && pushed ? "Exchanged changes." : received ? "Received changes from GitHub." : pushed ? "Uploaded this PC’s changes." : "Already identical — nothing changed.";
+    public string SyncFailed(string error) => $"Couldn't sync: {error}";
+    public string SyncConflicts(int count) => $"{count} conflict(s) were merged in favor of the more recent edit.";
+    public string SyncNote(JackBean.Domain.Policy.MergeNote note)
+    {
+        var what = (note.Item == JackBean.Domain.Policy.MergeItemKind.App ? "App" : "Rule") + $" “{note.Id}”";
+        return note.Kind switch
+        {
+            JackBean.Domain.Policy.MergeNoteKind.ConflictResolved => $"{what}: edited on both sides; used the more recent one ({(note.Detail == "remote" ? "GitHub" : "this PC")}).",
+            JackBean.Domain.Policy.MergeNoteKind.RemovedWithTheOtherSide => $"{what}: removed because it was deleted on {(note.Detail == "remote" ? "GitHub" : "the other PC")}.",
+            JackBean.Domain.Policy.MergeNoteKind.KeptEditedOverDelete => $"{what}: kept because it was edited on {(note.Detail == "remote" ? "GitHub" : "this PC")} after being deleted.",
+            _ => $"{what}: fixed something that didn’t fit after merging ({note.Detail}).",
+        };
+    }
+    public string SyncOsNote => "The policy file is per OS (policy.windows.json, …), so only PCs running the same OS share it. If both sides edit the same item, the more recent edit wins.";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "Images", "audio" => "Music & voice", "video" => "Video", "pdf" => "PDF", "document" => "Documents",

@@ -43,6 +43,20 @@ public class JsonSettingsRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void 동기화_저장소와_마지막_시각을_저장한다()
+    {
+        Assert.Null(new AppSettings().SyncRepository);
+        var at = new DateTimeOffset(2026, 11, 10, 12, 30, 0, TimeSpan.FromHours(9));
+        Repo().Save(new AppSettings { SyncRepository = "https://github.com/me/policy.git", SyncLastAt = at });
+        var back = Repo().Load();
+        Assert.Equal("https://github.com/me/policy.git", back.SyncRepository);
+        Assert.Equal(at, back.SyncLastAt);
+        var json = File.ReadAllText(File_);
+        Assert.Contains("\"sync_repository\"", json);
+        Assert.DoesNotContain("token", json, StringComparison.OrdinalIgnoreCase);   // 비밀번호·토큰은 저장하지 않는다
+    }
+
+    [Fact]
     public void 저장_키는_규약의_공통_이름이다()
     {
         Repo().Save(new AppSettings { Theme = ThemeMode.Light, Palette = ColorPalette.HighContrast, Locale = AppLocale.Korean });

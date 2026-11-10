@@ -198,6 +198,21 @@ public interface IAppStrings
     string SettingsStartupToggle { get; }
     string SettingsStartupNote { get; }
     string StartupFailed(string error);
+    string HomeSyncNow { get; }
+    string SettingsSectionSync { get; }
+    string SyncTitle { get; }
+    string SyncDescription { get; }
+    string SyncRepoLabel { get; }
+    string SyncRepoHint { get; }
+    string SyncNow { get; }
+    string SyncRunning { get; }
+    string SyncNever { get; }
+    string SyncLast(string when);
+    string SyncDone(bool received, bool pushed);
+    string SyncFailed(string error);
+    string SyncConflicts(int count);
+    string SyncNote(JackBean.Domain.Policy.MergeNote note);
+    string SyncOsNote { get; }
     string ExtensionGroupName(string id);
     string ViewerFailed(string error);
 }

@@ -201,6 +201,31 @@ public sealed class KoreanStrings : IAppStrings
     public string SettingsStartupToggle => "로그인할 때 자동으로 시작";
     public string SettingsStartupNote => "컴퓨터에 로그인하면 독이 바로 뜹니다.";
     public string StartupFailed(string error) => $"시작 프로그램 설정을 바꾸지 못했습니다: {error}";
+    public string HomeSyncNow => "지금 동기화";
+    public string SettingsSectionSync => "동기화";
+    public string SyncTitle => "정책 동기화 (GitHub)";
+    public string SyncDescription => "정책 파일을 GitHub 저장소에 올리고 받아서 여러 PC 에서 같은 규칙을 씁니다. 로그인은 이 PC 의 git 설정(자격 증명 관리자, SSH 키)을 그대로 쓰므로 앱은 비밀번호나 토큰을 저장하지 않습니다.";
+    public string SyncRepoLabel => "저장소 주소";
+    public string SyncRepoHint => "예: https://github.com/내아이디/jacksbean-policy.git — 비어 있는 저장소여도 됩니다. 입력하고 Enter 나 다른 곳을 누르면 저장됩니다.";
+    public string SyncNow => "지금 동기화";
+    public string SyncRunning => "동기화하는 중…";
+    public string SyncNever => "아직 동기화한 적이 없습니다.";
+    public string SyncLast(string when) => $"마지막 동기화: {when}";
+    public string SyncDone(bool received, bool pushed) => received && pushed ? "변경을 주고받았습니다." : received ? "GitHub 의 변경을 받았습니다." : pushed ? "이 PC 의 변경을 올렸습니다." : "이미 같습니다 — 바뀐 것이 없습니다.";
+    public string SyncFailed(string error) => $"동기화하지 못했습니다: {error}";
+    public string SyncConflicts(int count) => $"충돌 {count}개는 더 최근에 고친 쪽으로 합쳤습니다.";
+    public string SyncNote(JackBean.Domain.Policy.MergeNote note)
+    {
+        var what = (note.Item == JackBean.Domain.Policy.MergeItemKind.App ? "앱" : "규칙") + $" ‘{note.Id}’";
+        return note.Kind switch
+        {
+            JackBean.Domain.Policy.MergeNoteKind.ConflictResolved => $"{what}: 양쪽에서 고쳐서 더 최근인 {(note.Detail == "remote" ? "GitHub" : "이 PC")} 것을 썼습니다.",
+            JackBean.Domain.Policy.MergeNoteKind.RemovedWithTheOtherSide => $"{what}: {(note.Detail == "remote" ? "GitHub" : "다른 PC")} 에서 지워서 함께 지웠습니다.",
+            JackBean.Domain.Policy.MergeNoteKind.KeptEditedOverDelete => $"{what}: 지워졌지만 {(note.Detail == "remote" ? "GitHub" : "이 PC")} 에서 그 뒤에 고쳐서 남겼습니다.",
+            _ => $"{what}: 합친 뒤 맞지 않는 부분을 고쳤습니다({note.Detail}).",
+        };
+    }
+    public string SyncOsNote => "정책 파일은 OS 별(policy.windows.json 등)이라 같은 OS 를 쓰는 PC 끼리 공유됩니다. 같은 항목을 양쪽에서 고치면 더 최근에 고친 쪽을 씁니다.";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "이미지", "audio" => "음악·음성", "video" => "영상", "pdf" => "PDF", "document" => "문서",

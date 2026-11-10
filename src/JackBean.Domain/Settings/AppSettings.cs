@@ -74,6 +74,14 @@ public sealed record AppSettings
     [JsonPropertyName("global_hotkey")]
     public bool GlobalHotkey { get; init; }
 
+    /// <summary>정책을 동기화할 GitHub 저장소 주소(https 또는 ssh). null 이면 동기화를 쓰지 않는다. 로그인은 이 PC 의 git 설정이 처리하므로 토큰은 저장하지 않는다.</summary>
+    [JsonPropertyName("sync_repository")]
+    public string? SyncRepository { get; init; }
+
+    /// <summary>마지막으로 동기화에 성공한 시각(표시용).</summary>
+    [JsonPropertyName("sync_last_at")]
+    public DateTimeOffset? SyncLastAt { get; init; }
+
     public AppSettings WithTextScale(double scale) => this with { TextScale = TextScales.Snap(scale) };
 
     /// <summary>파일에서 읽은 값을 쓸 수 있는 값으로 고친다 (배율은 범위 안으로, 틀린 독 위치는 버린다).</summary>
