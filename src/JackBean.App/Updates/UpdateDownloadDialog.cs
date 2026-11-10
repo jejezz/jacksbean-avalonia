@@ -43,7 +43,7 @@ sealed class UpdateDownloadDialog : DialogBase
     UpdateDownloadDialog(UpdateInfo info)
     {
         var s = Strings.Current;
-        Title = s.UpdateDownloading;
+        Title = WindowTitle.Of(s.UpdateDownloading);
         MinWidth = 440;
         MaxWidth = 440;
         _title = new TextBlock { Text = s.UpdateDownloading, FontWeight = Avalonia.Media.FontWeight.Bold };
@@ -77,7 +77,7 @@ sealed class UpdateCheckingDialog : DialogBase
 {
     public UpdateCheckingDialog()
     {
-        Title = Strings.Current.UpdateChecking;
+        Title = WindowTitle.Of(Strings.Current.UpdateChecking);
         MinWidth = 320;
         Content = new StackPanel
         {
