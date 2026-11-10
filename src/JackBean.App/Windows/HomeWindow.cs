@@ -182,7 +182,9 @@ public sealed class HomeWindow : Window
         openFile.Click += (_, _) => OpenPolicyFile();
         var undo = new Button { Content = s.HomeUndo, IsEnabled = App.PolicyStore.CanUndo };
         undo.Click += (_, _) => PolicyNotices.Undo();
-        var fileButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { reload, openFile, undo } };
+        var restore = new Button { Content = s.HomeRestoreDefaults, IsVisible = _policy is { IsFallback: false } };
+        restore.Click += async (_, _) => await RestoreDefaultsAsync();
+        var fileButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { reload, openFile, undo, restore } };
         if (App.Github.CanSync)
         {
             var sync = new Button { Content = App.SyncRunning ? s.SyncRunning : s.HomeSyncNow, IsEnabled = !App.SyncRunning };
@@ -264,6 +266,20 @@ public sealed class HomeWindow : Window
     {
         try { new OpenWithDefaultApp().Open(App.PolicyStore.FilePath); }
         catch (FileOperationException e) { Snackbar.Error(Strings.Current.DockOpenFailed(e.Message)); }
+    }
+
+    /// <summary>규칙·앱을 기본 정책으로 바꾼다(확인한 뒤). 이전 내용은 `.backup-날짜` 로 남고 [실행 취소]로 되돌린다.</summary>
+    private async Task RestoreDefaultsAsync()
+    {
+        var s = Strings.Current;
+        var choice = await Dialogs.MessageDialog.ShowAsync(this, s.RestoreDefaultsTitle,
+            s.RestoreDefaultsBody(_policy?.Rules.Count ?? 0, _policy?.Apps.Count(a => !_policy.IsImplicitApp(a.Key)) ?? 0),
+            [s.HomeRestoreDefaults, s.CommonCancel], defaultIndex: 1, cancelIndex: 1);
+        if (choice != 0) return;
+        var result = await App.PolicyStore.RestoreDefaultsAsync();
+        if (result.Error != null) { Snackbar.Error(s.RestoreDefaultsFailed(result.Error)); return; }
+        App.NotifyPolicyChanged();
+        PolicyNotices.Saved(s.RestoreDefaultsDone);
     }
 
     private async Task ResetPolicyAsync()

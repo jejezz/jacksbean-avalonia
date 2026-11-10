@@ -289,4 +289,9 @@ public interface IAppStrings
     string EditorTooLarge(string name);
     string PdfViewerFailed(string error);
     string ViewerOpenWithDefaultApp { get; }
+    string HomeRestoreDefaults { get; }
+    string RestoreDefaultsTitle { get; }
+    string RestoreDefaultsBody(int rules, int apps);
+    string RestoreDefaultsDone { get; }
+    string RestoreDefaultsFailed(string error);
 }
