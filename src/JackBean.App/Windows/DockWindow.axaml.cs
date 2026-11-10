@@ -62,8 +62,8 @@ public partial class DockWindow : Window
     private IReadOnlyList<RuleSuggestion> _suggestions = [];
     private bool _remember;
 
-    /// <summary>독의 오른쪽 끝(물리 픽셀). 크기가 바뀔 때 이 끝을 지키며 왼쪽으로 자란다.</summary>
-    private double _right;
+    /// <summary>평소(정원) 크기일 때 독의 왼쪽 끝(물리 픽셀). 콩은 늘 이 자리에 있다 — 펼치면 화면 가운데 쪽으로 자란다(<see cref="GrowsRight"/>).</summary>
+    private double _idleLeft;
     private bool _userMoving;
     private bool _placing;
 
@@ -155,16 +155,34 @@ public partial class DockWindow : Window
         _placing = true;
         Width = size.Width; Height = size.Height;
         Position = new PixelPoint((int)Math.Round(left), (int)Math.Round(top));
-        _right = left + size.Width * scale;
+        _idleLeft = left;
         Dispatcher.UIThread.Post(() => _placing = false, DispatcherPriority.Background);
     }
 
-    /// <summary>크기를 바꾸되 오른쪽 끝을 지킨다 — 가장자리에 붙은 독이 화면 밖으로 밀리지 않고 왼쪽으로 자란다.</summary>
+    /// <summary>
+    /// 펼칠 때 오른쪽으로 자라는가. 콩은 포인터가 있는 자리에 그대로 있어야 하므로(펼쳐도 콩이 움직이지 않는다) 창은 콩의 반대쪽으로만 자란다 —
+    /// 독이 화면 왼쪽 절반에 있으면 오른쪽으로(콩 글자), 오른쪽 절반에 있으면 왼쪽으로(글자 콩) 자라서 화면 가장자리로 밀리지 않는다.
+    /// </summary>
+    private bool GrowsRight
+    {
+        get
+        {
+            var scale = RenderScaling;
+            var center = new PixelPoint((int)Math.Round(_idleLeft + IdleSize * scale / 2), Position.Y + (int)Math.Round(IdleSize * scale / 2));
+            var screen = ScreenAt(center);
+            if (screen == null) return false;
+            var work = screen.WorkingArea;
+            return center.X < work.X + work.Width / 2.0;
+        }
+    }
+
+    /// <summary>크기를 바꾸되 콩(정원 크기일 때의 자리)을 지킨다 — 가장자리에 붙은 독이 화면 밖으로 밀리지 않고 콩의 반대쪽으로 자란다.</summary>
     private void ResizeTo(Size size)
     {
         var scale = RenderScaling;
         _placing = true;
-        var target = new PixelPoint((int)Math.Round(_right - size.Width * scale), Position.Y);
+        var left = GrowsRight ? _idleLeft : _idleLeft + IdleSize * scale - size.Width * scale;
+        var target = new PixelPoint((int)Math.Round(left), Position.Y);
         // 위치와 크기를 한 번에 바꾼다(그 사이 어긋난 프레임이 안 보이게). 안 되는 OS 에서는 차례로 바꾼다.
         NativeBounds.TrySet(this, target, new PixelSize((int)Math.Round(size.Width * scale), (int)Math.Round(size.Height * scale)));
         Width = size.Width;
@@ -176,13 +194,13 @@ public partial class DockWindow : Window
     private void OnPositionChanged(object? sender, PixelPointEventArgs e)
     {
         if (_placing || !_userMoving) return;
-        _right = e.Point.X + Width * RenderScaling;
+        _idleLeft = GrowsRight ? e.Point.X : e.Point.X + (Width - IdleSize) * RenderScaling;
         _movedTimer.Stop();
         _movedTimer.Start(); // 끌기가 멈춘 뒤 한 번만 저장한다
     }
 
     private void RememberPosition() =>
-        App.Settings.Update(x => x with { Dock = new DockPosition(Position.X + Width * RenderScaling, Position.Y, RenderScaling) });
+        App.Settings.Update(x => x with { Dock = new DockPosition(_idleLeft + IdleSize * RenderScaling, Position.Y, RenderScaling) });
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -367,6 +385,7 @@ public partial class DockWindow : Window
         Pill.Height = chooser ? double.NaN : PillHeight;
         Pill.Width = IsCircle ? PillHeight : double.NaN;
         Pill.VerticalAlignment = chooser ? VerticalAlignment.Top : VerticalAlignment.Center;
+        Pill.HorizontalAlignment = GrowsRight ? HorizontalAlignment.Left : HorizontalAlignment.Right;   // 콩 쪽 끝에 붙는다
 
         PillContent.Children.Clear();
         PillContent.Children.Add(chooser ? BuildChooser() : BuildPill());
@@ -381,28 +400,34 @@ public partial class DockWindow : Window
             title = Strings.Current.DropSummary(KindLabel(PathClassifier.CommonKind(_last)), _last.Count);
             subtitle = _status ?? _last[0].Name;
         }
-        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        if (!IsCircle) row.Margin = new Thickness(12, 0);
+        var right = GrowsRight;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = right ? HorizontalAlignment.Left : HorizontalAlignment.Right };
+        // 콩은 정원일 때와 같은 자리에 둔다(알약 안쪽 여백 13 = (72 - 46) / 2, 테두리 두께만큼 뺀다). 글자는 콩의 반대쪽에 붙는다.
+        var beanGap = (PillHeight - IconSize) / 2 - (_hovering ? DockRing.ActiveWidth : DockRing.IdleWidth);
+        if (!IsCircle) row.Margin = right ? new Thickness(beanGap, 0, 12, 0) : new Thickness(12, 0, beanGap, 0);
+        else row.HorizontalAlignment = HorizontalAlignment.Center;
         // 싹이 난 콩만, 정지된 그림 하나 — 상태는 테두리와 글자로만 알린다.
-        row.Children.Add(new Image
+        var bean = new Image
         {
             Source = DockIcon.Value, // 한 번만 읽어 재사용 — 다시 그릴 때마다 새로 읽으면 한 프레임 비어 보일 수 있다
             Width = IconSize, Height = IconSize,
-        });
+        };
+        if (right) row.Children.Add(bean);
         if (Expanded)
         {
-            var text = new StackPanel { Margin = new Thickness(8, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center, MaxWidth = ActiveWidth - IconSize - 12 * 2 - 8 - 6 - 12 };
+            var text = new StackPanel { Margin = right ? new Thickness(8, 0, 6, 0) : new Thickness(6, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center, MaxWidth = ActiveWidth - IconSize - 12 * 2 - 8 - 6 - 12 };
             // 제목은 반드시 한 줄 — 모자라면 줄바꿈 대신 글자를 줄여 맞춘다.
             text.Children.Add(new Viewbox
             {
                 StretchDirection = Avalonia.Media.StretchDirection.DownOnly,
-                HorizontalAlignment = HorizontalAlignment.Left,
+                HorizontalAlignment = right ? HorizontalAlignment.Left : HorizontalAlignment.Right,
                 Child = new TextBlock { Text = title ?? Strings.Current.DockDropHint, FontWeight = FontWeight.SemiBold, Foreground = Fg, TextWrapping = TextWrapping.NoWrap },
             });
             if (subtitle != null)
-                text.Children.Add(new TextBlock { Text = subtitle, FontSize = 12, FontFamily = new FontFamily("$Default, Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, Noto Sans KR"), Foreground = _statusIsError ? Danger : FgDim, TextTrimming = TextTrimming.CharacterEllipsis });
+                text.Children.Add(new TextBlock { Text = subtitle, FontSize = 12, FontFamily = new FontFamily("$Default, Apple SD Gothic Neo, Malgun Gothic, Noto Sans CJK KR, Noto Sans KR"), Foreground = _statusIsError ? Danger : FgDim, TextTrimming = TextTrimming.CharacterEllipsis, TextAlignment = right ? TextAlignment.Left : TextAlignment.Right });
             row.Children.Add(text);
         }
+        if (!right) row.Children.Add(bean);
         return row;
     }
 
