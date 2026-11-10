@@ -44,6 +44,20 @@ static class Snapshot
         AppsEditorWindow.Open(dock);
         RulesEditorWindow.Open(dock, RulesEditorSection.Files);
         Notifications.Snackbar.Error(Strings.Current.DockOpenFailed("D:/작업/보고서 최종.pdf 을(를) 실행하지 못했습니다 — 파일 형식과 연결된 앱이 없습니다"), "System.ComponentModel.Win32Exception: 지정된 파일을 찾을 수 없습니다");
+        // 텍스트 에디터(구문 강조 포함): 예시 C# 파일을 연다.
+        var sample = Path.Combine(dir, "Sample.cs");
+        File.WriteAllText(sample, """
+        using System;
+
+        namespace Demo;
+
+        /// <summary>Greets someone.</summary>
+        public static class Greeter
+        {
+            public static string Hello(string name) => $"Hello, {name}!"; // 42
+        }
+        """);
+        await App.Tools.OpenAsync("jackbean:text-editor", sample);
         await Task.Delay(800);
         foreach (var c in configs)
         {

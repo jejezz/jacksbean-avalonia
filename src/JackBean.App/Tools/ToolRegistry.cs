@@ -23,6 +23,7 @@ public sealed class ToolRegistry
 
     private readonly Dictionary<string, IBuiltInTool> _tools = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<Window> _open = [];
+    private readonly Dictionary<(string Id, string Path), Window> _byFile = new();
 
     public IReadOnlyCollection<Window> OpenWindows => _open;
 
@@ -40,9 +41,19 @@ public sealed class ToolRegistry
         {
             try
             {
+                // 같은 도구로 같은 파일을 다시 열면 열려 있는 창을 앞으로 가져온다(파일 하나당 창 하나).
+                var key = (tool.Id.ToLowerInvariant(), OperatingSystem.IsWindows() ? path.ToLowerInvariant() : path);
+                if (_byFile.TryGetValue(key, out var existing))
+                {
+                    if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal;
+                    existing.Activate();
+                    done.SetResult();
+                    return;
+                }
                 var window = tool.CreateWindow(path);
                 _open.Add(window);
-                window.Closed += (_, _) => _open.Remove(window);
+                _byFile[key] = window;
+                window.Closed += (_, _) => { _open.Remove(window); _byFile.Remove(key); };
                 window.Show();
                 window.Activate();
                 done.SetResult();
