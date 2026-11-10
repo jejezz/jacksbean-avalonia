@@ -52,23 +52,44 @@ public sealed class DropRouter
     public async Task<RoutePlan> RouteAsync(IReadOnlyList<DroppedItem> items)
     {
         var policy = await Store.LoadAsync();
-        var outcomes = new List<RouteOutcome>();
-        foreach (var item in items)
+        var outcomes = new RouteOutcome?[items.Count];
+        var opens = new List<(int Index, AppEntry App)>();
+        for (var i = 0; i < items.Count; i++)
         {
-            outcomes.Add(policy.Decide(item) switch
+            var item = items[i];
+            switch (policy.Decide(item))
             {
-                OpenWith o => await OpenAsync(o.App, item),
-                Ask a => new NeedsChoice(item, a.RuleId, a.Candidates),
-                MissingApp m => new AppNotInPolicy(item, m.AppId),
-                _ => new Skipped(item),
-            });
+                case OpenWith o: opens.Add((i, o.App)); break;
+                case Ask a: outcomes[i] = new NeedsChoice(item, a.RuleId, a.Candidates); break;
+                case MissingApp m: outcomes[i] = new AppNotInPolicy(item, m.AppId); break;
+                default: outcomes[i] = new Skipped(item); break;
+            }
         }
-        return new RoutePlan(outcomes, policy);
+        // 같은 앱으로 열 항목은 묶는다 — 여러 항목을 한 번에 받는 앱(`{paths}`)은 한 번만 띄운다.
+        foreach (var group in opens.GroupBy(o => o.App.Id))
+        {
+            var app = group.First().App;
+            var results = await OpenManyAsync(app, group.Select(g => items[g.Index]).ToList());
+            var k = 0;
+            foreach (var g in group) outcomes[g.Index] = results[k++];
+        }
+        return new RoutePlan(outcomes.Select(o => o!).ToList(), policy);
     }
 
     /// <summary>사용자가 고른 앱으로 항목을 연다.</summary>
     public async Task<IReadOnlyList<RouteOutcome>> OpenWithAsync(AppEntry app, IEnumerable<DroppedItem> items)
     {
+        return await OpenManyAsync(app, items.ToList());
+    }
+
+    /// <summary>항목들을 앱 하나로 연다: `{paths}` 를 받는 앱이면 한 번에, 아니면 항목마다.</summary>
+    private async Task<IReadOnlyList<RouteOutcome>> OpenManyAsync(AppEntry app, IReadOnlyList<DroppedItem> items)
+    {
+        if (items.Count > 1 && AppLauncher.AcceptsMany(app))
+        {
+            var r = await Launcher.LaunchManyAsync(app, items.Select(i => i.Path).ToList());
+            return items.Select(i => r.Ok ? (RouteOutcome)new Opened(i, app) : new OpenFailed(i, app, r.Error!)).ToList();
+        }
         var list = new List<RouteOutcome>();
         foreach (var item in items) list.Add(await OpenAsync(app, item));
         return list;

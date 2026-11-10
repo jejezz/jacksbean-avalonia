@@ -312,4 +312,26 @@ public sealed class EnglishStrings : IAppStrings
     public string RestoreDefaultsBody(int rules, int apps) => $"Your {rules} rules and {apps} apps will be replaced by the default policy (built-in tools for images, PDF, text and code; OS defaults for drives, folders and everything else). The previous content is kept as a file and you can also Undo.";
     public string RestoreDefaultsDone => "Restored the default policy.";
     public string RestoreDefaultsFailed(string error) => $"Couldn't restore the default policy: {error}";
+    public string ArchiveCompressTitle => "Compress";
+    public string ArchiveExtract => "Extract";
+    public string ArchiveCompress => "Compress";
+    public string ArchiveBrowse => "Browse…";
+    public string ArchiveItemCount(int count) => count == 1 ? "1 item will be put into a zip." : $"{count} items will be put into one zip.";
+    public string ArchiveZipName => "Zip file name";
+    public string ArchiveExtractTo => "Extract to";
+    public string ArchiveSaveIn => "Save in";
+    public string ArchiveOpenFolder => "Open folder";
+    public string ArchiveListingInfo(int files, int folders, string size) => $"{files} files · {folders} folders · {size}";
+    public string ArchiveListTruncated(int max) => $"showing the first {max}";
+    public string ArchiveBroken(string error) => $"Couldn't read the zip: {error}";
+    public string ArchiveErrAlreadyExists(string name) => $"Stopped: it already exists (nothing is overwritten): {name}";
+    public string ArchiveErrUnsafe(string name) => $"Not extracted — the path leaves the folder: {name}";
+    public string ArchiveErrBadName => "That zip file name isn't valid.";
+    public string ArchiveErrNothing => "There is nothing to compress.";
+    public string ArchiveErrNoFolder => "Enter a folder.";
+    public string ArchiveFailed(string error) => $"Failed: {error}";
+    public string ArchiveExtracting => "Extracting…";
+    public string ArchiveCompressing => "Compressing…";
+    public string ArchiveExtracted(string folder) => $"Extracted to {folder}";
+    public string ArchiveCompressed(string zip) => $"Created {zip}";
 }

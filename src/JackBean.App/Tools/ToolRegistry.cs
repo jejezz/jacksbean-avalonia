@@ -15,6 +15,11 @@ public interface IBuiltInTool
 
     /// <summary>path(파일·폴더·드라이브 경로)를 보여 줄 새 창을 만든다. 창을 띄우는 일은 레지스트리가 한다.</summary>
     Window CreateWindow(string path);
+
+    /// <summary>
+    /// 여러 항목을 한 번에 받는 도구(앱의 `args` 에 `{paths}`)는 이것을 정의한다. 기본은 첫 항목만 연다.
+    /// </summary>
+    Window CreateWindow(IReadOnlyList<string> paths) => CreateWindow(paths[0]);
 }
 
 public sealed class ToolRegistry
@@ -32,8 +37,12 @@ public sealed class ToolRegistry
     public static bool IsBuiltIn(string command) => command.StartsWith(Scheme, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>`jackbean:image-viewer` 같은 명령을 연다. 모르는 도구면 예외(실행기가 실패로 독에 알린다).</summary>
-    public Task OpenAsync(string command, string path)
+    public Task OpenAsync(string command, string path) => OpenAsync(command, [path]);
+
+    /// <summary>`jackbean:도구` 를 경로 여러 개로 연다(도구가 `{paths}` 를 받는 경우). 같은 도구·같은 경로 묶음이면 열려 있는 창을 앞으로 가져온다.</summary>
+    public Task OpenAsync(string command, IReadOnlyList<string> paths)
     {
+        var path = string.Join('|', paths);   // 창을 구별하는 열쇠(경로 묶음)
         var id = command[Scheme.Length..];
         if (!_tools.TryGetValue(id, out var tool)) throw new InvalidOperationException($"알 수 없는 내장 도구: {id}");
         var done = new TaskCompletionSource();
@@ -50,7 +59,7 @@ public sealed class ToolRegistry
                     done.SetResult();
                     return;
                 }
-                var window = tool.CreateWindow(path);
+                var window = paths.Count > 1 ? tool.CreateWindow(paths) : tool.CreateWindow(paths[0]);
                 _open.Add(window);
                 _byFile[key] = window;
                 window.Closed += (_, _) => { _open.Remove(window); _byFile.Remove(key); };

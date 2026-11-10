@@ -81,10 +81,11 @@ public partial class App : Application
         Tools.Register(new ImageViewerTool());
         Tools.Register(new TextEditorTool());
         Tools.Register(new PdfViewerTool());
+        Tools.Register(new ArchiveTool());
         // `jackbean:` 로 시작하는 명령은 프로세스를 띄우지 않고 내장 도구가 연다. 나머지는 셸 없이 프로세스로.
         var external = new AppLauncher();
         Router = new DropRouter(PolicyStore, new AppLauncher((command, args) =>
-            ToolRegistry.IsBuiltIn(command) ? Tools.OpenAsync(command, args.Count > 0 ? args[0] : "") : external.SpawnAsync(command, args)));
+            ToolRegistry.IsBuiltIn(command) ? Tools.OpenAsync(command, args) : external.SpawnAsync(command, args)));
 
         // UI 스레드에서 처리하지 못한 예외로 독이 사라지면 곤란하다 — 알림으로 알리고(원문 복사 가능) 계속 떠 있는다.
         Dispatcher.UIThread.UnhandledException += (_, e) =>
@@ -122,9 +123,10 @@ public partial class App : Application
                     case "--settings": SettingsWindow.Open(dock); break;
                     case "--about": Dialogs.AboutDialog.Open(dock); break;
                 }
-            // 확인용: `--tool <도구 id> <파일>` 로 내장 도구 창을 바로 연다(예: --tool pdf-viewer a.pdf).
+            // 확인용: `--tool <도구 id> <파일...>` 로 내장 도구 창을 바로 연다(예: --tool pdf-viewer a.pdf).
             var tool = Array.IndexOf(desktop.Args ?? [], "--tool");
-            if (tool >= 0 && desktop.Args!.Length > tool + 2) _ = Tools.OpenAsync(ToolRegistry.Scheme + desktop.Args[tool + 1], desktop.Args[tool + 2]);
+            if (tool >= 0 && desktop.Args!.Length > tool + 2)
+                _ = Tools.OpenAsync(ToolRegistry.Scheme + desktop.Args[tool + 1], desktop.Args.Skip(tool + 2).TakeWhile(x => !x.StartsWith("--")).ToList());
             var snap = Array.IndexOf(desktop.Args ?? [], "--snapshot");
             if (snap >= 0 && desktop.Args!.Length > snap + 1) _ = Snapshot.RunAsync(desktop.Args[snap + 1]);
             if (OperatingSystem.IsMacOS()) BuildMacMenu(dock);

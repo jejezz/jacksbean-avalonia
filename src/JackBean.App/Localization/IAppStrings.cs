@@ -294,4 +294,26 @@ public interface IAppStrings
     string RestoreDefaultsBody(int rules, int apps);
     string RestoreDefaultsDone { get; }
     string RestoreDefaultsFailed(string error);
+    string ArchiveCompressTitle { get; }
+    string ArchiveExtract { get; }
+    string ArchiveCompress { get; }
+    string ArchiveBrowse { get; }
+    string ArchiveItemCount(int count);
+    string ArchiveZipName { get; }
+    string ArchiveExtractTo { get; }
+    string ArchiveSaveIn { get; }
+    string ArchiveOpenFolder { get; }
+    string ArchiveListingInfo(int files, int folders, string size);
+    string ArchiveListTruncated(int max);
+    string ArchiveBroken(string error);
+    string ArchiveErrAlreadyExists(string name);
+    string ArchiveErrUnsafe(string name);
+    string ArchiveErrBadName { get; }
+    string ArchiveErrNothing { get; }
+    string ArchiveErrNoFolder { get; }
+    string ArchiveFailed(string error);
+    string ArchiveExtracting { get; }
+    string ArchiveCompressing { get; }
+    string ArchiveExtracted(string folder);
+    string ArchiveCompressed(string zip);
 }
