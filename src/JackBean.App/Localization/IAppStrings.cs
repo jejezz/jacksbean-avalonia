@@ -94,11 +94,54 @@ public interface IAppStrings
     string DockSuggestDrive { get; }
     string DockRuleSaved { get; }
     string DockRuleSaveFailed(string error);
+    string SnackbarCopy { get; }
+    string SnackbarCopied { get; }
+    string SnackbarClose { get; }
+    string ErrorUnexpected { get; }
+    string PolicyWarningsFound { get; }
     string HomeRules { get; }
     string HomeApps { get; }
     string HomeWarnings { get; }
     string HomePolicyFile { get; }
     string HomeReload { get; }
     string HomeAsk { get; }
+    string HomeEmpty { get; }
+    string HomeOpenPolicyFile { get; }
+    string HomeNoRules { get; }
+    string HomeNoApps { get; }
+    string HomeFallbackNote { get; }
+    string HomeResetPolicy { get; }
+    string HomeResetDone(string? backup);
+    string HomeResetFailed(string error);
+    string DockNoApps { get; }
+    string SnackbarOpenHome { get; }
+    string HomeEditApps { get; }
+    string AppsEditorTitle { get; }
+    string AppsEditorList { get; }
+    string AppsEditorAdd { get; }
+    string AppsEditorNewApp { get; }
+    string FieldAppId { get; }
+    string FieldAppIdHint { get; }
+    string FieldAppCommand { get; }
+    string FieldAppCommandHint { get; }
+    string FieldAppBrowse { get; }
+    string FieldAppArgs { get; }
+    string FieldAppArgsHint { get; }
+    string AppArgsNoPath { get; }
+    string AppSave { get; }
+    string AppDelete { get; }
+    string AppRevert { get; }
+    string AppErrIdEmpty { get; }
+    string AppErrIdInvalid { get; }
+    string AppErrIdTaken { get; }
+    string AppErrCommandEmpty { get; }
+    string AppSaved(string id);
+    string AppSaveFailed(string error);
+    string AppDeleteTitle { get; }
+    string AppDeleteConfirm(string id, int rules);
+    string AppDeleted(string id);
+    string AppDeleteFailed(string error);
+    string AppDiscardConfirm { get; }
+    string AppDiscard { get; }
     string ViewerFailed(string error);
 }

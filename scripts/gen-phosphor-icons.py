@@ -13,6 +13,10 @@ from pathlib import Path
 VERSION = "2.1.1"
 BASE = f"https://cdn.jsdelivr.net/npm/@phosphor-icons/core@{VERSION}/assets"
 
+# 단순한 기호(+ x ✓)는 작은 크기에서 옅은 채움 사각형이 윤곽과 겹쳐 흐려 보인다 — 채움 층 없이 윤곽만 담는다.
+# 같은 duotone 파일의 윤곽 층이라 선 굵기·모양은 다른 아이콘과 같다(CLAUDE.md "아이콘" 참고).
+OUTLINE_ONLY = {"plus", "x", "check"}
+
 # 앱에서 부르는 이름 -> (phosphor 이름, 두께)
 ICONS = {
     # 앱 바
@@ -26,6 +30,20 @@ ICONS = {
     "contrast": ("circle-half", "duotone"),
     # 글꼴 고르기 버튼의 화살표
     "caret-down": ("caret-down", "duotone"),
+    # 알림(스낵바): 오류 표시, 복사, 복사됨, 닫기
+    "warning": ("warning-circle", "duotone"),
+    "copy": ("copy", "duotone"),
+    "check": ("check", "duotone"),
+    "x": ("x", "duotone"),
+    # 빈 상태·정책 복구
+    "tray": ("tray", "duotone"),
+    "file-text": ("file-text", "duotone"),
+    "reset": ("arrow-counter-clockwise", "duotone"),
+    # 앱 편집 창
+    "plus": ("plus", "duotone"),
+    "trash": ("trash", "duotone"),
+    "edit": ("pencil-simple", "duotone"),
+    "folder": ("folder-open", "duotone"),
 }
 
 
@@ -50,6 +68,8 @@ def main() -> None:
     rows = []
     for key, (name, weight) in ICONS.items():
         fill, outline = layers(fetch(name, weight), key)
+        if key in OUTLINE_ONLY:
+            fill = ""
         if not outline:
             sys.exit(f"{key}: 윤곽이 비었다")
         rows.append(f'        ["{key}"] = ("{fill}", "{outline}"),')

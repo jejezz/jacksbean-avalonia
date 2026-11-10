@@ -46,7 +46,7 @@ public sealed class LicensesWindow : Window
     LicensesWindow()
     {
         var s = Strings.Current;
-        Title = s.LicensesTitle;
+        Title = WindowTitle.Of(s.LicensesTitle);
         Width = 720;
         Height = 620;
         MinWidth = 420;

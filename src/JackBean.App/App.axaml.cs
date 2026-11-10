@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using JackBean.App.Notifications;
 using JackBean.App.Tools;
 using JackBean.App.Updates;
 using JackBean.App.Views;
@@ -25,6 +26,11 @@ public partial class App : Application
     internal static DropRouter Router { get; private set; } = null!;
 
     internal static PolicyStore PolicyStore { get; private set; } = null!;
+
+    /// <summary>정책 파일을 앱 안에서 바꿨다(편집 창의 저장·삭제, 복구). 홈 창처럼 정책을 보여 주는 창이 다시 읽는다.</summary>
+    internal static event Action? PolicyChanged;
+
+    internal static void NotifyPolicyChanged() => PolicyChanged?.Invoke();
 
     internal static ToolRegistry Tools { get; private set; } = null!;
 
@@ -49,6 +55,13 @@ public partial class App : Application
         var external = new AppLauncher();
         Router = new DropRouter(PolicyStore, new AppLauncher((command, args) =>
             ToolRegistry.IsBuiltIn(command) ? Tools.OpenAsync(command, args.Count > 0 ? args[0] : "") : external.SpawnAsync(command, args)));
+
+        // UI 스레드에서 처리하지 못한 예외로 독이 사라지면 곤란하다 — 알림으로 알리고(원문 복사 가능) 계속 떠 있는다.
+        Dispatcher.UIThread.UnhandledException += (_, e) =>
+        {
+            e.Handled = true;
+            Snackbar.Error(Strings.Current.ErrorUnexpected, e.Exception.ToString());
+        };
 
         // 창을 만들기 전에 색·글꼴·언어를 정해 둔다 (첫 프레임부터 올바른 모습).
         ApplyAppearance(Settings.Value);
