@@ -197,6 +197,10 @@ public sealed class EnglishStrings : IAppStrings
     public string SettingsHotkeyToggle(string combo) => $"Hide or show the dock with {combo}";
     public string SettingsHotkeyNote => "Works from any app. It won't turn on if another app already uses the same shortcut.";
     public string HotkeyFailed(string combo) => $"Couldn't turn on the {combo} shortcut. Another app may be using it.";
+    public string SettingsStartup => "Startup";
+    public string SettingsStartupToggle => "Start automatically when I sign in";
+    public string SettingsStartupNote => "The dock appears as soon as you sign in to the computer.";
+    public string StartupFailed(string error) => $"Couldn't change the startup setting: {error}";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "Images", "audio" => "Music & voice", "video" => "Video", "pdf" => "PDF", "document" => "Documents",

@@ -14,6 +14,7 @@ using JackBean.Domain;
 using JackBean.Domain.Policy;
 using JackBean.Domain.Settings;
 using JackBean.Services;
+using JackBean.Services.Startup;
 using JackBean.Services.Updates;
 
 namespace JackBean.App;
@@ -38,6 +39,9 @@ public partial class App : Application
     /// <summary>전역 단축키(독 숨기기·보이기). 이 OS 에서 쓸 수 없으면 <see cref="HotkeyService.IsSupported"/> 가 false.</summary>
     internal static HotkeyService Hotkeys { get; private set; } = null!;
 
+    /// <summary>로그인할 때 자동 시작(시작 프로그램). 등록 여부는 OS 에 있는 등록이 원본이다.</summary>
+    internal static IStartupRegistration Startup { get; private set; } = null!;
+
     private TrayService? _tray;
 
     /// <summary>업데이트 확인·설치. 서버 주소가 없는 빌드(<c>-p:AppUpdateServer=</c>)나 로컬 빌드는 null.</summary>
@@ -55,6 +59,7 @@ public partial class App : Application
         Settings = new SettingsController(new JsonSettingsRepository(settingsFile));
 
         PolicyStore = new PolicyStore(os, Path.GetDirectoryName(settingsFile));
+        Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName);
         Tools = new ToolRegistry();
         Tools.Register(new ImageViewerTool());
         // `jackbean:` 로 시작하는 명령은 프로세스를 띄우지 않고 내장 도구가 연다. 나머지는 셸 없이 프로세스로.

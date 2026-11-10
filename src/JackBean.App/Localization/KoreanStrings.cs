@@ -197,6 +197,10 @@ public sealed class KoreanStrings : IAppStrings
     public string SettingsHotkeyToggle(string combo) => $"{combo} 로 독 숨기기·보이기";
     public string SettingsHotkeyNote => "어느 앱에 있어도 눌립니다. 다른 앱이 같은 단축키를 쓰고 있으면 켜지지 않습니다.";
     public string HotkeyFailed(string combo) => $"{combo} 단축키를 켜지 못했습니다. 다른 앱이 쓰고 있을 수 있습니다.";
+    public string SettingsStartup => "시작 프로그램";
+    public string SettingsStartupToggle => "로그인할 때 자동으로 시작";
+    public string SettingsStartupNote => "컴퓨터에 로그인하면 독이 바로 뜹니다.";
+    public string StartupFailed(string error) => $"시작 프로그램 설정을 바꾸지 못했습니다: {error}";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "이미지", "audio" => "음악·음성", "video" => "영상", "pdf" => "PDF", "document" => "문서",

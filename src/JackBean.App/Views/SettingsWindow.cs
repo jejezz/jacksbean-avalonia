@@ -146,10 +146,10 @@ public sealed class SettingsWindow : Window
         _nav.Children.Clear();
         var s = Strings.Current;
         AddNavItem(Section.Appearance, s.SettingsSectionAppearance, "palette");
-        if (App.Hotkeys.IsSupported) AddNavItem(Section.Behavior, s.SettingsSectionBehavior, "sliders");   // 이 OS 에서 쓸 수 있는 동작 설정이 있을 때만
+        if (HasBehaviorSettings) AddNavItem(Section.Behavior, s.SettingsSectionBehavior, "sliders");   // 이 OS 에서 쓸 수 있는 동작 설정이 있을 때만
 
         var page = new StackPanel { Spacing = 8, MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left };
-        if (_section == Section.Behavior && App.Hotkeys.IsSupported) BuildBehavior(page);
+        if (_section == Section.Behavior && HasBehaviorSettings) BuildBehavior(page);
         else BuildAppearance(page);
         _scroll.Content = page;
         OnSettingsChanged(App.Settings.Value);
@@ -189,26 +189,57 @@ public sealed class SettingsWindow : Window
     /// <summary>확인용(--snapshot): "동작" 구역으로 넘어간다. 이 OS 에 그 구역이 없으면 아무것도 하지 않는다.</summary>
     internal void ShowBehavior()
     {
-        if (!App.Hotkeys.IsSupported) return;
+        if (!HasBehaviorSettings) return;
         _section = Section.Behavior;
         Rebuild();
     }
 
+    static bool HasBehaviorSettings => App.Startup.IsSupported || App.Hotkeys.IsSupported;
+
     void BuildBehavior(StackPanel page)
     {
         var s = Strings.Current;
-        page.Children.Add(Heading(s.SettingsHotkey, first: true));
-        var toggle = new ToggleSwitch { IsChecked = App.Settings.Value.GlobalHotkey, OnContent = s.SettingsHotkeyToggle(HotkeyService.Combo), OffContent = s.SettingsHotkeyToggle(HotkeyService.Combo) };
-        toggle.IsCheckedChanged += (_, _) =>
+        var first = true;
+        TextBlock Note(string text)
         {
-            var on = toggle.IsChecked == true;
-            if (on != App.Settings.Value.GlobalHotkey) App.Settings.Update(x => x with { GlobalHotkey = on });
-        };
-        _refreshers.Add(() => toggle.IsChecked = App.Settings.Value.GlobalHotkey);   // 켜지 못해 설정이 다시 꺼지면 스위치도 따라간다
-        page.Children.Add(toggle);
-        var note = new TextBlock { Text = s.SettingsHotkeyNote, TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
-        note.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsSmall"));
-        page.Children.Add(note);
+            var note = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
+            note.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsSmall"));
+            return note;
+        }
+
+        if (App.Startup.IsSupported)
+        {
+            page.Children.Add(Heading(s.SettingsStartup, first: first));
+            first = false;
+            var startup = new ToggleSwitch { IsChecked = App.Startup.IsEnabled(), OnContent = s.SettingsStartupToggle, OffContent = s.SettingsStartupToggle };
+            var syncing = false;
+            startup.IsCheckedChanged += (_, _) =>
+            {
+                if (syncing) return;
+                var on = startup.IsChecked == true;
+                if (App.Startup.SetEnabled(on, out var error)) return;
+                Notifications.Snackbar.Error(Strings.Current.StartupFailed(error ?? ""));
+                syncing = true;                                  // 바꾸지 못했으니 스위치를 원래대로 돌린다
+                startup.IsChecked = App.Startup.IsEnabled();
+                syncing = false;
+            };
+            page.Children.Add(startup);
+            page.Children.Add(Note(s.SettingsStartupNote));
+        }
+
+        if (App.Hotkeys.IsSupported)
+        {
+            page.Children.Add(Heading(s.SettingsHotkey, first: first));
+            var toggle = new ToggleSwitch { IsChecked = App.Settings.Value.GlobalHotkey, OnContent = s.SettingsHotkeyToggle(HotkeyService.Combo), OffContent = s.SettingsHotkeyToggle(HotkeyService.Combo) };
+            toggle.IsCheckedChanged += (_, _) =>
+            {
+                var on = toggle.IsChecked == true;
+                if (on != App.Settings.Value.GlobalHotkey) App.Settings.Update(x => x with { GlobalHotkey = on });
+            };
+            _refreshers.Add(() => toggle.IsChecked = App.Settings.Value.GlobalHotkey);   // 켜지 못해 설정이 다시 꺼지면 스위치도 따라간다
+            page.Children.Add(toggle);
+            page.Children.Add(Note(s.SettingsHotkeyNote));
+        }
     }
 
     void BuildAppearance(StackPanel page)
