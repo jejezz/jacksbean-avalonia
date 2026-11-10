@@ -16,6 +16,7 @@ public class PolicyRuleEditTests
     private static async Task<PolicyStore> WithApps(TempDir t)
     {
         var s = Store(t);
+        await File.WriteAllTextAsync(s.FilePath, PolicyDocument.DefaultJson(PolicyOs.Windows, toolRules: false).ToJsonString());   // 도구 규칙이 없는 기본 정책
         await s.LoadAsync();
         Assert.True((await s.UpsertAppAsync(new AppUpsert("a", "a.exe", ["{path}"]))).Ok);
         Assert.True((await s.UpsertAppAsync(new AppUpsert("b", "b.exe", ["{path}"]))).Ok);
@@ -216,6 +217,7 @@ public class DropWithChoicesTests
     private static async Task<(PolicyStore store, DropRouter router)> Setup(TempDir t)
     {
         var store = new PolicyStore(PolicyOs.Windows, t.Path);
+        await File.WriteAllTextAsync(store.FilePath, PolicyDocument.DefaultJson(PolicyOs.Windows, toolRules: false).ToJsonString());   // 도구 규칙이 없는 기본 정책
         await store.LoadAsync();
         foreach (var id in new[] { "a", "b", "c" })
             await store.UpsertAppAsync(new AppUpsert(id, id + ".exe", ["{path}"]));

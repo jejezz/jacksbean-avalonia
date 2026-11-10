@@ -191,4 +191,15 @@ public class PolicyMergerTests
 
     private static IEnumerable<string> RuleCheckConflicts(PolicyDocument doc) =>
         doc.Rules.Where(r => r.When.Kind == RuleKind.Extension).SelectMany(r => r.When.Extensions).GroupBy(e => e).Where(g => g.Count() > 1).Select(g => g.Key);
+
+    [Fact]
+    public void RulesPointingAtBuiltInToolsAreNotRepairedAway()
+    {
+        // 내장 도구는 파일의 apps 에 없어도 있는 앱이다 — 합칠 때 그 앱을 가리키는 규칙에서 빼지 않는다.
+        var b = P("", "");
+        var r = PolicyMerger.Merge(b, b, P("", ExtRule("txt", ["txt"], ["text-editor"], Mid)));
+        Assert.Contains("txt", RuleIds(r));
+        Assert.Equal(["text-editor"], r.Merged["rules"]!.AsArray()[0]!["open"]!.AsArray().Select(n => (string)n!).ToArray());
+        Assert.DoesNotContain(r.Notes, n => n.Kind == MergeNoteKind.Repaired);
+    }
 }

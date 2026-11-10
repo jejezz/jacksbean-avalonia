@@ -122,7 +122,7 @@ public class StoreAndRouterTests
 
         var plan = await router.RouteAsync([PathClassifier.Classify(dir), PathClassifier.Classify(file)]);
         Assert.Single(plan.AskOutcomes);            // 폴더는 물어본다
-        Assert.IsType<Opened>(plan.Outcomes[1]);    // 파일은 기본 앱
+        Assert.IsType<Opened>(plan.Outcomes[1]);    // .txt 는 내장 에디터(기본 정책의 도구 규칙)
         Assert.Equal(file, calls[0].Item2[0]);
 
         var term = plan.Policy.Apps["terminal"];
@@ -134,7 +134,7 @@ public class StoreAndRouterTests
         fail = false;
         var ok = await router.ChooseAsync(term, plan.AskOutcomes, remember: true);
         Assert.Equal(SuggestionKind.Folder, Assert.Single(ok.SavedRules).Kind);
-        Assert.Equal(3, (await Store(t).LoadAsync()).Rules.Count);   // 기본 folders 규칙을 고칠 뿐 새 규칙이 쌓이지 않는다
+        Assert.Equal(6, (await Store(t).LoadAsync()).Rules.Count);   // 기본 folders 규칙을 고칠 뿐 새 규칙이 쌓이지 않는다
         var again = await router.RouteAsync([PathClassifier.Classify(dir)]);
         Assert.IsType<Opened>(Assert.Single(again.Outcomes));
     }

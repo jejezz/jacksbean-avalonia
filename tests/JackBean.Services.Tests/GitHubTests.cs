@@ -410,7 +410,7 @@ public sealed class GitHubSyncServiceTests : IDisposable
         var b = NewPc();
         var old = DateTime.Parse("2026-01-01T00:00:00Z", null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal);
         await a.Store.UpsertAppAsync(new AppUpsert("viewer", "viewer.exe", ["{path}"]), old);
-        await a.Store.UpsertRuleAsync(Ext("img", ["png"], "viewer"));
+        await a.Store.UpsertRuleAsync(Ext("img", ["qqq"], "viewer"));
         Assert.True((await a.Service.SyncAsync()).Ok);
         Assert.True((await b.Service.SyncAsync()).Ok);
 

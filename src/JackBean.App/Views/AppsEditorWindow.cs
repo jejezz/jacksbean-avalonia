@@ -256,7 +256,7 @@ public sealed class AppsEditorWindow : Window
         _revertButton = new Button { Content = s.AppRevert };
         _revertButton.Click += (_, _) => BuildForm();
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 8, 0, 0), Children = { _saveButton, _revertButton } };
-        if (!_isNew)
+        if (!_isNew && !_policy.IsImplicitApp(_selectedId!))   // 내장 도구는 파일에 없는 앱이라 지울 것이 없다(고치면 파일에 적힌다)
         {
             var delete = new Button { Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new DuoIcon { Icon = "trash" }, new TextBlock { Text = s.AppDelete, VerticalAlignment = VerticalAlignment.Center } } }, Margin = new Thickness(24, 0, 0, 0) };
             delete.Click += async (_, _) => await DeleteAsync();
