@@ -43,8 +43,12 @@ public class PolicyDocumentTests
         var d = Doc("""[{"id":"pdf","when":{"kind":"extension","extensions":["pdf"]},"open":["taskbench"]},{"id":"all","when":{"kind":"file"},"open":["viewer"]},{"id":"ask","when":{"kind":"folder"},"open":[]}]""");
         Assert.Equal("taskbench", App(d.Decide(File("a.pdf"))));
         Assert.Equal("viewer", App(d.Decide(File("a.txt"))));
-        Assert.Equal("ask", Assert.IsType<Ask>(d.Decide(Folder("docs"))).RuleId);
-        Assert.Null(Assert.IsType<Ask>(d.Decide(Drive)).RuleId);   // 어느 규칙에도 안 맞으면 규칙 없이 묻는다
+        var empty = Assert.IsType<Ask>(d.Decide(Folder("docs")));
+        Assert.Equal("ask", empty.RuleId);
+        Assert.Empty(empty.Candidates!);                            // 앱을 연결하지 않은 규칙 — 고를 앱이 없다(다른 대상의 앱을 섞어 보여 주지 않는다)
+        var none = Assert.IsType<Ask>(d.Decide(Drive));            // 어느 규칙에도 안 맞는다
+        Assert.Null(none.RuleId);
+        Assert.Empty(none.Candidates!);
     }
 
     [Fact]
@@ -87,8 +91,16 @@ public class PolicyDocumentTests
             var d = PolicyDocument.FromJson(PolicyDocument.DefaultJson(os));
             Assert.Empty(d.Warnings);
             Assert.Equal("explorer", App(d.Decide(Drive)));
-            Assert.Equal("folders", Assert.IsType<Ask>(d.Decide(Folder("a"))).RuleId);
             Assert.Equal("default", App(d.Decide(File("a.txt"))));
+            // 폴더는 파일 관리자와 터미널 중에서 고른다(터미널이 없는 OS 는 파일 관리자 하나라 바로 연다). 어느 쪽이든 폴더와 관련된 앱뿐이다.
+            var folder = d.Decide(Folder("a"));
+            if (d.Apps.ContainsKey("terminal"))
+            {
+                var ask = Assert.IsType<Ask>(folder);
+                Assert.Equal("folders", ask.RuleId);
+                Assert.Equal(["explorer", "terminal"], ask.Candidates!.Select(a => a.Id));
+            }
+            else Assert.Equal("explorer", App(folder));
         }
         Assert.False(PolicyDocument.DefaultJson(PolicyOs.Linux)["apps"]!.AsObject().ContainsKey("terminal"));
         Assert.True(PolicyDocument.DefaultJson(PolicyOs.Windows)["apps"]!.AsObject().ContainsKey("terminal"));

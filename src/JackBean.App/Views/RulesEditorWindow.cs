@@ -20,12 +20,15 @@ using JackBean.Services;
 
 namespace JackBean.App.Views;
 
+/// <summary>규칙 편집 창의 구역(처음 어느 구역을 보여 줄지).</summary>
+public enum RulesEditorSection { Drive, Folder, Files, Default }
+
 public sealed partial class RulesEditorWindow : Window
 {
     private static RulesEditorWindow? _instance;
 
-    /// <summary>규칙 편집 창을 연다. 이미 열려 있으면 앞으로 가져온다.</summary>
-    public static void Open(Window origin, bool startOnFiles = false)
+    /// <summary>규칙 편집 창을 연다. 이미 열려 있으면 앞으로 가져온다. <paramref name="start"/> = 처음 보여 줄 구역.</summary>
+    public static void Open(Window origin, RulesEditorSection start = RulesEditorSection.Drive)
     {
         if (_instance is { } open)
         {
@@ -33,12 +36,12 @@ public sealed partial class RulesEditorWindow : Window
             open.Activate();
             return;
         }
-        var window = new RulesEditorWindow(startOnFiles ? Section.Files : Section.Drive);
+        var window = new RulesEditorWindow((Section)start);
         _instance = window;
         WindowPlacementHelper.OpenNear(origin, window);
     }
 
-    private enum Section { Drive, Folder, Files, Default }
+    private enum Section { Drive, Folder, Files, Default }   // RulesEditorSection 과 같은 순서
 
     [GeneratedRegex(@"[,\s;]+")]
     private static partial Regex ExtSeparators();
@@ -528,6 +531,7 @@ public sealed partial class RulesEditorWindow : Window
         return p.Kind switch
         {
             RuleProblemKind.RuleLimit => s.RuleErrLimit,
+            RuleProblemKind.NoApps => s.RuleErrNoApps,
             RuleProblemKind.TooManyApps => s.RuleErrTooMany,
             RuleProblemKind.UnknownApp => s.RuleErrUnknownApp(p.Detail ?? ""),
             RuleProblemKind.ExtensionTaken => s.RuleErrExtTaken(p.Detail ?? "", NameOfRuleId(p.Other)),

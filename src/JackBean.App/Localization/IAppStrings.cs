@@ -112,7 +112,10 @@ public interface IAppStrings
     string HomeResetPolicy { get; }
     string HomeResetDone(string? backup);
     string HomeResetFailed(string error);
-    string DockNoApps { get; }
+    string DockNoLinkedApps { get; }
+    string DockNoCommonApp { get; }
+    string SnackbarOpenRules { get; }
+    string RuleErrNoApps { get; }
     string SnackbarOpenHome { get; }
     string HomeEditApps { get; }
     string AppsEditorTitle { get; }

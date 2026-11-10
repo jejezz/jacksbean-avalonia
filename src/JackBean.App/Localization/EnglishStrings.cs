@@ -104,7 +104,7 @@ public sealed class EnglishStrings : IAppStrings
     public string HomeWarnings => "Policy file warnings";
     public string HomePolicyFile => "Policy file";
     public string HomeReload => "Reload";
-    public string HomeAsk => "Ask";
+    public string HomeAsk => "no apps";
     public string HomeEmpty => "No rules or apps yet. Drop a file or folder on the dock to get started.";
     public string HomeOpenPolicyFile => "Open policy file";
     public string HomeNoRules => "No rules — everything will ask.";
@@ -113,7 +113,10 @@ public sealed class EnglishStrings : IAppStrings
     public string HomeResetPolicy => "Recreate default policy";
     public string HomeResetDone(string? backup) => backup == null ? "Created the default policy." : $"Recreated the default policy. The previous file is at {backup}.";
     public string HomeResetFailed(string error) => $"Couldn't create the default policy: {error}";
-    public string DockNoApps => "No apps are registered, so there is nothing to choose. Check the policy file in the home window.";
+    public string DockNoLinkedApps => "No apps are linked to this, so it can't be opened. Link an app in Edit rules.";
+    public string DockNoCommonApp => "No app can open all of these together. Drop each kind separately.";
+    public string SnackbarOpenRules => "Edit rules";
+    public string RuleErrNoApps => "Link at least one app.";
     public string SnackbarOpenHome => "Open home";
     public string HomeEditApps => "Edit apps";
     public string AppsEditorTitle => "Edit apps";
@@ -158,7 +161,7 @@ public sealed class EnglishStrings : IAppStrings
     public string RuleCount(int count, int max) => $"Rules {count}/{max}";
     public string RuleAppsTitle(int count, int max) => $"Apps {count}/{max}";
     public string RuleAppsAdd => "Add an app…";
-    public string RuleAppsNoneNote => "With no apps, every registered app is shown each time you drop something.";
+    public string RuleAppsNoneNote => "With no apps, nothing can be opened. Link at least one app.";
     public string RuleAppsOneNote => "With one app, it opens right away.";
     public string RuleAppsManyNote => "With two or more apps, only these are shown for you to choose from.";
     public string RuleAppMoveUp => "Move up";

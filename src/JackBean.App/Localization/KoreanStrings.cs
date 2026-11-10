@@ -104,7 +104,7 @@ public sealed class KoreanStrings : IAppStrings
     public string HomeWarnings => "정책 파일 경고";
     public string HomePolicyFile => "정책 파일";
     public string HomeReload => "다시 읽기";
-    public string HomeAsk => "물어보기";
+    public string HomeAsk => "앱 없음";
     public string HomeEmpty => "아직 규칙과 앱이 없습니다. 독에 파일이나 폴더를 끌어다 놓아 시작하세요.";
     public string HomeOpenPolicyFile => "정책 파일 열기";
     public string HomeNoRules => "규칙이 없습니다 — 모든 항목을 물어봅니다.";
@@ -113,7 +113,10 @@ public sealed class KoreanStrings : IAppStrings
     public string HomeResetPolicy => "기본 정책 다시 만들기";
     public string HomeResetDone(string? backup) => backup == null ? "기본 정책을 만들었습니다." : $"기본 정책을 다시 만들었습니다. 이전 파일은 {backup} 에 있습니다.";
     public string HomeResetFailed(string error) => $"기본 정책을 만들지 못했습니다: {error}";
-    public string DockNoApps => "등록된 앱이 없어 고를 수 없습니다. 홈 창에서 정책 파일을 확인하세요.";
+    public string DockNoLinkedApps => "연결된 앱이 없어 열 수 없습니다. 규칙 편집에서 앱을 연결하세요.";
+    public string DockNoCommonApp => "함께 열 수 있는 앱이 없습니다. 종류별로 따로 끌어다 놓아 주세요.";
+    public string SnackbarOpenRules => "규칙 편집";
+    public string RuleErrNoApps => "앱을 하나 이상 연결하세요.";
     public string SnackbarOpenHome => "홈 창 열기";
     public string HomeEditApps => "앱 편집";
     public string AppsEditorTitle => "앱 편집";
@@ -140,7 +143,7 @@ public sealed class KoreanStrings : IAppStrings
     public string AppDeleteTitle => "앱 삭제";
     public string AppDeleteConfirm(string id, int rules) => rules == 0
         ? $"‘{id}’ 앱을 삭제할까요?"
-        : $"‘{id}’ 앱을 삭제할까요? 이 앱을 쓰는 규칙 {rules}개는 ‘물어보기’로 바뀝니다.";
+        : $"‘{id}’ 앱을 삭제할까요? 이 앱을 쓰는 규칙 {rules}개에서 이 앱이 빠집니다(앱이 하나도 안 남는 규칙은 열 수 없게 됩니다).";
     public string AppDeleted(string id) => $"‘{id}’ 앱을 삭제했습니다.";
     public string AppDeleteFailed(string error) => $"앱을 삭제하지 못했습니다: {error}";
     public string AppDiscardConfirm => "저장하지 않은 변경이 있습니다. 버릴까요?";
@@ -158,7 +161,7 @@ public sealed class KoreanStrings : IAppStrings
     public string RuleCount(int count, int max) => $"규칙 {count}/{max}";
     public string RuleAppsTitle(int count, int max) => $"연결된 앱 {count}/{max}";
     public string RuleAppsAdd => "앱 추가…";
-    public string RuleAppsNoneNote => "앱이 없으면 파일을 놓을 때마다 등록된 앱을 모두 보여 주며 묻습니다.";
+    public string RuleAppsNoneNote => "앱이 없으면 열 수 없습니다. 앱을 하나 이상 연결하세요.";
     public string RuleAppsOneNote => "앱이 하나면 바로 엽니다.";
     public string RuleAppsManyNote => "앱이 둘 이상이면 이 앱들만 보여 주며 묻습니다.";
     public string RuleAppMoveUp => "위로";

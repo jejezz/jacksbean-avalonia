@@ -6,7 +6,7 @@
 //
 // 대상(`when.kind`)은 네 가지다: drive · folder · file(그 밖의 모든 파일 = 기본 앱) · extension(확장자 묶음).
 // 규칙은 **위에서부터 처음 맞는 것**이 이긴다(저장할 때 구체적인 것이 위로 정렬된다 — RuleOrder). `open` 은 앱 0~10개:
-// 1개면 바로 열고, 2개 이상이면 그 앱들만 골라서 묻고, 0개면 등록된 앱 전부를 보여 주며 묻는다.
+// 1개면 바로 열고, 2개 이상이면 **그 앱들만** 골라서 묻는다. 0개면 아직 앱을 연결하지 않은 것이라 열 수 없다(규칙 편집으로 안내).
 // 읽을 때는 관대하다: 모양이 틀린 앱·규칙은 건너뛰고 Warnings 에 이유를 남긴다 — 규칙 하나가 틀렸다고 독 전체가 멈추면 안 된다.
 
 using System.Text.Json;
@@ -94,8 +94,8 @@ public sealed class RuleCondition
 }
 
 /// <summary>
-/// 규칙 하나: 조건에 맞으면 <see cref="Choices"/> 의 앱으로 연다. 앱이 1개면 바로 열고, 2개 이상이면 **그 앱들만** 골라서 묻고,
-/// 0개면 등록된 앱 전부를 보여 주며 묻는다. 한 규칙에 최대 <see cref="PolicyLimits.MaxAppsPerRule"/>개.
+/// 규칙 하나: 조건에 맞으면 <see cref="Choices"/> 의 앱으로 연다. 앱이 1개면 바로 열고, 2개 이상이면 **그 앱들만** 골라서 묻는다.
+/// 0개면 연결된 앱이 없어 열 수 없다 — 다른 대상(폴더 …)의 앱을 섞어 보여 주지 않는다. 한 규칙에 최대 <see cref="PolicyLimits.MaxAppsPerRule"/>개.
 /// </summary>
 public sealed record Rule(string Id, RuleCondition When, IReadOnlyList<string> Choices);
 
@@ -104,7 +104,7 @@ public abstract record Decision;
 /// <summary>앱으로 연다.</summary>
 public sealed record OpenWith(AppEntry App, string RuleId) : Decision;
 
-/// <summary>사용자에게 어떤 앱으로 열지 묻는다(규칙이 "물어보기"이거나 앱이 2개 이상이거나 맞는 규칙이 없다). Candidates = 고를 수 있는 앱(null 이면 등록된 앱 전부).</summary>
+/// <summary>사용자에게 어떤 앱으로 열지 묻는다(앱이 2개 이상이다). Candidates = 고를 수 있는 앱 — 그 규칙에 연결된 앱뿐이다. 비어 있으면(규칙에 앱이 없거나 맞는 규칙이 없다) 고를 앱이 없다.</summary>
 public sealed record Ask(string? RuleId = null, IReadOnlyList<AppEntry>? Candidates = null) : Decision;
 
 /// <summary>규칙은 맞았는데 그 앱이 정책의 `apps`에 없다.</summary>
@@ -197,18 +197,18 @@ public sealed class PolicyDocument
         foreach (var rule in Rules)
         {
             if (!rule.When.Matches(item)) continue;
-            if (rule.Choices.Count == 0) return new Ask(rule.Id);
+            if (rule.Choices.Count == 0) return new Ask(rule.Id, []);   // 연결된 앱이 없다
             var apps = rule.Choices.Where(Apps.ContainsKey).Select(id => Apps[id]).ToList();
             if (apps.Count == 0) return new MissingApp(rule.Choices[0], rule.Id);
             if (rule.Choices.Count == 1) return new OpenWith(apps[0], rule.Id);
             return new Ask(rule.Id, apps);   // 2개 이상: 그 앱들만 고르게 한다(정책에 없는 앱은 뺀다)
         }
-        return new Ask();
+        return new Ask(null, []);
     }
 
     /// <summary>
     /// 이 OS의 기본 정책: 카탈로그가 아는 앱만. 드라이브는 파일 관리자로, 파일은 시스템 기본 앱으로 열고,
-    /// 폴더는 물어본다. 설치 경로를 모르는 앱은 일부러 넣지 않는다.
+    /// 폴더는 파일 관리자와 터미널 중에서 고르게 한다(터미널이 없는 OS 는 파일 관리자 하나). 설치 경로를 모르는 앱은 일부러 넣지 않는다.
     /// </summary>
     public static JsonObject DefaultJson(PolicyOs os)
     {
@@ -224,10 +224,12 @@ public sealed class PolicyDocument
             ["os"] = os.JsonName(),
             ["apps"] = apps,
             ["rules"] = new JsonArray(
-                Rule("drives", RuleCondition.Drive, "explorer"),
-                Rule("folders", RuleCondition.Folder),
-                Rule("files", RuleCondition.File, "default")),
+                Rule("drives", RuleCondition.Drive, Present("explorer")),
+                Rule("folders", RuleCondition.Folder, Present("explorer", "terminal")),
+                Rule("files", RuleCondition.File, Present("default"))),
         };
+
+        string[] Present(params string[] ids) => ids.Where(apps.ContainsKey).ToArray();
 
         static JsonObject Rule(string id, RuleCondition when, params string[] open)
         {

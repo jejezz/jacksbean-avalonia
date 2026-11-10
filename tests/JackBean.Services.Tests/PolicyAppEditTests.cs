@@ -82,7 +82,8 @@ public class PolicyAppEditTests
         var after = await store.LoadAsync();
         Assert.DoesNotContain("explorer", after.Apps.Keys);
         Assert.Equal(doc.Rules.Count, after.Rules.Count);                     // 규칙은 지우지 않는다
-        foreach (var u in users) Assert.Empty(after.Rules.First(r => r.Id == u.Id).Choices);
+        Assert.Empty(after.Rules.First(r => r.Id == "drives").Choices);                    // 마지막 앱이었다 — 앱이 없는 규칙이 된다
+        Assert.Equal(["terminal"], after.Rules.First(r => r.Id == "folders").Choices);   // 다른 앱이 남으면 그 앱만
         Assert.Empty(after.Warnings);
     }
 

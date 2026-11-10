@@ -40,7 +40,7 @@ static class Snapshot
         await App.PolicyStore.UpsertRuleAsync(new Services.RuleEdit("pdf", Domain.Policy.RuleCondition.Extension(["pdf"])!, ["default"]));
         App.NotifyPolicyChanged();
         AppsEditorWindow.Open(dock);
-        RulesEditorWindow.Open(dock, startOnFiles: true);
+        RulesEditorWindow.Open(dock, RulesEditorSection.Files);
         Notifications.Snackbar.Error(Strings.Current.DockOpenFailed("D:/작업/보고서 최종.pdf 을(를) 실행하지 못했습니다 — 파일 형식과 연결된 앱이 없습니다"), "System.ComponentModel.Win32Exception: 지정된 파일을 찾을 수 없습니다");
         await Task.Delay(800);
         foreach (var c in configs)
