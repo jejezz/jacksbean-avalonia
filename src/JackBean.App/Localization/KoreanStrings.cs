@@ -336,4 +336,6 @@ public sealed class KoreanStrings : IAppStrings
     public string ArchiveCompressed(string zip) => $"압축했습니다: {zip}";
     public string VideoPlayerFailed(string error) => $"동영상을 열지 못했어요: {error}";
     public string VideoPlayerHint => "재생되지 않는 형식이면 기본 앱으로 여세요.";
+    public string AudioPlayerFailed(string error) => $"음악을 열지 못했어요: {error}";
+    public string AudioPlayerHint => "재생되지 않는 형식이면 기본 앱으로 여세요.";
 }

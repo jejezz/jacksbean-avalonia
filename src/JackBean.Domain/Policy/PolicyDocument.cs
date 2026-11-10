@@ -241,7 +241,7 @@ public sealed class PolicyDocument
     public static JsonObject DefaultJson(PolicyOs os, bool toolRules = true)
     {
         var apps = new JsonObject();
-        foreach (var id in toolRules ? new[] { "explorer", "default", "terminal", "image-viewer", "text-editor", "pdf-viewer", "archive", "video-player" } : new[] { "explorer", "default", "terminal" })
+        foreach (var id in toolRules ? new[] { "explorer", "default", "terminal", "image-viewer", "text-editor", "pdf-viewer", "archive", "video-player", "audio-player" } : new[] { "explorer", "default", "terminal" })
         {
             var spec = KnownApps.Catalog[id].On(os);
             if (spec != null) apps[id] = spec.ToJson();
@@ -264,6 +264,8 @@ public sealed class PolicyDocument
                     yield return Rule("pdf", RuleCondition.Extension(["pdf"])!, Present("pdf-viewer"));
                 if (os != PolicyOs.Linux)   // 비디오도 OS 웹뷰가 재생한다 — 웹뷰가 거의 어디서나 아는 형식만(HEVC·avi·mkv 등은 OS 기본 앱에 맡긴다)
                     yield return Rule("video", RuleCondition.Extension(["mp4", "m4v", "webm", "mov"])!, Present("video-player"));
+                if (os != PolicyOs.Linux)   // 웹뷰가 거의 어디서나 아는 오디오 형식만(wma·aif·mid·amr 등은 OS 기본 앱에 맡긴다)
+                    yield return Rule("audio", RuleCondition.Extension(["mp3", "wav", "flac", "aac", "m4a", "ogg", "oga", "opus"])!, Present("audio-player"));
                 yield return Rule("zip", RuleCondition.Extension(["zip"])!, Present("archive"));   // .zip 은 풀기(zip 만 지원)
                 yield return Rule("text", RuleCondition.Extension(ExtensionGroups.Find("text")!.Extensions)!, Present("text-editor"));
                 yield return Rule("code", RuleCondition.Extension(ExtensionGroups.Find("code")!.Extensions)!, Present("text-editor"));
