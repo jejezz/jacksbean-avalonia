@@ -15,7 +15,7 @@ public sealed class DockExpansion : IDisposable
     public DockExpansion(Action<bool> onChanged, TimeSpan? shrinkDelay = null, TimeProvider? time = null)
     {
         _onChanged = onChanged;
-        ShrinkDelay = shrinkDelay ?? TimeSpan.FromMilliseconds(800);
+        ShrinkDelay = shrinkDelay ?? TimeSpan.FromMilliseconds(500);
         _time = time ?? TimeProvider.System;
     }
 
