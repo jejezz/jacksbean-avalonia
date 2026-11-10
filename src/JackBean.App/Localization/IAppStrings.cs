@@ -287,4 +287,11 @@ public interface IAppStrings
     string EditorScSelectAll { get; }
     string EditorScDeleteLine { get; }
     string EditorTooLarge(string name);
+    string PdfViewerFailed(string error);
+    string ViewerOpenWithDefaultApp { get; }
+    string HomeRestoreDefaults { get; }
+    string RestoreDefaultsTitle { get; }
+    string RestoreDefaultsBody(int rules, int apps);
+    string RestoreDefaultsDone { get; }
+    string RestoreDefaultsFailed(string error);
 }

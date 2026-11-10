@@ -305,4 +305,11 @@ public sealed class KoreanStrings : IAppStrings
     public string EditorScSelectAll => "모두 선택";
     public string EditorScDeleteLine => "줄 지우기";
     public string EditorTooLarge(string name) => $"5MB를 넘는 파일은 편집할 수 없어요: {name}";
+    public string PdfViewerFailed(string error) => $"PDF를 열지 못했어요: {error}";
+    public string ViewerOpenWithDefaultApp => "기본 앱으로 열기";
+    public string HomeRestoreDefaults => "기본 정책으로 되돌리기";
+    public string RestoreDefaultsTitle => "기본 정책으로 되돌릴까요?";
+    public string RestoreDefaultsBody(int rules, int apps) => $"지금 규칙 {rules}개와 앱 {apps}개를 기본 정책(이미지·PDF·텍스트·코드는 내장 도구, 드라이브·폴더·그 밖의 파일은 운영체제 기본)으로 바꿉니다. 이전 내용은 파일로 남기고 [실행 취소]로도 되돌릴 수 있습니다.";
+    public string RestoreDefaultsDone => "기본 정책으로 되돌렸습니다.";
+    public string RestoreDefaultsFailed(string error) => $"기본 정책으로 되돌리지 못했습니다: {error}";
 }

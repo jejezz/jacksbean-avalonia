@@ -305,4 +305,11 @@ public sealed class EnglishStrings : IAppStrings
     public string EditorScSelectAll => "Select all";
     public string EditorScDeleteLine => "Delete line";
     public string EditorTooLarge(string name) => $"Files over 5 MB can't be edited: {name}";
+    public string PdfViewerFailed(string error) => $"Couldn't open the PDF: {error}";
+    public string ViewerOpenWithDefaultApp => "Open with Default App";
+    public string HomeRestoreDefaults => "Restore default policy";
+    public string RestoreDefaultsTitle => "Restore the default policy?";
+    public string RestoreDefaultsBody(int rules, int apps) => $"Your {rules} rules and {apps} apps will be replaced by the default policy (built-in tools for images, PDF, text and code; OS defaults for drives, folders and everything else). The previous content is kept as a file and you can also Undo.";
+    public string RestoreDefaultsDone => "Restored the default policy.";
+    public string RestoreDefaultsFailed(string error) => $"Couldn't restore the default policy: {error}";
 }

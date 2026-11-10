@@ -63,9 +63,9 @@ public class PolicyUndoTests
         await s.LoadAsync();
         await s.UpsertAppAsync(new AppUpsert("a", "a.exe", ["{path}"]));
 
-        Assert.True((await s.UpsertRuleAsync(new RuleEdit("pdf", RuleCondition.Extension(["pdf"])!, ["a"]))).Ok);
+        Assert.True((await s.UpsertRuleAsync(new RuleEdit("mine", RuleCondition.Extension(["qqq"])!, ["a"]))).Ok);
         Assert.True((await s.UndoAsync()).Ok);
-        Assert.DoesNotContain("pdf", (await s.LoadAsync()).Rules.Select(r => r.Id));
+        Assert.DoesNotContain("mine", (await s.LoadAsync()).Rules.Select(r => r.Id));
 
         Assert.True((await s.RememberAsync([new(SuggestionKind.Folder)], "a")).Ok);
         Assert.Equal(["a"], (await s.LoadAsync()).Rules.First(r => r.Id == "folders").Choices);
@@ -112,5 +112,33 @@ public class PolicyUndoTests
         Assert.True(s.CanUndo);
         Assert.True((await s.ResetToDefaultsAsync()).Ok);
         Assert.False(s.CanUndo);
+    }
+
+    [Fact]
+    public async Task RestoreDefaultsReplacesRulesAndAppsKeepsOtherKeysAndIsUndoable()
+    {
+        using var t = new TempDir();
+        var s = Store(t);
+        await s.LoadAsync();
+        await s.UpsertAppAsync(new AppUpsert("notepad", "notepad.exe", ["{path}"]));
+        await s.UpsertRuleAsync(new RuleEdit("mine", RuleCondition.Extension(["qqq"])!, ["notepad"]));
+        var json = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(s.FilePath))!.AsObject();
+        json["note"] = "내 메모";
+        await File.WriteAllTextAsync(s.FilePath, json.ToJsonString());
+        var before = await File.ReadAllTextAsync(s.FilePath);
+
+        var result = await s.RestoreDefaultsAsync(new DateTime(2026, 11, 10, 15, 0, 0));
+        Assert.Null(result.Error);
+        Assert.Equal(before, await File.ReadAllTextAsync(result.BackupPath!));          // 이전 내용이 사본으로 남는다
+        Assert.EndsWith(".backup-20261110-150000", result.BackupPath);
+        var doc = await s.LoadAsync();
+        Assert.DoesNotContain("mine", doc.Rules.Select(r => r.Id));
+        Assert.DoesNotContain("notepad", doc.Apps.Keys);
+        Assert.Contains("images", doc.Rules.Select(r => r.Id));
+        Assert.Equal("내 메모", (string?)System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(s.FilePath))!["note"]);   // 모르는 키는 보존
+
+        Assert.True(s.CanUndo);
+        Assert.True((await s.UndoAsync()).Ok);
+        Assert.Contains("mine", (await s.LoadAsync()).Rules.Select(r => r.Id));       // 되돌릴 수 있다
     }
 }
