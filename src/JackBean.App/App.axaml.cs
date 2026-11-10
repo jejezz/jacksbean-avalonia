@@ -79,6 +79,7 @@ public partial class App : Application
         Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName);
         Tools = new ToolRegistry();
         Tools.Register(new ImageViewerTool());
+        Tools.Register(new TextEditorTool());
         // `jackbean:` 로 시작하는 명령은 프로세스를 띄우지 않고 내장 도구가 연다. 나머지는 셸 없이 프로세스로.
         var external = new AppLauncher();
         Router = new DropRouter(PolicyStore, new AppLauncher((command, args) =>

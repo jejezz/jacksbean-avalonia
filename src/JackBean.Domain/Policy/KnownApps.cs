@@ -61,6 +61,12 @@ public sealed record KnownApp(LaunchSpec? Windows = null, LaunchSpec? Macos = nu
 
 public static class KnownApps
 {
+    /// <summary>
+    /// 앱 안에 들어 있는 도구(`jackbean:` 명령). 정책 파일의 `apps` 에 적지 않아도 늘 쓸 수 있다(<see cref="PolicyDocument.Apps"/> 가 더해 준다) —
+    /// 운영체제 기본 방식(`default`)처럼. 파일에 같은 이름이 있으면 파일이 이긴다.
+    /// </summary>
+    public static readonly IReadOnlyList<string> BuiltInTools = ["image-viewer", "text-editor"];
+
     /// <summary>기본 제공 카탈로그. 새로 확실히 아는 앱이 생기면 여기에 더한다.</summary>
     public static readonly IReadOnlyDictionary<string, KnownApp> Catalog = new Dictionary<string, KnownApp>
     {
@@ -71,6 +77,8 @@ public static class KnownApps
         // 앱 안에 들어 있는 이미지 뷰어(별도 창으로 뜬다). `jackbean:` 로 시작하는 명령은 프로세스를 띄우지 않고
         // 앱이 직접 처리한다 — 어느 OS 에서나 같다.
         ["image-viewer"] = new(new LaunchSpec("jackbean:image-viewer"), new LaunchSpec("jackbean:image-viewer"), new LaunchSpec("jackbean:image-viewer")),
+        // 앱 안에 들어 있는 텍스트 에디터.
+        ["text-editor"] = new(new LaunchSpec("jackbean:text-editor"), new LaunchSpec("jackbean:text-editor"), new LaunchSpec("jackbean:text-editor")),
         // 터미널: 리눅스는 배포판마다 달라서 모른다(건너뜀).
         ["terminal"] = new(
             new LaunchSpec("wt.exe", ["-d", "{path}"]),

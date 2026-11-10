@@ -244,4 +244,47 @@ public interface IAppStrings
     string SyncOsNote { get; }
     string ExtensionGroupName(string id);
     string ViewerFailed(string error);
+    string EditorSave { get; }
+    string EditorSaveAs { get; }
+    string EditorDontSave { get; }
+    string EditorUnsavedTitle { get; }
+    string EditorUnsavedBody(string name);
+    string EditorExternalChangedTitle { get; }
+    string EditorExternalChangedBody { get; }
+    string EditorOverwrite { get; }
+    string EditorSaveFailed(string error);
+    string EditorLoadFailed(string error);
+    string EditorFind { get; }
+    string EditorFindHint { get; }
+    string EditorReplaceHint { get; }
+    string EditorReplace { get; }
+    string EditorReplaceAll { get; }
+    string EditorMatchCase { get; }
+    string EditorRegex { get; }
+    string EditorPrevMatch { get; }
+    string EditorNextMatch { get; }
+    string EditorNoMatches { get; }
+    string EditorMatchCount(int current, int total);
+    string EditorWordWrap { get; }
+    string EditorGoToLine { get; }
+    string EditorGoToLineHint(int max);
+    string EditorStatusPosition(int line, int column);
+    string EditorStatusSelected(int count);
+    string EditorHighlightOff { get; }
+    string EditorSaveAsHint { get; }
+    string EditorOverwriteExistingBody(string name);
+    string EditorReadOnlyBinary { get; }
+    string EditorUndo { get; }
+    string EditorRedo { get; }
+    string EditorMenuView { get; }
+    string EditorCut { get; }
+    string EditorCopy { get; }
+    string EditorPaste { get; }
+    string EditorGroupFile { get; }
+    string EditorGroupEdit { get; }
+    string EditorGroupFind { get; }
+    string EditorScClose { get; }
+    string EditorScSelectAll { get; }
+    string EditorScDeleteLine { get; }
+    string EditorTooLarge(string name);
 }
