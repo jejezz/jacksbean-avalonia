@@ -39,7 +39,7 @@ Flutter 판 `jacksbean-flutter`를 C#/Avalonia(.NET 10)로 옮기는 프로젝�
   `AppFont`, `FsBody FsMid FsSmall FsTitle`(글자 크기 배율 적용). `{DynamicResource}`/`GetResourceObservable`로 읽고 색 값을 직접 쓰지 않는다. 적용은 `ThemeService.Apply(settings)`.
 - **문구**: `IAppStrings`(인터페이스 → `KoreanStrings` → `EnglishStrings` 순으로 모두 추가, 빠뜨리면 컴파일 오류). 코드는 `Strings.Current`, XAML은 `{DynamicResource Str.*}`(새 문구를 XAML에서 쓰면 `Strings.PublishResources`에 더한다).
 - **글꼴(fonts.md)**: SeoulNamsan 400/700/800 번들 + 설정에서 시스템 글꼴 선택. 파일 이름·경로는 `user` 클래스(시스템 글꼴), 고정폭은 `mono`.
-- **아이콘(icons.md)**: Phosphor Duotone 하나(`Icons/DuoIcon`). 쓸 아이콘은 `scripts/gen-phosphor-icons.py`의 `ICONS`에 더하고 다시 돌린다(`PhosphorIcons.g.cs`는 직접 고치지 않는다).
+- **아이콘(icons.md)**: Phosphor Duotone 하나(`Icons/DuoIcon`). 쓸 아이콘은 `scripts/gen-phosphor-icons.py`의 `ICONS`에 더하고 다시 돌린다(`PhosphorIcons.g.cs`는 직접 고치지 않는다). 단, `+` `x` `✓` 같은 단순 기호는 18px 에서 채움 사각형이 윤곽을 흐리므로 `OUTLINE_ONLY` 에 넣어 **윤곽 층만** 쓴다(규약 "Duotone 하나로 통일"의 이 앱 한정 예외 — 같은 duotone 파일의 윤곽 층이라 선 모양은 같다).
 - **설정**: 저장 키 `theme_mode accent_palette text_scale app_locale ui_font_family window_placement dock_position`. `SettingsController.Update(...)`로 바꾸면 바로 적용·(모아서)저장되고 열린 모든 창이 따라온다.
 - **창 위치**: 홈 창은 `PlacementMath`로 기억·복원(window-placement.md), 새 독립 창은 `WindowPlacementHelper.OpenNear`.
 - **창 제목**: 홈 창(앱 창)은 `Jack’s Bean`, 그 밖의 보조 창·대화상자는 항상 `창 이름 — Jack’s Bean`(`WindowTitle.Of`). 새 창을 만들면 이것으로 제목을 정한다.
