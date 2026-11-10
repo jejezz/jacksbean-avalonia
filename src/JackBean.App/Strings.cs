@@ -49,8 +49,7 @@ static class Strings
         Set("DockMenuQuit", s.DockMenuQuit);
         Set("DockRuleSaved", s.DockRuleSaved);
         Set("DockSuggestDrive", s.DockSuggestDrive);
-        Set("DockSuggestGitFolder", s.DockSuggestGitFolder);
-        Set("DockSuggestPlainFolder", s.DockSuggestPlainFolder);
+        Set("DockSuggestFolder", s.DockSuggestFolder);
         Set("DropKindDrive", s.DropKindDrive);
         Set("DropKindFile", s.DropKindFile);
         Set("DropKindFolder", s.DropKindFolder);

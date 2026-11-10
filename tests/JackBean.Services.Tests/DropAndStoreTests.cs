@@ -160,7 +160,8 @@ public class StoreAndRouterTests
 
         fail = false;
         var ok = await router.ChooseAsync(term, plan.AskOutcomes, remember: true);
-        Assert.Equal("auto-git-folder", Assert.Single(ok.SavedRules).Id);
+        Assert.Equal("folders", Assert.Single(ok.SavedRules).Id);   // 물어보게 한 folders 규칙이 바로 그 조건이라 그 규칙을 고친다
+        Assert.Equal(3, (await Store(t).LoadAsync()).Rules.Count(r => r.Id is "drives" or "folders" or "files"));   // 새 규칙이 쌓이지 않는다
         var again = await router.RouteAsync([PathClassifier.Classify(dir)]);
         Assert.IsType<Opened>(Assert.Single(again.Outcomes));
     }
@@ -171,7 +172,7 @@ public class StoreAndRouterTests
         DroppedItem I(DropKind k, string ext = "", bool git = false) => new("p", k, ext, git);
         var s = RuleSuggester.Suggest([new(I(DropKind.File, "zip"), "folders"), new(I(DropKind.File, "zip")), new(I(DropKind.File)),
             new(I(DropKind.Folder, git: true)), new(I(DropKind.Folder)), new(I(DropKind.Drive))]);
-        Assert.Equal(["auto-ext-zip", "auto-git-folder", "auto-plain-folder", "auto-drive"], s.Select(x => x.Id));
+        Assert.Equal(["auto-ext-zip", "auto-folder", "auto-drive"], s.Select(x => x.Id));   // Git 폴더든 아니든 폴더는 하나
         Assert.Equal("folders", s[0].BeforeRuleId);
     }
 }

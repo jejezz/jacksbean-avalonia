@@ -83,8 +83,19 @@ public sealed class DropRouter
         if (!remember || outcomes.Any(o => o is OpenFailed)) return new ChoiceResult(outcomes);
         var suggestions = RuleSuggester.Suggest(asks);
         if (suggestions.Count == 0) return new ChoiceResult(outcomes);
+        // 폴더·드라이브는 "그 종류 전부" 규칙이라, 물어보게 한 규칙이 바로 그 조건이면 새 규칙을 쌓지 않고 그 규칙을 고친다
+        // (기본 정책의 folders 규칙에 앱을 지정하는 것과 같다).
+        var policy = await Store.LoadAsync();
+        suggestions = suggestions.Select(s => s with { Id = ReuseKindRuleId(s, policy) ?? s.Id }).ToList();
         var saved = await Store.UpsertRulesAsync(suggestions.Select(s => new RuleUpsert(s.Id, s.When, app.Id, s.BeforeRuleId)).ToList());
         return saved.Ok ? new ChoiceResult(outcomes, suggestions) : new ChoiceResult(outcomes, SaveError: saved.Error);
+    }
+
+    private static string? ReuseKindRuleId(RuleSuggestion s, PolicyDocument policy)
+    {
+        if (s.Kind is not (SuggestionKind.Folder or SuggestionKind.Drive) || s.BeforeRuleId == null) return null;
+        var asked = policy.Rules.FirstOrDefault(r => r.Id == s.BeforeRuleId);
+        return asked is { When.Kind: "kind" } && asked.When.Value == (string?)s.When["value"] ? asked.Id : null;
     }
 
     private async Task<RouteOutcome> OpenAsync(AppEntry app, DroppedItem item)
