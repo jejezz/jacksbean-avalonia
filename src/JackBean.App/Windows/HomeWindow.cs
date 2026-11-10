@@ -32,7 +32,8 @@ public sealed class HomeWindow : Window
         Build();
         AddHandler(KeyDownEvent, OnKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         Strings.Changed += OnLanguageChanged;
-        Closed += (_, _) => Strings.Changed -= OnLanguageChanged;
+        App.PolicyChanged += OnPolicyChanged;
+        Closed += (_, _) => { Strings.Changed -= OnLanguageChanged; App.PolicyChanged -= OnPolicyChanged; };
         Activated += (_, _) => _tint.Classes.Set("active", true);
         Deactivated += (_, _) => _tint.Classes.Set("active", false);
         PositionChanged += (_, _) => SavePlacement();
@@ -47,6 +48,9 @@ public sealed class HomeWindow : Window
     }
 
     private void OnLanguageChanged() => Dispatcher.UIThread.Post(Build);
+
+    /// <summary>편집 창(또는 복구)이 정책을 바꿨다 — 홈 창은 보기 전용이라 다시 읽어 보여 주기만 한다.</summary>
+    private void OnPolicyChanged() => Dispatcher.UIThread.Post(async () => await ReloadAsync());
 
     private async Task ReloadAsync()
     {
@@ -171,7 +175,10 @@ public sealed class HomeWindow : Window
         var path = UserText(App.PolicyStore.FilePath, "small");
         var reload = new Button { Content = s.HomeReload, HorizontalAlignment = HorizontalAlignment.Left };
         reload.Click += async (_, _) => await ReloadAsync();
-        stack.Children.Add(Card(new StackPanel { Spacing = 8, Children = { Heading(s.HomePolicyFile), path, reload } }));
+        var openFile = new Button { Content = s.HomeOpenPolicyFile };
+        openFile.Click += (_, _) => OpenPolicyFile();
+        var fileButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { reload, openFile } };
+        stack.Children.Add(Card(new StackPanel { Spacing = 8, Children = { Heading(s.HomePolicyFile), path, fileButtons } }));
 
         if (_policy == null) return stack;
 
@@ -204,7 +211,13 @@ public sealed class HomeWindow : Window
         if (_policy.Rules.Count == 0) rules.Children.Add(Muted(s.HomeNoRules));
         stack.Children.Add(Card(rules));
 
-        var apps = new StackPanel { Spacing = 4, Children = { Heading(s.HomeApps) } };
+        var appsTitle = Heading(s.HomeApps);
+        appsTitle.VerticalAlignment = VerticalAlignment.Center;   // 오른쪽 편집 버튼(30px)과 같은 줄 가운데에 맞춘다
+        var appsHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { appsTitle } };
+        var editApps = ToolButton("edit", s.HomeEditApps, () => AppsEditorWindow.Open(this));
+        Grid.SetColumn(editApps, 1);
+        appsHeader.Children.Add(editApps);
+        var apps = new StackPanel { Spacing = 4, Children = { appsHeader } };
         foreach (var a in _policy.Apps.Values) apps.Children.Add(UserText($"{a.Id}  ·  {a.Command} {string.Join(' ', a.Args)}"));
         if (_policy.Apps.Count == 0) apps.Children.Add(Muted(s.HomeNoApps));
         stack.Children.Add(Card(apps));
@@ -225,9 +238,9 @@ public sealed class HomeWindow : Window
         var line = Muted(Strings.Current.HomeEmpty);
         line.TextAlignment = TextAlignment.Center;
         line.HorizontalAlignment = HorizontalAlignment.Center;
-        var open = new Button { Content = Strings.Current.HomeOpenPolicyFile, Classes = { "accent" }, HorizontalAlignment = HorizontalAlignment.Center };
-        open.Click += (_, _) => OpenPolicyFile();
-        return new StackPanel { Spacing = 12, Margin = new Thickness(0, 24), Children = { icon, line, open } };
+        var add = new Button { Content = Strings.Current.AppsEditorAdd, Classes = { "accent" }, HorizontalAlignment = HorizontalAlignment.Center };
+        add.Click += (_, _) => AppsEditorWindow.Open(this);
+        return new StackPanel { Spacing = 12, Margin = new Thickness(0, 24), Children = { icon, line, add } };
     }
 
     private void OpenPolicyFile()

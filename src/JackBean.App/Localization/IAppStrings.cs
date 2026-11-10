@@ -115,5 +115,33 @@ public interface IAppStrings
     string HomeResetFailed(string error);
     string DockNoApps { get; }
     string SnackbarOpenHome { get; }
+    string HomeEditApps { get; }
+    string AppsEditorTitle { get; }
+    string AppsEditorList { get; }
+    string AppsEditorAdd { get; }
+    string AppsEditorNewApp { get; }
+    string FieldAppId { get; }
+    string FieldAppIdHint { get; }
+    string FieldAppCommand { get; }
+    string FieldAppCommandHint { get; }
+    string FieldAppBrowse { get; }
+    string FieldAppArgs { get; }
+    string FieldAppArgsHint { get; }
+    string AppArgsNoPath { get; }
+    string AppSave { get; }
+    string AppDelete { get; }
+    string AppRevert { get; }
+    string AppErrIdEmpty { get; }
+    string AppErrIdInvalid { get; }
+    string AppErrIdTaken { get; }
+    string AppErrCommandEmpty { get; }
+    string AppSaved(string id);
+    string AppSaveFailed(string error);
+    string AppDeleteTitle { get; }
+    string AppDeleteConfirm(string id, int rules);
+    string AppDeleted(string id);
+    string AppDeleteFailed(string error);
+    string AppDiscardConfirm { get; }
+    string AppDiscard { get; }
     string ViewerFailed(string error);
 }
