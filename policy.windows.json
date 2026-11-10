@@ -1,0 +1,72 @@
+{
+  "schema": 2,
+  "os": "windows",
+  "apps": {
+    "explorer": {
+      "command": "explorer.exe",
+      "args": [
+        "{path}"
+      ]
+    },
+    "default": {
+      "command": "explorer.exe",
+      "args": [
+        "{path}"
+      ]
+    },
+    "terminal": {
+      "command": "wt.exe",
+      "args": [
+        "-d",
+        "{path}"
+      ]
+    },
+    "daylight-pdf": {
+      "command": "C:\\Program Files\\Daylight PDF\\daylight_pdf.exe",
+      "args": [
+        "{path}"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "pdf",
+      "when": {
+        "kind": "extension",
+        "extensions": [
+          "pdf"
+        ]
+      },
+      "open": [
+        "daylight-pdf"
+      ],
+      "updated": "2026-11-10T02:39:46.431660Z"
+    },
+    {
+      "id": "drives",
+      "when": {
+        "kind": "drive"
+      },
+      "open": [
+        "explorer"
+      ]
+    },
+    {
+      "id": "folders",
+      "when": {
+        "kind": "folder"
+      },
+      "open": [],
+      "updated": "2026-11-10T02:48:21.505544Z"
+    },
+    {
+      "id": "files",
+      "when": {
+        "kind": "file"
+      },
+      "open": [
+        "default"
+      ]
+    }
+  ]
+}
