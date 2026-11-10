@@ -90,7 +90,7 @@
 ### 7. 내장 도구 확장
 멀티 윈도우의 이점을 쓰는 단계. `image-viewer` 뒤를 이어 `IBuiltInTool`로 하나씩 가져온다. 순서는 형제 앱 코드를 그대로 쓸 수 있는 순.
 - [x] 텍스트 에디터 (`jackbean:text-editor`, 내장 도구는 정책에 안 적어도 앱 목록에 늘 있고 새 기본 정책이 이미지·텍스트·코드를 연결) — 형제 앱 에디터에서 마크다운 미리보기·원격 파일을 뺀 이식. AOT 게시 확인(실행 파일 +10.4MB: AvaloniaEdit·TextMate, 안 쓸 때 메모리·시작 시간 변화 없음).
-- [ ] PDF 뷰어 (`ViewerWindow`)
+- [x] PDF 뷰어 (`jackbean:pdf-viewer`) — 별도 PDF 렌더러 대신 OS 웹뷰(`NativeWebView`: Windows WebView2 · macOS WKWebView)로 연다. AOT 게시 확인(실행 파일 +0.85MB, 경고 없음), PDF 가 그려지는 것까지 확인. Linux 는 웹뷰 사정이 달라 기본 정책에 넣지 않았고 미확인.
 - [ ] 압축 도구 (`ArchiveService`)
 - **공통 조건(도구마다 지킨다)**: 등록(`Register`)은 가벼운 팩토리만, 무거운 초기화·스타일 로드는 `CreateWindow` 안에서(안 쓸 때 메모리·시작 시간 0). 닫으면 리소스 해제. 도구를 붙일 때마다 AOT 게시로 크기·유휴 메모리를 재서 기록한다.
 - 각 도구는 파일 하나당 창 하나, `WindowPlacementHelper.OpenNear`로 연다. 도구마다 정책에 기본 연결(`jackbean:<id>`)을 제공할지 정한다.

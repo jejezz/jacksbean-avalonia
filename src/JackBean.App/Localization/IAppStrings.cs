@@ -287,4 +287,6 @@ public interface IAppStrings
     string EditorScSelectAll { get; }
     string EditorScDeleteLine { get; }
     string EditorTooLarge(string name);
+    string PdfViewerFailed(string error);
+    string ViewerOpenWithDefaultApp { get; }
 }
