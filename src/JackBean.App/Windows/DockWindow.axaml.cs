@@ -49,6 +49,7 @@ public partial class DockWindow : Window
         new(() => new Avalonia.Media.Imaging.Bitmap(Avalonia.Platform.AssetLoader.Open(new Uri("avares://JacksBean/Assets/dock_icon.png"))));
 
     private bool _hovering;
+    private (bool, bool, int, string?, bool) _renderedKey;
     private bool _renderedHover; // 마지막으로 그린 모양이 "끌어다 놓는 중"이었는지
     private IReadOnlyList<DroppedItem> _last = [];
     private string? _status;
@@ -76,7 +77,7 @@ public partial class DockWindow : Window
                 {
                     // 기다리는 사이 다시 들어왔거나 결과를 보여 주는 중이면 줄이지 않는다.
                     if (_hovering || _last.Count > 0 || _pickAsks != null) return;
-                    Render(); // 모양(알약 → 정원)도 창과 함께, 지연 뒤에 바뀐다
+                    RenderIfChanged(); // 모양(알약 → 정원)도 창과 함께, 지연 뒤에 한 번만 바뀐다
                 }
                 ResizeTo(expanded ? new Size(ActiveWidth, IdleSize) : new Size(IdleSize, IdleSize));
             }
@@ -101,7 +102,7 @@ public partial class DockWindow : Window
         ActualThemeVariantChanged += (_, _) => Render();
         App.Settings.Changed += _ => Dispatcher.UIThread.Post(() => { UpdateMenuText(); Render(); });
         Strings.Changed += () => Dispatcher.UIThread.Post(() => { UpdateMenuText(); Render(); });
-        _clearTimer.Tick += (_, _) => { _clearTimer.Stop(); _last = []; Render(); _expansion.ShrinkSoon(); };
+        _clearTimer.Tick += (_, _) => { _clearTimer.Stop(); _last = []; _expansion.ShrinkSoon(); }; // 모양은 줄이기 지연 뒤 창과 함께 바뀐다
         _pickTimer.Tick += (_, _) => CloseChooser();
         _movedTimer.Tick += (_, _) => { _movedTimer.Stop(); _userMoving = false; RememberPosition(); };
         SettingsItem.InputGesture = new KeyGesture(Key.OemComma, OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control);
@@ -316,11 +317,22 @@ public partial class DockWindow : Window
         _ => Strings.Current.DockSuggestDrive,
     })));
 
+    /// <summary>화면 상태가 마지막으로 그린 것과 같으면 다시 그리지 않는다 — 같은 모양을 또 그리면 알약 안의 컨트롤을
+    /// 갈아 끼우느라 한 프레임 깜박인다. 테마·언어·설정이 바뀐 경우는 <see cref="Render"/> 를 직접 부른다.</summary>
+    private void RenderIfChanged()
+    {
+        if (_renderedKey == StateKey()) return;
+        Render();
+    }
+
+    private (bool, bool, int, string?, bool) StateKey() => (_hovering, _pickAsks != null, _last.Count, _status, _statusIsError);
+
     private void Render()
     {
         var palette = App.Settings.Value.Palette;
         var chooser = _pickAsks != null;
         _renderedHover = _hovering;
+        _renderedKey = StateKey();
         PillContent.IsHitTestVisible = chooser; // 글자·그림이 드롭 대상을 가로채 Leave/Enter 를 만들지 않게
         var radius = chooser ? 20 : 36;
         Pill.CornerRadius = new CornerRadius(radius);
