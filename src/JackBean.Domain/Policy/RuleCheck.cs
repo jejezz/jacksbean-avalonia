@@ -4,8 +4,6 @@ public enum RuleProblemKind
 {
     /// <summary>정책의 규칙이 한도(255)에 닿아 새 규칙을 더할 수 없다.</summary>
     RuleLimit,
-    /// <summary>앱이 하나도 없는 규칙은 저장할 수 없다(열 앱이 없다).</summary>
-    NoApps,
     /// <summary>규칙 하나에 앱이 한도(10)를 넘게 연결되었다.</summary>
     TooManyApps,
     /// <summary>정책의 `apps` 에 없는 앱을 가리킨다. Detail = 앱 ID.</summary>
@@ -38,7 +36,6 @@ public static class RuleCheck
             else if (policy.Rules.Count >= PolicyLimits.MaxRules) problems.Add(new(RuleProblemKind.RuleLimit));
         }
 
-        if (candidate.Choices.Count == 0) problems.Add(new(RuleProblemKind.NoApps));
         if (candidate.Choices.Count > PolicyLimits.MaxAppsPerRule) problems.Add(new(RuleProblemKind.TooManyApps));
         foreach (var id in candidate.Choices)
             if (!policy.Apps.ContainsKey(id)) problems.Add(new(RuleProblemKind.UnknownApp, id));

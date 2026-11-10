@@ -16,7 +16,7 @@ public sealed record RoutePlan(IReadOnlyList<RouteOutcome> Outcomes, PolicyDocum
     /// <summary>
     /// 앱 고르기에 보여 줄 앱 — **그 항목의 규칙에 연결된 앱뿐**이다(폴더에 pdf 앱이 뜨지 않는다). 항목마다 연결된 앱이 다를 수 있어서
     /// 모두에게 연결된 앱(교집합, 규칙에 적힌 순서)만 보인다. 고른 앱 하나로 항목을 전부 여니까, 어느 항목에도 안 맞는 앱을 내놓지 않는다.
-    /// 비어 있으면 고를 앱이 없다 — <see cref="HasUnlinkedAsk"/> 로 이유를 가른다.
+    /// 비어 있으면 함께 열 수 있는 앱이 없다(종류가 다른 항목을 같이 놓았다).
     /// </summary>
     public IReadOnlyList<AppEntry> ChoiceApps()
     {
@@ -29,8 +29,6 @@ public sealed record RoutePlan(IReadOnlyList<RouteOutcome> Outcomes, PolicyDocum
         return common ?? [];
     }
 
-    /// <summary>연결된 앱이 하나도 없는 규칙(또는 맞는 규칙이 없음) 때문에 묻게 된 항목이 있다 — 규칙 편집에서 앱을 연결해야 한다.</summary>
-    public bool HasUnlinkedAsk => AskOutcomes.Any(a => a.Candidates is not { Count: > 0 });
 }
 
 public sealed record ChoiceResult(IReadOnlyList<RouteOutcome> Outcomes, IReadOnlyList<RuleSuggestion>? Saved = null, string? SaveError = null)

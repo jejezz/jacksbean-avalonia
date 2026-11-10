@@ -6,7 +6,8 @@
 //
 // 대상(`when.kind`)은 네 가지다: drive · folder · file(그 밖의 모든 파일 = 기본 앱) · extension(확장자 묶음).
 // 규칙은 **위에서부터 처음 맞는 것**이 이긴다(저장할 때 구체적인 것이 위로 정렬된다 — RuleOrder). `open` 은 앱 0~10개:
-// 1개면 바로 열고, 2개 이상이면 **그 앱들만** 골라서 묻는다. 0개면 아직 앱을 연결하지 않은 것이라 열 수 없다(규칙 편집으로 안내).
+// 1개면 바로 열고, 2개 이상이면 **그 앱들만** 골라서 묻는다. 0개면 **운영체제 기본 방식**으로 연다(Windows 탐색기 · macOS Finder · Linux 파일 관리자 —
+// 카탈로그의 `default`). 어느 규칙에도 안 맞는 항목도 마찬가지라, 아무 설정이 없어도 앱은 OS 가 하는 대로 동작한다.
 // 읽을 때는 관대하다: 모양이 틀린 앱·규칙은 건너뛰고 Warnings 에 이유를 남긴다 — 규칙 하나가 틀렸다고 독 전체가 멈추면 안 된다.
 
 using System.Text.Json;
@@ -95,7 +96,7 @@ public sealed class RuleCondition
 
 /// <summary>
 /// 규칙 하나: 조건에 맞으면 <see cref="Choices"/> 의 앱으로 연다. 앱이 1개면 바로 열고, 2개 이상이면 **그 앱들만** 골라서 묻는다.
-/// 0개면 연결된 앱이 없어 열 수 없다 — 다른 대상(폴더 …)의 앱을 섞어 보여 주지 않는다. 한 규칙에 최대 <see cref="PolicyLimits.MaxAppsPerRule"/>개.
+/// 0개면 운영체제 기본 방식으로 연다(<see cref="PolicyDocument.DefaultApp"/>) — 다른 대상(폴더 …)의 앱을 섞어 보여 주지 않는다. 한 규칙에 최대 <see cref="PolicyLimits.MaxAppsPerRule"/>개.
 /// </summary>
 public sealed record Rule(string Id, RuleCondition When, IReadOnlyList<string> Choices);
 
@@ -104,7 +105,7 @@ public abstract record Decision;
 /// <summary>앱으로 연다.</summary>
 public sealed record OpenWith(AppEntry App, string RuleId) : Decision;
 
-/// <summary>사용자에게 어떤 앱으로 열지 묻는다(앱이 2개 이상이다). Candidates = 고를 수 있는 앱 — 그 규칙에 연결된 앱뿐이다. 비어 있으면(규칙에 앱이 없거나 맞는 규칙이 없다) 고를 앱이 없다.</summary>
+/// <summary>사용자에게 어떤 앱으로 열지 묻는다(앱이 2개 이상이다). Candidates = 고를 수 있는 앱 — 그 규칙에 연결된 앱뿐이다.</summary>
 public sealed record Ask(string? RuleId = null, IReadOnlyList<AppEntry>? Candidates = null) : Decision;
 
 /// <summary>규칙은 맞았는데 그 앱이 정책의 `apps`에 없다.</summary>
@@ -117,9 +118,10 @@ public sealed class PolicyDocument
 {
     public const int SchemaVersion = 2;
 
-    public PolicyDocument(IReadOnlyDictionary<string, AppEntry>? apps = null, IReadOnlyList<Rule>? rules = null, IReadOnlyList<string>? warnings = null, bool isFallback = false)
+    public PolicyDocument(IReadOnlyDictionary<string, AppEntry>? apps = null, IReadOnlyList<Rule>? rules = null, IReadOnlyList<string>? warnings = null, bool isFallback = false, PolicyOs? os = null)
     {
         IsFallback = isFallback;
+        Os = os;
         Apps = apps ?? new Dictionary<string, AppEntry>();
         Rules = rules ?? [];
         Warnings = warnings ?? [];
@@ -127,6 +129,16 @@ public sealed class PolicyDocument
 
     public IReadOnlyDictionary<string, AppEntry> Apps { get; }
     public IReadOnlyList<Rule> Rules { get; }
+
+    /// <summary>이 정책이 쓰이는 OS(정책 파일의 `os`).</summary>
+    public PolicyOs? Os { get; }
+
+    /// <summary>
+    /// 운영체제 기본 방식(카탈로그의 `default`: Windows `explorer.exe`, macOS `open`, Linux `xdg-open`). 앱을 연결하지 않은 규칙과
+    /// 어느 규칙에도 안 맞는 항목이 이것으로 열린다. 정책의 `apps` 에 등록하지 않아도 늘 쓸 수 있다.
+    /// </summary>
+    public AppEntry? DefaultApp =>
+        Os is { } os && KnownApps.Catalog["default"].On(os) is { } spec ? new AppEntry("default", spec.Command, spec.Args) : null;
 
     /// <summary>파일 전체를 읽지 못해 기본 정책을 대신 쓰는 중이다(파일은 그대로 있다). 규칙 하나만 건너뛴 경우는 false.</summary>
     public bool IsFallback { get; }
@@ -187,7 +199,7 @@ public sealed class PolicyDocument
         }
         // 한도를 넘긴 파일도 지우지 않고 그대로 읽는다(손으로 고친 것일 수 있다). 알리기만 한다.
         if (rules.Count > PolicyLimits.MaxRules) warnings.Add($"규칙이 {rules.Count}개로 한도 {PolicyLimits.MaxRules}개를 넘음");
-        return new PolicyDocument(apps, rules, warnings);
+        return new PolicyDocument(apps, rules, warnings, os: PolicyOsExtensions.Parse(RuleCondition.Str(json["os"])));
     }
 
     /// <summary>항목 하나를 어떻게 처리할지 정한다.</summary>
@@ -197,14 +209,16 @@ public sealed class PolicyDocument
         foreach (var rule in Rules)
         {
             if (!rule.When.Matches(item)) continue;
-            if (rule.Choices.Count == 0) return new Ask(rule.Id, []);   // 연결된 앱이 없다
+            if (rule.Choices.Count == 0) return OsDefault(rule.Id);   // 연결된 앱이 없다 — 운영체제 기본 방식
             var apps = rule.Choices.Where(Apps.ContainsKey).Select(id => Apps[id]).ToList();
             if (apps.Count == 0) return new MissingApp(rule.Choices[0], rule.Id);
             if (rule.Choices.Count == 1) return new OpenWith(apps[0], rule.Id);
             return new Ask(rule.Id, apps);   // 2개 이상: 그 앱들만 고르게 한다(정책에 없는 앱은 뺀다)
         }
-        return new Ask(null, []);
+        return OsDefault(null);   // 맞는 규칙이 없다 — 운영체제 기본 방식
     }
+
+    private Decision OsDefault(string? ruleId) => DefaultApp is { } app ? new OpenWith(app, ruleId ?? "default") : new Ask(ruleId, []);
 
     /// <summary>
     /// 이 OS의 기본 정책: 카탈로그가 아는 앱만. 드라이브는 파일 관리자로, 파일은 시스템 기본 앱으로 열고,

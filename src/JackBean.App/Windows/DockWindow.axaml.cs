@@ -245,12 +245,7 @@ public partial class DockWindow : Window
         if (failure != null) { SetError(Strings.Current.DockOpenFailed(failure.Error)); }
         else if (missing != null) { SetError(Strings.Current.DockAppMissing(missing.AppId)); }
         else if (opened != null) _status = Strings.Current.DockOpenedWith(opened.App.Id);
-        else if (plan.AskOutcomes.Count > 0 && plan.ChoiceApps().Count == 0)
-        {
-            // 고를 앱이 없다 — 조용히 사라지지 않게. 연결된 앱이 없으면 그 구역의 규칙 편집으로 바로 안내한다.
-            if (plan.HasUnlinkedAsk) SetError(Strings.Current.DockNoLinkedApps, Strings.Current.SnackbarOpenRules, () => RulesEditorWindow.Open(this, SectionFor(plan)));
-            else SetError(Strings.Current.DockNoCommonApp);
-        }
+        else if (plan.AskOutcomes.Count > 0 && plan.ChoiceApps().Count == 0) SetError(Strings.Current.DockNoCommonApp); // 종류가 다른 항목을 함께 놓아 겹치는 앱이 없다 — 조용히 사라지지 않게
         Render();
 
         var asks = plan.AskOutcomes;
@@ -266,17 +261,6 @@ public partial class DockWindow : Window
         Snackbar.Error(message, null, actionLabel, action);
     }
 
-    /// <summary>연결된 앱이 없는 첫 항목의 종류에 맞는 규칙 편집 구역.</summary>
-    private static RulesEditorSection SectionFor(RoutePlan plan)
-    {
-        var ask = plan.AskOutcomes.First(a => a.Candidates is not { Count: > 0 });
-        return ask.Item.Kind switch
-        {
-            DropKind.Drive => RulesEditorSection.Drive,
-            DropKind.Folder => RulesEditorSection.Folder,
-            _ => plan.Policy.Rules.FirstOrDefault(r => r.Id == ask.RuleId)?.When.Kind == RuleKind.Extension ? RulesEditorSection.Files : RulesEditorSection.Default,
-        };
-    }
 
     private void ScheduleClear() { _clearTimer.Stop(); _clearTimer.Start(); }
 

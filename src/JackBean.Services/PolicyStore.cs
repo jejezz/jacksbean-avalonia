@@ -79,7 +79,7 @@ public sealed class PolicyStore
         catch (Exception e) when (e is FormatException or JsonException)
         {
             var fb = PolicyDocument.FromJson(defaults);
-            return new PolicyDocument(fb.Apps, fb.Rules, [$"{FilePath}: {e.Message} — 기본 정책을 씁니다(파일은 그대로 둠)"], isFallback: true);
+            return new PolicyDocument(fb.Apps, fb.Rules, [$"{FilePath}: {e.Message} — 기본 정책을 씁니다(파일은 그대로 둠)"], isFallback: true, os: Os);
         }
     }
 
@@ -253,7 +253,6 @@ public sealed class PolicyStore
     private static string Describe(RuleProblem p) => p.Kind switch
     {
         RuleProblemKind.RuleLimit => $"규칙은 {PolicyLimits.MaxRules}개까지입니다",
-        RuleProblemKind.NoApps => "앱을 하나 이상 연결해야 합니다",
         RuleProblemKind.TooManyApps => $"규칙 하나에 앱은 {PolicyLimits.MaxAppsPerRule}개까지입니다",
         RuleProblemKind.UnknownApp => $"정책에 없는 앱입니다: {p.Detail}",
         RuleProblemKind.KindTaken => $"{p.Detail} 규칙은 하나만 둘 수 있습니다(이미 규칙 {p.Other} 가 있습니다)",

@@ -34,12 +34,10 @@ public class PolicyRuleEditTests
         Assert.True((await s.UpsertRuleAsync(new RuleEdit("img", Ext("png", "jpg"), ["b", "a"]))).Ok);
         Assert.Equal(["b", "a"], RuleJson(await ReadJson(s), "img")["open"]!.AsArray().Select(n => (string?)n));
 
-        var none = await s.UpsertRuleAsync(new RuleEdit("img", Ext("png", "jpg"), []));   // 앱이 하나도 없는 규칙은 저장하지 못한다
-        Assert.False(none.Ok);
-        Assert.Contains(none.Problems!, p => p.Kind == RuleProblemKind.NoApps);
+        Assert.True((await s.UpsertRuleAsync(new RuleEdit("img", Ext("png", "jpg"), []))).Ok);   // 0개 = 운영체제 기본 방식으로 연다
         var doc = await s.LoadAsync();
         Assert.Empty(doc.Warnings);
-        Assert.Equal(["b", "a"], doc.Rules.First(r => r.Id == "img").Choices);   // 그대로
+        Assert.Empty(doc.Rules.First(r => r.Id == "img").Choices);
     }
 
     [Fact]
@@ -257,7 +255,6 @@ public class DropWithChoicesTests
 
         var none = await router.RouteAsync([PathClassifier.Classify(Make("y.png")), PathClassifier.Classify(Make("y.mp3")), PathClassifier.Classify(Make("y.mp4"))]);
         Assert.Empty(none.ChoiceApps());          // 함께 열 수 있는 앱이 없다 — 등록된 앱 전부를 내놓지 않는다
-        Assert.False(none.HasUnlinkedAsk);        // (연결된 앱이 없어서가 아니라 겹치는 앱이 없어서)
     }
 
     [Fact]
@@ -269,11 +266,31 @@ public class DropWithChoicesTests
 
         var plan = await router.RouteAsync([PathClassifier.Classify(dir)]);
         Assert.Equal(["explorer", "terminal"], plan.ChoiceApps().Select(a => a.Id));   // 폴더 규칙에 연결된 앱뿐
-        Assert.False(plan.HasUnlinkedAsk);
     }
 
     [Fact]
-    public async Task RuleWithoutAppsHasNothingToChooseAndIsFlagged()
+    public async Task PolicyFileFromTheUserWithAnEmptyFolderRuleStillOpensFolders()
+    {
+        // 앱이 0개인 폴더 규칙(예전 기본 정책이 만든 파일)도 이제 운영체제 기본 방식으로 바로 열린다.
+        using var t = new TempDir();
+        var store = new PolicyStore(PolicyOs.Windows, t.Path);
+        await File.WriteAllTextAsync(store.FilePath, """
+            {"schema":2,"os":"windows",
+             "apps":{"explorer":{"command":"explorer.exe","args":["{path}"]},"daylight-pdf":{"command":"pdf.exe","args":["{path}"]}},
+             "rules":[{"id":"pdf","when":{"kind":"extension","extensions":["pdf"]},"open":["daylight-pdf"]},
+                      {"id":"folders","when":{"kind":"folder"},"open":[]}]}
+            """);
+        var launched = new List<string>();
+        var router = new DropRouter(store, new AppLauncher((cmd, args) => { launched.Add(cmd); return Task.CompletedTask; }));
+        var dir = Directory.CreateDirectory(Path.Combine(t.Path, "docs")).FullName;
+
+        var plan = await router.RouteAsync([PathClassifier.Classify(dir)]);
+        Assert.Empty(plan.AskOutcomes);              // 폴더에 pdf 앱을 내놓지 않고, 안 묻고
+        Assert.Equal(["explorer.exe"], launched);    // 탐색기로 바로 연다
+    }
+
+    [Fact]
+    public async Task RuleWithoutAppsOpensWithTheOsDefaultWithoutAsking()
     {
         using var t = new TempDir();
         var (store, router) = await Setup(t);
@@ -282,8 +299,8 @@ public class DropWithChoicesTests
         var dir = Directory.CreateDirectory(Path.Combine(t.Path, "docs")).FullName;
 
         var plan = await router.RouteAsync([PathClassifier.Classify(dir)]);
-        Assert.Empty(plan.ChoiceApps());
-        Assert.True(plan.HasUnlinkedAsk);   // 규칙 편집에서 앱을 연결하라고 안내할 상황
+        Assert.Empty(plan.AskOutcomes);                                                    // 묻지 않는다
+        Assert.Equal("default", Assert.Single(plan.Outcomes.OfType<Opened>()).App.Id);   // 운영체제 기본 방식으로 바로 연다
     }
 
     [Fact]

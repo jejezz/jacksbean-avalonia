@@ -24,8 +24,8 @@ public class PolicyDocumentTests
         var d = Doc("""[{"id":"img","when":{"kind":"extension","extensions":["PNG",".jpg"]},"open":["viewer"]}]""");
         Assert.Equal("viewer", App(d.Decide(File("a.png"))));
         Assert.Equal("viewer", App(d.Decide(File("A.JPG"))));
-        Assert.IsType<Ask>(d.Decide(File("a.txt")));
-        Assert.IsType<Ask>(d.Decide(Folder("png")));
+        Assert.Equal("default", App(d.Decide(File("a.txt"))));    // 맞는 규칙이 없으면 운영체제 기본 방식
+        Assert.Equal("default", App(d.Decide(Folder("png"))));   // 확장자 규칙은 파일에만 적용된다
     }
 
     [Fact]
@@ -38,17 +38,17 @@ public class PolicyDocumentTests
     }
 
     [Fact]
-    public void FirstMatchWinsAndEmptyOpenAsks()
+    public void FirstMatchWinsAndEmptyOpenOrNoRuleUsesTheOsDefault()
     {
         var d = Doc("""[{"id":"pdf","when":{"kind":"extension","extensions":["pdf"]},"open":["taskbench"]},{"id":"all","when":{"kind":"file"},"open":["viewer"]},{"id":"ask","when":{"kind":"folder"},"open":[]}]""");
         Assert.Equal("taskbench", App(d.Decide(File("a.pdf"))));
         Assert.Equal("viewer", App(d.Decide(File("a.txt"))));
-        var empty = Assert.IsType<Ask>(d.Decide(Folder("docs")));
+        var empty = Assert.IsType<OpenWith>(d.Decide(Folder("docs")));   // 앱을 연결하지 않은 규칙 — 운영체제 기본 방식으로 연다
+        Assert.Equal("default", empty.App.Id);
+        Assert.Equal("explorer.exe", empty.App.Command);                  // Windows 정책의 기본
         Assert.Equal("ask", empty.RuleId);
-        Assert.Empty(empty.Candidates!);                            // 앱을 연결하지 않은 규칙 — 고를 앱이 없다(다른 대상의 앱을 섞어 보여 주지 않는다)
-        var none = Assert.IsType<Ask>(d.Decide(Drive));            // 어느 규칙에도 안 맞는다
-        Assert.Null(none.RuleId);
-        Assert.Empty(none.Candidates!);
+        var none = Assert.IsType<OpenWith>(d.Decide(Drive));             // 어느 규칙에도 안 맞는다 — 마찬가지
+        Assert.Equal("default", none.App.Id);
     }
 
     [Fact]
