@@ -1,0 +1,331 @@
+name: Release
+
+# Adapted from jejezz/application-release-templates desktop/ @ conventions-v1 (the Flutter release workflow), for an
+# Avalonia / .NET NativeAOT app. See conventions/ for the rules it implements (tagging.md, versioning.md, workflow.md).
+#
+# Push a `vX.Y.Z` (or `vX.Y.Z-rc.N`) tag to:
+#   1. check         — the tag must equal AppVersion in Directory.Build.props
+#   2. build-*       — NativeAOT must be built on each target OS, so each OS has its own job:
+#                        build-windows  unit tests, publish, Inno Setup installer + portable zip
+#                        build-linux    publish, tarball with install.sh (x64)
+#                        build-macos    publish, .app + .dmg (Apple Silicon / arm64)
+#   3. release       — only once every build succeeds, one GitHub Release with every asset plus SHA256SUMS.txt.
+#                      If a build fails, nothing is published.
+#
+# workflow_dispatch runs steps 1–2 only (build check); it never creates a Release (conventions/tagging.md §3).
+# Run it once by hand before the first tag: the Linux and macOS jobs have never run on a real runner yet.
+#
+# macOS signing is optional: without the MACOS_* / APPLE_* secrets (see build-macos) the .app is ad-hoc signed and the
+# .dmg ships unsigned — it runs, but Gatekeeper warns "unidentified developer" on first launch. Add the secrets and
+# the same job signs with the Developer ID certificate and notarizes, with no workflow change.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+env:
+  # GitHub 브라우저 로그인(Device Flow)의 OAuth App Client ID — 비밀이 아니다. repo 변수 JACKSBEAN_GITHUB_CLIENT_ID 에 넣는다
+  # (Directory.Build.props 가 환경 변수 AppGitHubClientId 를 읽는다). 비어 있으면 빌드는 토큰 입력 로그인만 보인다.
+  AppGitHubClientId: ${{ vars.JACKSBEAN_GITHUB_CLIENT_ID }}
+  # Pin the SDK so re-running a tag rebuilds the same thing (conventions/workflow.md §3). Bump it in a PR.
+  DOTNET_VERSION: "10.0.x"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      display_name: ${{ steps.meta.outputs.display_name }}
+      file_name: ${{ steps.meta.outputs.file_name }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      app_id: ${{ steps.meta.outputs.app_id }}
+      build: ${{ steps.meta.outputs.build }}
+      copyright: ${{ steps.meta.outputs.copyright }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Names and version come from Directory.Build.props, the single source (conventions/identity.md §2).
+      - name: Read version and names
+        id: meta
+        run: |
+          prop() { sed -n "s:.*<$1>\([^<]*\)</$1>.*:\1:p" Directory.Build.props | head -1 | tr -d '\r'; }
+          PROPS_VERSION=$(prop AppVersion)
+          DISPLAY_NAME=$(prop AppDisplayName)
+          FILE_NAME=$(prop AppFileName)
+          APP_ID=$(prop AppId)
+          BUILD=$(prop AppBuild)
+          COPYRIGHT="Copyright © $(prop AppFirstReleaseYear) $(prop AppCopyrightHolder)"
+          test -n "$PROPS_VERSION" && test -n "$DISPLAY_NAME" && test -n "$FILE_NAME" && test -n "$APP_ID" && test -n "$BUILD"
+
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            if [ "$VERSION" != "$PROPS_VERSION" ]; then
+              echo "::error::Tag $GITHUB_REF_NAME does not match AppVersion $PROPS_VERSION in Directory.Build.props"
+              exit 1
+            fi
+          else
+            VERSION="$PROPS_VERSION"
+          fi
+
+          case "$VERSION" in *-*) PRERELEASE=true ;; *) PRERELEASE=false ;; esac
+
+          {
+            echo "version=$VERSION"
+            echo "display_name=$DISPLAY_NAME"
+            echo "file_name=$FILE_NAME"
+            echo "prerelease=$PRERELEASE"
+            echo "app_id=$APP_ID"
+            echo "build=$BUILD"
+            echo "copyright=$COPYRIGHT"
+          } >> "$GITHUB_OUTPUT"
+          echo "$DISPLAY_NAME $VERSION → $FILE_NAME-$VERSION-* (prerelease: $PRERELEASE)"
+
+  build-windows:
+    needs: check
+    runs-on: windows-latest
+    env:
+      FILE_NAME: ${{ needs.check.outputs.file_name }}
+      VERSION: ${{ needs.check.outputs.version }}
+      DISPLAY_NAME: ${{ needs.check.outputs.display_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Domain / Data / Services tests. (The Avalonia app project is not unit-tested; it is covered by the publish below.)
+      - name: Unit tests
+        shell: pwsh
+        run: |
+          foreach ($t in 'Domain', 'Data', 'Services') {
+            dotnet test "tests/JackBean.$t.Tests" -c Release
+            if ($LASTEXITCODE -ne 0) { throw "$t tests failed" }
+          }
+
+      # NativeAOT needs the MSVC linker; the Windows runner has Visual Studio. The script puts vswhere on PATH.
+      - name: Publish (NativeAOT)
+        shell: pwsh
+        run: ./scripts/publish-aot.ps1
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      # Everything installer/windows/app.iss needs is passed in, so only AppId (a GUID) and the repository URL are
+      # edited by hand there.
+      - name: Package installer
+        shell: bash
+        # Git Bash would treat ISCC's /D... switches as POSIX paths and rewrite them. Pass them through unchanged.
+        env:
+          MSYS_NO_PATHCONV: "1"
+          MSYS2_ARG_CONV_EXCL: "*"
+        run: |
+          # VersionInfoVersion only takes digits: 1.0.0-rc.1 -> 1.0.0
+          "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" \
+            "/DMyAppName=$DISPLAY_NAME" \
+            "/DMyFileName=$FILE_NAME" \
+            "/DMyAppVersion=$VERSION" \
+            "/DMyAppNumericVersion=${VERSION%%-*}" \
+            "/DMyAppExeName=$FILE_NAME.exe" \
+            installer/windows/app.iss
+
+      - name: Portable zip
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem publish/aot -File | Where-Object { $_.Extension -ne '.pdb' }
+          Compress-Archive -Path $files.FullName -DestinationPath "dist/$env:FILE_NAME-$env:VERSION-windows-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/*-windows-x64-setup.exe
+            dist/*-windows-x64.zip
+          if-no-files-found: error
+
+  build-linux:
+    needs: check
+    # Name the runner explicitly: `ubuntu-latest` moves to a new release without notice (conventions/workflow.md §3).
+    runs-on: ubuntu-24.04
+    env:
+      FILE_NAME: ${{ needs.check.outputs.file_name }}
+      VERSION: ${{ needs.check.outputs.version }}
+      DISPLAY_NAME: ${{ needs.check.outputs.display_name }}
+      APP_ID: ${{ needs.check.outputs.app_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # NativeAOT links with clang and needs the zlib headers.
+      - name: Install native build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev
+
+      # Informational: the tests were written on Windows, so a path-handling difference may show up here first.
+      # continue-on-error keeps it from blocking the release; make it strict once it is green.
+      - name: Unit tests (informational)
+        continue-on-error: true
+        run: |
+          for t in Domain Data Services; do
+            dotnet test "tests/JackBean.$t.Tests" -c Release
+          done
+
+      - name: Publish (NativeAOT)
+        run: bash scripts/publish-aot.sh linux-x64
+
+      - name: Package tarball
+        run: bash scripts/package-linux.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*-linux-x64.tar.gz
+          if-no-files-found: error
+
+  build-macos:
+    needs: check
+    # Name the runner explicitly — macos-latest changes Xcode SDKs without notice (conventions/workflow.md §3).
+    # macos-15 is Apple Silicon, so this builds the arm64 app.
+    runs-on: macos-15
+    env:
+      FILE_NAME: ${{ needs.check.outputs.file_name }}
+      VERSION: ${{ needs.check.outputs.version }}
+      DISPLAY_NAME: ${{ needs.check.outputs.display_name }}
+      APP_ID: ${{ needs.check.outputs.app_id }}
+      BUILD: ${{ needs.check.outputs.build }}
+      COPYRIGHT: ${{ needs.check.outputs.copyright }}
+      # Signing runs only when the Developer ID certificate secret exists (see README / release notes).
+      HAS_CERT: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Informational, like the Linux job.
+      - name: Unit tests (informational)
+        continue-on-error: true
+        run: |
+          for t in Domain Data Services; do
+            dotnet test "tests/JackBean.$t.Tests" -c Release
+          done
+
+      - name: Publish (NativeAOT)
+        run: bash scripts/publish-aot.sh osx-arm64
+
+      # Needs MACOS_CERTIFICATE_P12_BASE64 / MACOS_CERTIFICATE_PASSWORD / MACOS_KEYCHAIN_PASSWORD (a Developer ID
+      # Application certificate exported as .p12, base64-encoded; the keychain password is any random string).
+      - name: Import Developer ID certificate
+        if: env.HAS_CERT == 'true'
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+
+          echo -n "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode -o "$CERT_PATH"
+
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
+
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
+            | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)"/\1/')
+          test -n "$IDENTITY"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+
+      # With SIGN_IDENTITY set the script signs with the hardened runtime; without it, ad-hoc (runs, but unverified).
+      - name: Package app and DMG
+        run: |
+          brew install create-dmg
+          bash scripts/package-macos.sh
+
+      # APPLE_ID_PASSWORD must be an app-specific password generated at appleid.apple.com.
+      - name: Notarize DMG
+        if: env.HAS_CERT == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG_PATH=$(ls dist/*-macos-arm64.dmg)
+          codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG_PATH"
+          xcrun notarytool submit "$DMG_PATH" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          # staple은 공증 티켓을 Apple CloudKit에서 받아 오는데, 러너의 네트워크가 잠깐 끊기면(-1005) 공증이 Accepted여도
+          # 실패한다. 일시적인 오류이므로 몇 번 다시 시도한다 (끝까지 실패하면 그대로 실패).
+          for attempt in 1 2 3 4 5; do
+            if xcrun stapler staple "$DMG_PATH"; then break; fi
+            if [ "$attempt" = 5 ]; then echo "::error::stapler staple failed after $attempt attempts"; exit 1; fi
+            echo "stapler staple failed (attempt $attempt/5); retrying in $((attempt * 15))s"
+            sleep $((attempt * 15))
+          done
+
+      - name: Clean up keychain
+        if: always() && env.HAS_CERT == 'true'
+        run: security delete-keychain "$KEYCHAIN_PATH" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*-macos-arm64.dmg
+          if-no-files-found: error
+
+  release:
+    # Tag pushes only — a manual run is a build check (conventions/tagging.md §3).
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    needs: [check, build-windows, build-linux, build-macos]
+    permissions:
+      contents: write
+    steps:
+      # For .github/release-notes-header.md (optional install-guide footer).
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      # Title "<Display Name> vX.Y.Z"; notes = GitHub's generated PR list first, then the install-guide footer
+      # (conventions/workflow.md §4). `--generate-notes` always appends after --notes-file, so the notes are generated
+      # through the API and assembled here instead.
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          DISPLAY_NAME: ${{ needs.check.outputs.display_name }}
+          PRERELEASE: ${{ needs.check.outputs.prerelease }}
+        run: |
+          gh api -X POST "repos/$GH_REPO/releases/generate-notes" \
+            -f tag_name="$GITHUB_REF_NAME" --jq .body > notes.md
+          if [ -f .github/release-notes-header.md ]; then
+            printf '\n\n---\n\n' >> notes.md
+            cat .github/release-notes-header.md >> notes.md
+          fi
+          ARGS=(--title "$DISPLAY_NAME $GITHUB_REF_NAME" --notes-file notes.md)
+          if [ "$PRERELEASE" = "true" ]; then
+            ARGS+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/* "${ARGS[@]}"

@@ -131,7 +131,7 @@ public sealed class GitHubLoginDialog : DialogBase
 
     private Control TokenPart(IAppStrings s, bool expanded)
     {
-        var box = new TextBox { PasswordChar = '•', Watermark = "ghp_…" };
+        var box = new TextBox { PasswordChar = '•', PlaceholderText = "ghp_…" };
         var hint = new TextBlock { Text = s.GitHubTokenHint, TextWrapping = TextWrapping.Wrap };
         hint.Classes.Add("small");
         hint.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
@@ -250,8 +250,8 @@ public sealed class GitHubRepoDialog : DialogBase
         var name = new TextBlock { Text = repo.FullName, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         name.Classes.Add("user");   // 저장소 이름은 사용자 글
         var tags = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        if (repo.IsAppRepo) tags.Children.Add(Tag(s.RepoAppRepo, "AppPrimary"));
-        if (!repo.IsPrivate) tags.Children.Add(Tag(s.RepoPublicWarning, "AppDanger"));
+        if (repo.IsAppRepo) tags.Children.Add(Badge(s.RepoAppRepo, "AppPrimary"));
+        if (!repo.IsPrivate) tags.Children.Add(Badge(s.RepoPublicWarning, "AppDanger"));
         var connect = new Button { Content = s.RepoConnect };
         connect.Click += async (_, _) => await ConnectAsync(repo);
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 8 };
@@ -264,7 +264,7 @@ public sealed class GitHubRepoDialog : DialogBase
         return border;
     }
 
-    private TextBlock Tag(string text, string colorKey)
+    private TextBlock Badge(string text, string colorKey)
     {
         var t = new TextBlock { Text = text };
         t.Classes.Add("small");

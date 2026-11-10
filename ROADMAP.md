@@ -95,9 +95,10 @@
 - 의존성(PDF 렌더러 등)이 NativeAOT 에서 되는지가 첫 관문이다.
 
 ### 8. 릴리스 준비
-- [ ] README (사용법·스크린샷·정책 파일 위치).
-- [ ] 설치 파일: Windows / macOS / Linux 형식 결정 후 `application-release-templates`의 규약을 따른다.
-- [ ] 릴리스 워크플로: 태그 → 빌드·AOT 게시 → 설치 파일 → 릴리스 업로드.
+- [x] README (`README.md`/`README.ko.md`, 규약 검사 통과). 데모 GIF 는 아직 없다.
+- [x] NativeAOT 게시 확인(Windows): 새 P/Invoke(핫키·자격 증명·레지스트리)·트레이·GitHub 창 포함해 뜬다 (`scripts/publish-aot.ps1`).
+- [~] 설치 파일(Inno Setup · macOS dmg · Linux tar.gz 스크립트를 형제 앱에서 옮겨 둠 — **아직 한 번도 안 돌림**): Windows / macOS / Linux 형식 결정 후 `application-release-templates`의 규약을 따른다.
+- [~] 릴리스 워크플로(`.github/workflows/release.yml` 작성, 실행 전 — 첫 태그 전에 workflow_dispatch 로 한 번 돌린다; 저장소 변수 `JACKSBEAN_GITHUB_CLIENT_ID` 필요): 태그 → 빌드·AOT 게시 → 설치 파일 → 릴리스 업로드.
 - [ ] 업데이트 서버에 이 앱을 등록하고 업데이트 흐름을 처음으로 끝까지 확인한다. (`AppIdentity.RepositoryUrl`이 이 앱의 것인지 다시 확인)
 - [ ] 앱 아이콘의 소품 글리프 교체 (`app_icon.ico` 및 플랫폼별 아이콘).
 - 전 단계가 끝나면 `flutter-app-release-check` 성격의 출시 점검을 한 번 돌린다.
