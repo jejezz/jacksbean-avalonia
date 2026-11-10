@@ -90,8 +90,7 @@ public sealed class EnglishStrings : IAppStrings
     public string DockChooseCancel => "Cancel";
     public string DockAlwaysOpen(string what) => $"Always open like this ({what})";
     public string DockSuggestExtension(string ext) => $".{ext} files";
-    public string DockSuggestGitFolder => "Git folders";
-    public string DockSuggestPlainFolder => "folders without Git";
+    public string DockSuggestFolder => "folders";
     public string DockSuggestDrive => "drives";
     public string DockRuleSaved => "rule saved";
     public string DockRuleSaveFailed(string error) => $"Couldn't save the rule: {error}";

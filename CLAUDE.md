@@ -31,7 +31,8 @@ Flutter 판 `jacksbean-flutter`를 C#/Avalonia(.NET 10)로 옮기는 프로젝�
 ## 규칙 모델 (3-2a)
 규칙 하나는 앱을 0~10개 가진다(`Rule.Choices`, 한도 `PolicyLimits.MaxAppsPerRule`): 1개면 바로 열고, 2개 이상이면 **그 앱들만** 독에서 고르게 하고(`Ask.Candidates` → `NeedsChoice.Candidates` → `RoutePlan.ChoiceApps()`, 여러 항목이면 교집합·비면 전부), 0개면 등록된 앱 전부를 보여 주며 묻는다. 정책의 규칙은 255개까지(`PolicyLimits.MaxRules`) — 읽을 때는 넘어도 지우지 않고 경고만, 편집할 때(`RuleCheck`)만 막는다.
 파일 모양(Flutter 판 호환): 1개면 `"open":"a"`, 2개 이상이면 `"open":null` + `"choices":["a","b"]`(`RuleChoices.Read/Write`). 확장자 묶음은 `ExtensionGroups`(이미지·음악·영상·PDF·문서·스프레드시트·프레젠테이션·압축·텍스트·코드, 한 확장자는 한 묶음에만) — 저장은 확장자 목록이다.
-같은 확장자가 두 규칙에 겹치면 저장을 막고(`RuleCheck`), 저장할 때 규칙은 구체적인 것이 위로 정렬된다(`RuleOrder`: 이름 패턴 → 확장자 → Git → 드라이브·폴더 → 그 밖의 파일). `PolicyStore.UpsertRuleAsync/RemoveRuleAsync` 가 이것을 한다. 앱을 지우면 규칙은 지우지 않고 그 규칙의 앱 목록에서만 빠진다.
+같은 확장자가 두 규칙에 겹치면 저장을 막고(`RuleCheck`), 저장할 때 규칙은 구체적인 것이 위로 정렬된다(`RuleOrder`: 이름 패턴 → 확장자 → 이미 있는 `hasGit` 규칙 → 드라이브·폴더 → 그 밖의 파일). `PolicyStore.UpsertRuleAsync/RemoveRuleAsync` 가 이것을 한다. 앱을 지우면 규칙은 지우지 않고 그 규칙의 앱 목록에서만 빠진다.
+**Git 저장소 규칙은 새로 만들지 않는다**: 폴더는 폴더 하나, 앱을 어떻게 쓸지는 앱이 정한다. 파일에 이미 있는 `hasGit`·`nameGlob` 규칙(Flutter 판이 만든 것 포함)은 계속 읽고 동작하며 편집 창은 읽기 전용으로만 보여 준다. "항상 이렇게 열기"는 폴더·드라이브 규칙이 물어보게 한 것이면 그 규칙을 고치고(`DropRouter.ReuseKindRuleId`), 아니면 `auto-folder`/`auto-drive` 를 만든다.
 
 ## 멀티 윈도우와 내장 도구
 - 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).

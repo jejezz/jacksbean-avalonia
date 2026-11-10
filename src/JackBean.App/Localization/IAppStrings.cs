@@ -89,8 +89,7 @@ public interface IAppStrings
     string DockChooseCancel { get; }
     string DockAlwaysOpen(string what);
     string DockSuggestExtension(string ext);
-    string DockSuggestGitFolder { get; }
-    string DockSuggestPlainFolder { get; }
+    string DockSuggestFolder { get; }
     string DockSuggestDrive { get; }
     string DockRuleSaved { get; }
     string DockRuleSaveFailed(string error);

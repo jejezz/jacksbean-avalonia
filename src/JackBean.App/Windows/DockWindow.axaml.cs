@@ -325,8 +325,7 @@ public partial class DockWindow : Window
     private string RememberLabel() => Strings.Current.DockAlwaysOpen(string.Join(", ", _suggestions.Select(s => s.Kind switch
     {
         SuggestionKind.Extension => Strings.Current.DockSuggestExtension(s.Arg),
-        SuggestionKind.GitFolder => Strings.Current.DockSuggestGitFolder,
-        SuggestionKind.PlainFolder => Strings.Current.DockSuggestPlainFolder,
+        SuggestionKind.Folder => Strings.Current.DockSuggestFolder,
         _ => Strings.Current.DockSuggestDrive,
     })));
 
