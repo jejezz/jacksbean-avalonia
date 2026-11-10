@@ -93,6 +93,7 @@
 - [x] PDF 뷰어 (`jackbean:pdf-viewer`) — 별도 PDF 렌더러 대신 OS 웹뷰(`NativeWebView`: Windows WebView2 · macOS WKWebView)로 연다. AOT 게시 확인(실행 파일 +0.85MB, 경고 없음), PDF 가 그려지는 것까지 확인. Linux 는 웹뷰 사정이 달라 기본 정책에 넣지 않았고 미확인.
 - [x] 압축 도구 (`jackbean:archive`) — zip 풀기(내용 목록·풀 위치·[압축 풀기])와 압축하기(여러 항목 → zip). 표준 라이브러리뿐이라 AOT 안전, 실행 파일 +0.44MB. 여러 항목을 한 번에 받으려고 앱 `args` 의 `{paths}` 를 더했다. zip 만 지원(7z·rar·tar 는 없음).
 - [x] 비디오 플레이어 (`jackbean:video-player`) — OS 웹뷰가 파일을 직접 재생한다(PDF 뷰어와 `WebFileWindow` 공유). AOT 게시본에서 mp4(H.264/AAC) 재생 확인, 실행 파일 변화 +3KB. 웹뷰가 아는 형식만 재생(HEVC·avi·mkv 일부는 안 됨) — 위쪽 띠의 [기본 앱으로 열기]로 넘긴다. 컨트롤은 웹뷰의 것. Linux 는 기본 정책에서 제외·미확인. 더 넓은 형식이 필요하면 LibVLC(수십~100MB+)·FFmpeg 가 대안(미정).
+- [x] 오디오 플레이어 (`jackbean:audio-player`) — 비디오 플레이어와 같은 방식(OS 웹뷰, `WebFileWindow`). AOT 게시본에서 mp3 재생·진행 확인(0:03 → 0:08), 실행 파일 변화 +1KB. 웹뷰가 아는 형식(mp3 wav flac aac m4a ogg oga opus)만 기본 정책에 연결, wma·aif·mid·amr 는 OS 기본 앱.
 - **공통 조건(도구마다 지킨다)**: 등록(`Register`)은 가벼운 팩토리만, 무거운 초기화·스타일 로드는 `CreateWindow` 안에서(안 쓸 때 메모리·시작 시간 0). 닫으면 리소스 해제. 도구를 붙일 때마다 AOT 게시로 크기·유휴 메모리를 재서 기록한다.
 - 각 도구는 파일 하나당 창 하나, `WindowPlacementHelper.OpenNear`로 연다. 도구마다 정책에 기본 연결(`jackbean:<id>`)을 제공할지 정한다.
 - 의존성(PDF 렌더러 등)이 NativeAOT 에서 되는지가 첫 관문이다.
