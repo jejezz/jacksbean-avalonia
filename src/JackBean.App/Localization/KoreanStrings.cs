@@ -90,8 +90,7 @@ public sealed class KoreanStrings : IAppStrings
     public string DockChooseCancel => "취소";
     public string DockAlwaysOpen(string what) => $"항상 이렇게 열기 ({what})";
     public string DockSuggestExtension(string ext) => $".{ext} 파일";
-    public string DockSuggestGitFolder => "Git 폴더";
-    public string DockSuggestPlainFolder => "Git 없는 폴더";
+    public string DockSuggestFolder => "폴더";
     public string DockSuggestDrive => "드라이브";
     public string DockRuleSaved => "규칙 저장됨";
     public string DockRuleSaveFailed(string error) => $"규칙을 저장하지 못했습니다: {error}";
