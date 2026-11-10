@@ -596,7 +596,7 @@ public sealed partial class RulesEditorWindow : Window
             if (_section == Section.Files) _extRuleId = id;
             await ReloadAsync(first: false, selectExt: _section == Section.Files ? id : null);
             App.NotifyPolicyChanged();
-            Snackbar.Info(Strings.Current.RuleSaved(NameOfRuleId(id)));
+            PolicyNotices.Saved(Strings.Current.RuleSaved(NameOfRuleId(id)));
         }
         finally { _saving = false; }
     }
@@ -616,7 +616,7 @@ public sealed partial class RulesEditorWindow : Window
             _extRuleId = null;
             await ReloadAsync(first: true);
             App.NotifyPolicyChanged();
-            Snackbar.Info(s.RuleDeleted(name));
+            PolicyNotices.Saved(s.RuleDeleted(name));
         }
         finally { _saving = false; }
     }

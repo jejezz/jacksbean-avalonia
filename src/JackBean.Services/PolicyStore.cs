@@ -101,6 +101,7 @@ public sealed class PolicyStore
             var tmp = FilePath + ".tmp";
             await File.WriteAllTextAsync(tmp, Serialize(PolicyDocument.DefaultJson(Os)));
             File.Move(tmp, FilePath, overwrite: true);
+            _previousText = _lastWrittenText = null;
             return new ResetResult(null, backup);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -266,12 +267,45 @@ public sealed class PolicyStore
     /// 파일을 읽어 <paramref name="edit"/> 로 고치고 임시 파일에 쓴 뒤 바꿔 끼운다. 파일이 깨져 있거나 다른 OS 것이면 아무것도 쓰지 않는다.
     /// <paramref name="edit"/> 가 SaveResult 를 돌려주면 그것을 결과로 하고 쓰지 않는다(null 이면 저장).
     /// </summary>
+    // 실행 취소 한 단계: 마지막 변경 전의 파일 내용과, 그 변경으로 우리가 쓴 내용. 앱을 끌 때까지만 기억한다.
+    private string? _previousText;
+    private string? _lastWrittenText;
+
+    /// <summary>방금 한 변경(앱·규칙 저장·삭제, 항상 이렇게 열기)을 되돌릴 수 있다.</summary>
+    public bool CanUndo => _previousText != null && _lastWrittenText != null;
+
+    /// <summary>
+    /// 마지막 변경을 되돌린다. 그 뒤 파일을 손으로 고쳤으면(우리가 쓴 내용과 다르면) 그 수정을 덮어쓰지 않도록 거절한다.
+    /// 되돌린 뒤 다시 부르면 방금 되돌린 변경이 돌아온다(다시 실행).
+    /// </summary>
+    public async Task<SaveResult> UndoAsync()
+    {
+        if (!CanUndo) return new SaveResult("되돌릴 변경이 없습니다");
+        try
+        {
+            var current = File.Exists(FilePath) ? await File.ReadAllTextAsync(FilePath) : null;
+            if (current != _lastWrittenText) return new SaveResult("정책 파일이 그 사이에 바뀌어 되돌릴 수 없습니다");
+            var restore = _previousText!;
+            var tmp = FilePath + ".tmp";
+            await File.WriteAllTextAsync(tmp, restore);
+            File.Move(tmp, FilePath, overwrite: true);
+            _previousText = current;
+            _lastWrittenText = restore;
+            return SaveResult.Success;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return new SaveResult($"정책 파일을 쓰지 못했습니다: {e.Message}");
+        }
+    }
+
     private async Task<SaveResult> MutateAsync(Func<JsonObject, SaveResult?> edit)
     {
         try
         {
             if (!File.Exists(FilePath)) await LoadAsync();
-            var decoded = ParseObject(await File.ReadAllTextAsync(FilePath));
+            var before = await File.ReadAllTextAsync(FilePath);
+            var decoded = ParseObject(before);
             if (RuleCondition.Str(decoded["os"]) != Os.JsonName())
                 return new SaveResult($"정책 파일의 os 가 {Os.JsonName()} 이 아닙니다: {decoded["os"]}");
             if (!(decoded["schema"] is JsonValue sv && sv.TryGetValue<int>(out var sch) && sch == PolicyDocument.SchemaVersion))
@@ -280,9 +314,12 @@ public sealed class PolicyStore
 
             if (edit(decoded) is { } failure) return failure;
 
+            var after = Serialize(decoded);
             var tmp = FilePath + ".tmp";
-            await File.WriteAllTextAsync(tmp, Serialize(decoded));
+            await File.WriteAllTextAsync(tmp, after);
             File.Move(tmp, FilePath, overwrite: true);
+            _previousText = before;
+            _lastWrittenText = after;
             return SaveResult.Success;
         }
         catch (Exception e) when (e is FormatException or JsonException)

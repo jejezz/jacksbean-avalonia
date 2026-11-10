@@ -183,6 +183,10 @@ public interface IAppStrings
     string RuleAppsBrowse { get; }
     string RuleAppsBrowseTitle { get; }
     string RuleAppPending(string id);
+    string SnackbarUndo { get; }
+    string HomeUndo { get; }
+    string PolicyUndone { get; }
+    string PolicyUndoFailed(string error);
     string ExtensionGroupName(string id);
     string ViewerFailed(string error);
 }
