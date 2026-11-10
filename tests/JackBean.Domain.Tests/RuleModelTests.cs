@@ -82,11 +82,11 @@ public class RuleModelTests
     }
 
     [Fact]
-    public void RuleWithOneAppOpensDirectlyAndNoAppsMeansNothingToChoose()
+    public void RuleWithOneAppOpensDirectlyAndNoAppsUsesTheOsDefault()
     {
         var d = Doc("""[{"id":"p","when":{"kind":"extension","extensions":["pdf"]},"open":["c"]},{"id":"any","when":{"kind":"file"},"open":[]}]""");
         Assert.Equal("c", Assert.IsType<OpenWith>(d.Decide(File("x.pdf"))).App.Id);
-        Assert.Empty(Assert.IsType<Ask>(d.Decide(File("x.zip"))).Candidates!);   // 연결된 앱이 없다 — 등록된 앱 전부를 내놓지 않는다
+        Assert.Equal("default", Assert.IsType<OpenWith>(d.Decide(File("x.zip"))).App.Id);   // 연결된 앱이 없다 — 운영체제 기본 방식(등록된 앱 전부를 내놓지 않는다)
     }
 
     [Fact]
@@ -160,7 +160,6 @@ public class RuleModelTests
         var d = Doc("""[{"id":"other","when":{"kind":"extension","extensions":["png"]},"open":["a"]},{"id":"folders","when":{"kind":"folder"},"open":[]}]""");
         Assert.Contains(RuleCheck.Validate(Ext("x", ["png"], "a"), d, true), p => p is { Kind: RuleProblemKind.ExtensionTaken, Detail: "png", Other: "other" });
         Assert.Contains(RuleCheck.Validate(Ext("x", ["gif"], "ghost"), d, true), p => p is { Kind: RuleProblemKind.UnknownApp, Detail: "ghost" });
-        Assert.Contains(RuleCheck.Validate(Ext("x", ["gif"]), d, true), p => p.Kind == RuleProblemKind.NoApps);   // 앱이 하나도 없는 규칙은 저장하지 못한다
         Assert.Contains(RuleCheck.Validate(Ext("other", ["gif"], "a"), d, true), p => p.Kind == RuleProblemKind.IdTaken);
         var tooMany = Ext("x", ["gif"], Enumerable.Repeat("a", PolicyLimits.MaxAppsPerRule + 1).ToArray());
         Assert.Contains(RuleCheck.Validate(tooMany, d, true), p => p.Kind == RuleProblemKind.TooManyApps);

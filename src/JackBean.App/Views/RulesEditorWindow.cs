@@ -531,7 +531,6 @@ public sealed partial class RulesEditorWindow : Window
         return p.Kind switch
         {
             RuleProblemKind.RuleLimit => s.RuleErrLimit,
-            RuleProblemKind.NoApps => s.RuleErrNoApps,
             RuleProblemKind.TooManyApps => s.RuleErrTooMany,
             RuleProblemKind.UnknownApp => s.RuleErrUnknownApp(p.Detail ?? ""),
             RuleProblemKind.ExtensionTaken => s.RuleErrExtTaken(p.Detail ?? "", NameOfRuleId(p.Other)),
@@ -563,7 +562,7 @@ public sealed partial class RulesEditorWindow : Window
     {
         var apps = _policy!.Apps.ToDictionary(kv => kv.Key, kv => kv.Value);
         foreach (var (id, app) in _pending) apps[id] = new AppEntry(id, app.Command, app.Args);
-        return new PolicyDocument(apps, _policy.Rules, _policy.Warnings, _policy.IsFallback);
+        return new PolicyDocument(apps, _policy.Rules, _policy.Warnings, _policy.IsFallback, _policy.Os);
     }
 
     /// <summary>파일을 골라 앱으로 연결한다. 같은 실행 파일이 이미 등록되어 있으면 그 앱을 쓰고, 아니면 새 앱(이름은 파일 이름에서)으로 올려 둔다.</summary>
