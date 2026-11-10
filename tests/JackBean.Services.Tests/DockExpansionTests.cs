@@ -35,12 +35,12 @@ public class DockExpansionTests
         e.Expand(); e.Expand();
         Assert.Equal([true], log);
         e.ShrinkSoon();
-        time.Advance(TimeSpan.FromMilliseconds(500));
+        time.Advance(TimeSpan.FromMilliseconds(300));
         e.Expand();                                   // 되돌아오면 취소
         time.Advance(TimeSpan.FromSeconds(2));
         Assert.Equal([true], log);
         e.ShrinkSoon();
-        time.Advance(TimeSpan.FromMilliseconds(799));
+        time.Advance(TimeSpan.FromMilliseconds(499));
         Assert.Equal([true], log);
         time.Advance(TimeSpan.FromMilliseconds(2));
         Assert.Equal([true, false], log);
