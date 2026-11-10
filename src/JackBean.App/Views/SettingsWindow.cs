@@ -210,40 +210,58 @@ public sealed class SettingsWindow : Window
         page.Children.Add(Heading(s.SyncTitle, first: true));
         page.Children.Add(new TextBlock { Text = s.SyncDescription, TextWrapping = TextWrapping.Wrap });
 
-        page.Children.Add(Heading(s.SyncRepoLabel));
-        var box = new TextBox { Text = App.Settings.Value.SyncRepository ?? "", Watermark = "https://github.com/…/….git" };
-        box.Bind(TextBox.FontFamilyProperty, this.GetResourceObservable("AppUserFont"));   // 주소는 사용자가 적는 글
-        void Commit()
+        // 로그인
+        page.Children.Add(Heading(s.SyncSignIn));
+        var github = App.Github;
+        if (github.LoggedIn)
         {
-            var value = box.Text?.Trim() ?? "";
-            var next = value.Length == 0 ? null : value;
-            if (next != App.Settings.Value.SyncRepository) App.Settings.Update(x => x with { SyncRepository = next });
+            page.Children.Add(new TextBlock { Text = s.SyncSignedInAs(github.Login!), TextWrapping = TextWrapping.Wrap });
+            var signOut = new Button { Content = s.SyncSignOut, HorizontalAlignment = HorizontalAlignment.Left };
+            signOut.Click += (_, _) => { github.SignOut(); Rebuild(); };
+            page.Children.Add(signOut);
+            if (!github.TokenPersistent) page.Children.Add(Small(s.SyncNoSecureStore));
         }
-        box.LostFocus += (_, _) => Commit();
-        box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { Commit(); e.Handled = true; } };
-        page.Children.Add(box);
-        page.Children.Add(Small(s.SyncRepoHint));
+        if (!github.LoggedIn || github.NeedsReauth)
+        {
+            if (github.NeedsReauth)
+            {
+                var warn = new TextBlock { Text = s.SyncReauth, TextWrapping = TextWrapping.Wrap };
+                warn.Classes.Add("failed");
+                page.Children.Add(warn);
+            }
+            var signIn = new Button { Content = s.SyncSignIn, HorizontalAlignment = HorizontalAlignment.Left };
+            signIn.Classes.Add("accent");
+            signIn.Click += async (_, _) => { if (await Dialogs.GitHubLoginDialog.ShowAsync(this)) Rebuild(); };
+            page.Children.Add(signIn);
+        }
 
-        var syncButton = new Button { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 12, 0, 0) };
+        // 저장소
+        page.Children.Add(Heading(s.SyncRepoLabel));
+        page.Children.Add(new TextBlock { Text = github.Repo is { Length: > 0 } repo ? s.SyncRepoCurrent(repo) : s.SyncRepoNone, TextWrapping = TextWrapping.Wrap, Classes = { "user" } });
+        var choose = new Button { Content = s.SyncChooseRepo, HorizontalAlignment = HorizontalAlignment.Left, IsEnabled = github.LoggedIn };
+        choose.Click += async (_, _) => { if (await Dialogs.GitHubRepoDialog.ShowAsync(this)) Rebuild(); };
+        page.Children.Add(choose);
+
+        // 동기화
+        var syncButton = new Button { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 16, 0, 0) };
         syncButton.Classes.Add("accent");
         var status = Small("");
         var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
         summary.Classes.Add("user");
         void Refresh()
         {
-            var hasRepo = !string.IsNullOrWhiteSpace(App.Settings.Value.SyncRepository);
             syncButton.Content = App.SyncRunning ? s.SyncRunning : s.SyncNow;
-            syncButton.IsEnabled = hasRepo && !App.SyncRunning;
+            syncButton.IsEnabled = App.Github.CanSync && !App.SyncRunning;
             var last = App.Settings.Value.SyncLastAt;
             status.Text = last is { } at ? s.SyncLast(at.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)) : s.SyncNever;
             summary.Text = App.LastSyncSummary ?? "";
             summary.IsVisible = summary.Text.Length > 0;
         }
-        syncButton.Click += async (_, _) => { Commit(); Refresh(); await App.SyncNowAsync(); };
-        Action onSync = () => Dispatcher.UIThread.Post(Refresh);
+        syncButton.Click += async (_, _) => await App.SyncNowAsync();
+        Action onSync = () => Dispatcher.UIThread.Post(() => { if (_section == Section.Sync) Rebuild(); });   // 동기화가 끝나면 로그인 상태(만료 등)까지 다시 그린다
         App.SyncChanged += onSync;
         Closed += (_, _) => App.SyncChanged -= onSync;
-        _refreshers.Add(Refresh);   // 설정(저장소 주소·마지막 동기화 시각)이 바뀌면 다시 그린다
+        _refreshers.Add(Refresh);
         Refresh();
         page.Children.Add(syncButton);
         page.Children.Add(status);

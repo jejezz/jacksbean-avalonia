@@ -14,6 +14,7 @@ using JackBean.Domain;
 using JackBean.Domain.Policy;
 using JackBean.Domain.Settings;
 using JackBean.Services;
+using JackBean.Services.GitHub;
 using JackBean.Services.Startup;
 using JackBean.Services.Sync;
 using JackBean.Services.Updates;
@@ -43,8 +44,8 @@ public partial class App : Application
     /// <summary>로그인할 때 자동 시작(시작 프로그램). 등록 여부는 OS 에 있는 등록이 원본이다.</summary>
     internal static IStartupRegistration Startup { get; private set; } = null!;
 
-    /// <summary>정책을 GitHub 와 동기화한다(컴퓨터의 git 명령 사용).</summary>
-    internal static PolicySync Sync { get; private set; } = null!;
+    /// <summary>GitHub 로그인·저장소 연결·정책 동기화(REST, git 불필요). 토큰은 OS 보안 저장소에만 있다.</summary>
+    internal static GitHubSyncService Github { get; private set; } = null!;
 
     /// <summary>동기화가 돌고 있다(버튼을 막는다).</summary>
     internal static bool SyncRunning { get; private set; }
@@ -72,7 +73,7 @@ public partial class App : Application
         Settings = new SettingsController(new JsonSettingsRepository(settingsFile));
 
         PolicyStore = new PolicyStore(os, Path.GetDirectoryName(settingsFile));
-        Sync = new PolicySync(PolicyStore, Path.Combine(PolicyStore.Directory, "sync"));
+        Github = new GitHubSyncService(Settings, TokenStores.Create(), PolicyStore, Path.Combine(PolicyStore.Directory, "sync"));
         Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName);
         Tools = new ToolRegistry();
         Tools.Register(new ImageViewerTool());
@@ -140,17 +141,16 @@ public partial class App : Application
     /// </summary>
     internal static async Task SyncNowAsync()
     {
-        var repository = Settings.Value.SyncRepository;
-        if (SyncRunning || string.IsNullOrWhiteSpace(repository)) return;
+        if (SyncRunning || !Github.CanSync) return;
         SyncRunning = true;
         SyncChanged?.Invoke();
         var s = Strings.Current;
         try
         {
-            var result = await Task.Run(() => Sync.SyncAsync(repository));
+            var result = await Task.Run(() => Github.SyncAsync());
             if (!result.Ok)
             {
-                LastSyncSummary = s.SyncFailed(result.Error ?? "");
+                LastSyncSummary = result.AuthFailed ? s.SyncReauth : s.SyncFailed(result.Error ?? "");
                 Notifications.Snackbar.Error(LastSyncSummary);
                 return;
             }

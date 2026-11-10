@@ -45,14 +45,15 @@ public class JsonSettingsRepositoryTests : IDisposable
     [Fact]
     public void 동기화_저장소와_마지막_시각을_저장한다()
     {
-        Assert.Null(new AppSettings().SyncRepository);
+        Assert.Null(new AppSettings().SyncRepo);
         var at = new DateTimeOffset(2026, 11, 10, 12, 30, 0, TimeSpan.FromHours(9));
-        Repo().Save(new AppSettings { SyncRepository = "https://github.com/me/policy.git", SyncLastAt = at });
+        Repo().Save(new AppSettings { SyncRepo = "me/policy", SyncLogin = "me", SyncLastAt = at });
         var back = Repo().Load();
-        Assert.Equal("https://github.com/me/policy.git", back.SyncRepository);
+        Assert.Equal("me/policy", back.SyncRepo);
+        Assert.Equal("me", back.SyncLogin);
         Assert.Equal(at, back.SyncLastAt);
         var json = File.ReadAllText(File_);
-        Assert.Contains("\"sync_repository\"", json);
+        Assert.Contains("\"sync_repo\"", json);
         Assert.DoesNotContain("token", json, StringComparison.OrdinalIgnoreCase);   // 비밀번호·토큰은 저장하지 않는다
     }
 

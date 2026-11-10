@@ -15,6 +15,13 @@
     <AppUpdateServer Condition="'$(AppUpdateServer)' == ''">https://c-a3f19c04.rtc.zoomon.art/repos</AppUpdateServer>
   </PropertyGroup>
 
+  <!-- 로컬 개발용 값(커밋하지 않는다): GitHub 브라우저 로그인(Device Flow)의 OAuth App Client ID 등. 견본은 Directory.Build.local.props.example.
+       배포 빌드는 -p:AppGitHubClientId=… 로 넣는다. 비어 있으면 앱은 토큰 입력 로그인만 보여 준다. Client ID 는 비밀이 아니다. -->
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props" Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
+  <PropertyGroup>
+    <AppGitHubClientId Condition="'$(AppGitHubClientId)' == ''"></AppGitHubClientId>
+  </PropertyGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -36,5 +43,6 @@
     <AssemblyMetadata Include="AppVersion" Value="$(AppVersion)" />
     <AssemblyMetadata Include="AppBuild" Value="$(AppBuild)" />
     <AssemblyMetadata Include="AppUpdateServer" Value="$(AppUpdateServer)" />
+    <AssemblyMetadata Include="AppGitHubClientId" Value="$(AppGitHubClientId)" />
   </ItemGroup>
 </Project>

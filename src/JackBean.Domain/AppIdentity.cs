@@ -41,6 +41,12 @@ public static class AppIdentity
     /// <summary>업데이트 서버 주소. 빈 값이면 업데이트 확인을 끈다. 원본은 Directory.Build.props의 AppUpdateServer.</summary>
     public static string UpdateServerUrl { get; } = Get("AppUpdateServer")?.Trim() ?? "";
 
+    /// <summary>
+    /// GitHub 브라우저 로그인(Device Flow)에 쓰는 OAuth App 의 Client ID. 비밀이 아니다. 비어 있으면 토큰 입력 로그인만 쓴다.
+    /// 원본은 Directory.Build.props 의 AppGitHubClientId(로컬은 git 제외 파일 Directory.Build.local.props).
+    /// </summary>
+    public static string GitHubClientId { get; } = Get("AppGitHubClientId")?.Trim() ?? "";
+
     /// <summary>서버가 앱을 아는 이름 = 저장소 이름 (<see cref="RepositoryUrl"/>의 마지막 경로).</summary>
     public static string UpdateAppId { get; } = RepositoryUrl.TrimEnd('/').Split('/')[^1];
 }

@@ -4,3 +4,4 @@ obj/
 *.user
 .DS_Store
 publish/
+Directory.Build.local.props
