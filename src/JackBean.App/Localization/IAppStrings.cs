@@ -194,6 +194,10 @@ public interface IAppStrings
     string SettingsHotkeyToggle(string combo);
     string SettingsHotkeyNote { get; }
     string HotkeyFailed(string combo);
+    string SettingsStartup { get; }
+    string SettingsStartupToggle { get; }
+    string SettingsStartupNote { get; }
+    string StartupFailed(string error);
     string ExtensionGroupName(string id);
     string ViewerFailed(string error);
 }

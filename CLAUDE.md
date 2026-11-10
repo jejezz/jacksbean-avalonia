@@ -22,8 +22,10 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 홈 창은 규칙·앱이 모두 없으면 빈 상태 카드(규약 ui-ux §6)를, 한쪽만 없으면 한 줄 안내를 보인다. 정책 파일 **전체**를 못 읽으면(`PolicyDocument.IsFallback`) 기본 정책을 대신 쓰되 파일은 그대로 두고,
 홈 창의 [기본 정책 다시 만들기]가 `PolicyStore.ResetToDefaultsAsync` 로 새로 만든다(이전 파일은 `.broken-날짜시각`으로 옮겨 둔다). 규칙 하나만 건너뛴 경우는 경고만 보이고 복구 버튼은 없다.
 
-## 트레이·전역 단축키
-알림 영역 아이콘(`Tray/TrayService`, Avalonia `TrayIcon` — macOS 는 메뉴 막대)이 항상 있다: 누르면 독 숨기기·보이기, 메뉴는 독 숨기기·보이기 / 홈 / 설정 / 정보 / 종료. 독 메뉴에도 [독 숨기기]가 있다(`DockWindow.ToggleVisible`, 숨겨도 위치는 기억하고 다음 실행에는 다시 보인다).
+## 트레이·전역 단축키·시작 프로그램
+**시작 프로그램**(로그인할 때 자동 시작)은 설정 창 "동작" 구역의 스위치다(`Services/Startup`). 등록 여부는 설정 파일이 아니라 OS 의 등록이 원본이다(스위치가 늘 실제 상태를 보인다): Windows `HKCU\…\Run` 값, macOS `~/Library/LaunchAgents/<앱 ID>.plist`, Linux `~/.config/autostart/jacksbean.desktop`.
+실행 명령은 지금 실행 중인 앱의 경로(`LaunchCommand.Current` — 개발 중 `dotnet run` 이면 `dotnet "…dll"`). 등록하지 못하면 알림을 띄우고 스위치를 되돌린다.
+알림 영역 아이콘(`Tray/TrayService`, Avalonia `TrayIcon` — macOS 는 메뉴 막대; 그림은 독과 같은 "새싹이 난 콩" `dock_icon.png`)이 항상 있다: 누르면 독 숨기기·보이기, 메뉴는 독 숨기기·보이기 / 홈 / 설정 / 정보 / 종료. 독 메뉴에도 [독 숨기기]가 있다(`DockWindow.ToggleVisible`, 숨겨도 위치는 기억하고 다음 실행에는 다시 보인다).
 전역 단축키 **Ctrl+Alt+J**(독 숨기기·보이기)는 설정 창 "동작" 구역의 스위치로 켠다(`global_hotkey`, 기본 꺼짐 — 다른 앱과 겹칠 수 있어서). `Services/Hotkeys`: Windows 만(`WindowsGlobalHotkey` — 전용 스레드에서 `RegisterHotKey` + 메시지 루프), 그 밖의 OS 는 `IsSupported=false` 라 설정 항목이 숨는다(macOS 는 접근성 권한, Linux Wayland 는 막혀 있다). 등록에 실패하면(다른 앱이 쓰는 중) 알림을 띄우고 설정을 다시 끈다(`HotkeyService`). 조합을 바꾸는 화면은 아직 없다.
 
 ## 정책 편집(룰 메이커)
@@ -74,7 +76,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 221개(Domain 92 · Services 120 · Data 9). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 226개(Domain 92 · Services 125 · Data 9). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.

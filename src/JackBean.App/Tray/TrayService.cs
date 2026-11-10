@@ -27,7 +27,8 @@ internal sealed class TrayService : IDisposable
     public TrayService(Application app, DockWindow dock)
     {
         _dock = dock;
-        using var png = AssetLoader.Open(new Uri("avares://JacksBean/Assets/app_icon.png"));
+        // 독과 같은 "새싹이 난 콩". 알림 영역에서는 작게 보이니 윤곽이 또렷한 이 그림을 쓴다.
+        using var png = AssetLoader.Open(new Uri("avares://JacksBean/Assets/dock_icon.png"));
         _icon = new TrayIcon { Icon = new WindowIcon(png), ToolTipText = AppIdentity.DisplayName, IsVisible = true };
         _icon.Menu = new NativeMenu { _toggle, new NativeMenuItemSeparator(), _home, _settings, _about, new NativeMenuItemSeparator(), _quit };
         _icon.Clicked += (_, _) => Dispatcher.UIThread.Post(App.ToggleDock);
