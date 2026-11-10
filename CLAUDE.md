@@ -60,6 +60,7 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 
 ## 멀티 윈도우와 내장 도구
 - 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).
+  **알약을 펼쳐도 콩은 제자리**: 콩은 정원일 때의 자리(`_idleLeft`)에 그대로 있고 창은 콩의 반대쪽으로 자란다(`GrowsRight`: 화면 왼쪽 절반이면 오른쪽으로 `콩 글자`, 오른쪽 절반이면 왼쪽으로 `글자 콩`). 저장하는 독 위치(`dock_position.right`)는 정원 크기일 때의 오른쪽 끝이다.
 - 정책의 앱 `command`가 `jackbean:<id>`면 프로세스를 띄우지 않고 `ToolRegistry`가 `IBuiltInTool.CreateWindow(path)`로 창을 연다(파일 하나당 창 하나).
   텍스트 에디터·PDF 뷰어·압축 도구는 `IBuiltInTool`을 구현해 `App.OnFrameworkInitializationCompleted`에서 `Tools.Register`한다. 도구: `image-viewer`, `text-editor`(AvaloniaEdit + TextMate 구문 강조, 5MB 한도, UTF-8·BOM·줄바꿈 보존, 찾기·바꾸기·줄 이동; 파일 로직은 `Services/Text`). 같은 도구로 같은 파일을 다시 열면 열려 있는 창을 앞으로 가져온다(`ToolRegistry`).
   **도구 공통 조건**: 등록은 가벼운 팩토리만, 무거운 초기화·스타일 로드(`EditorStyles`)는 `CreateWindow` 안에서 — 안 쓸 때 메모리·시작 시간이 늘지 않아야 한다. 정책에 연결하려면 앱의 `command` 를 `jackbean:text-editor` 로 적는다— **내장 도구는 정책 파일에 적지 않아도 앱 목록에 늘 있다**(`KnownApps.BuiltInTools` → `PolicyDocument.Apps` 가 더함, `IsImplicitApp`; 합치기 복구도 이 앱을 있는 것으로 본다). 새 기본 정책은 이미지(`png jpg jpeg gif webp bmp ico`) → 이미지 뷰어, 텍스트·코드 묶음 → 에디터 규칙(`images` `text` `code`)을 포함한다(이미 있는 정책 파일은 그대로 — 새로 만들거나 [기본 정책 다시 만들기]를 할 때만).
