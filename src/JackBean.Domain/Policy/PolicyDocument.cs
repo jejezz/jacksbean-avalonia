@@ -241,7 +241,7 @@ public sealed class PolicyDocument
     public static JsonObject DefaultJson(PolicyOs os, bool toolRules = true)
     {
         var apps = new JsonObject();
-        foreach (var id in toolRules ? new[] { "explorer", "default", "terminal", "image-viewer", "text-editor", "pdf-viewer" } : new[] { "explorer", "default", "terminal" })
+        foreach (var id in toolRules ? new[] { "explorer", "default", "terminal", "image-viewer", "text-editor", "pdf-viewer", "archive" } : new[] { "explorer", "default", "terminal" })
         {
             var spec = KnownApps.Catalog[id].On(os);
             if (spec != null) apps[id] = spec.ToJson();
@@ -262,11 +262,13 @@ public sealed class PolicyDocument
                 yield return Rule("images", RuleCondition.Extension(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico"])!, Present("image-viewer"));
                 if (os != PolicyOs.Linux)   // PDF 는 운영체제의 웹뷰로 연다 — Linux 는 웹뷰가 없을 수 있어 OS 기본 앱에 맡긴다
                     yield return Rule("pdf", RuleCondition.Extension(["pdf"])!, Present("pdf-viewer"));
+                yield return Rule("zip", RuleCondition.Extension(["zip"])!, Present("archive"));   // .zip 은 풀기(zip 만 지원)
                 yield return Rule("text", RuleCondition.Extension(ExtensionGroups.Find("text")!.Extensions)!, Present("text-editor"));
                 yield return Rule("code", RuleCondition.Extension(ExtensionGroups.Find("code")!.Extensions)!, Present("text-editor"));
             }
             yield return Rule("drives", RuleCondition.Drive, Present("explorer"));
-            yield return Rule("folders", RuleCondition.Folder, Present("explorer", "terminal"));
+            // 폴더는 파일 관리자·터미널에 더해 압축하기를 고를 수 있다(도구 규칙을 쓰는 기본 정책에서).
+            yield return Rule("folders", RuleCondition.Folder, toolRules ? Present("explorer", "terminal", "archive") : Present("explorer", "terminal"));
             yield return Rule("files", RuleCondition.File, Present("default"));
         }
 

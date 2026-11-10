@@ -93,18 +93,14 @@ public class PolicyDocumentTests
             Assert.Equal("explorer", App(d.Decide(Drive)));
             Assert.Equal("default", App(d.Decide(File("a.xyz"))));
             Assert.Equal("text-editor", App(d.Decide(File("a.txt"))));
+            Assert.Equal("archive", App(d.Decide(File("a.zip"))));
             Assert.Equal("text-editor", App(d.Decide(File("a.cs"))));
             Assert.Equal("image-viewer", App(d.Decide(File("a.png"))));
             Assert.Equal(os == PolicyOs.Linux ? "default" : "pdf-viewer", App(d.Decide(File("a.pdf"))));
-            // 폴더는 파일 관리자와 터미널 중에서 고른다(터미널이 없는 OS 는 파일 관리자 하나라 바로 연다). 어느 쪽이든 폴더와 관련된 앱뿐이다.
-            var folder = d.Decide(Folder("a"));
-            if (d.Apps.ContainsKey("terminal"))
-            {
-                var ask = Assert.IsType<Ask>(folder);
-                Assert.Equal("folders", ask.RuleId);
-                Assert.Equal(["explorer", "terminal"], ask.Candidates!.Select(a => a.Id));
-            }
-            else Assert.Equal("explorer", App(folder));
+            // 폴더는 파일 관리자·터미널(있는 OS 만)·압축하기 중에서 고른다. 어느 쪽이든 폴더와 관련된 앱뿐이다.
+            var ask = Assert.IsType<Ask>(d.Decide(Folder("a")));
+            Assert.Equal("folders", ask.RuleId);
+            Assert.Equal(d.Apps.ContainsKey("terminal") ? ["explorer", "terminal", "archive"] : ["explorer", "archive"], ask.Candidates!.Select(a => a.Id));
         }
         Assert.False(PolicyDocument.DefaultJson(PolicyOs.Linux)["apps"]!.AsObject().ContainsKey("terminal"));
         Assert.True(PolicyDocument.DefaultJson(PolicyOs.Windows)["apps"]!.AsObject().ContainsKey("terminal"));

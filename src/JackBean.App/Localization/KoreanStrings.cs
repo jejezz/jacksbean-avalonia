@@ -312,4 +312,26 @@ public sealed class KoreanStrings : IAppStrings
     public string RestoreDefaultsBody(int rules, int apps) => $"지금 규칙 {rules}개와 앱 {apps}개를 기본 정책(이미지·PDF·텍스트·코드는 내장 도구, 드라이브·폴더·그 밖의 파일은 운영체제 기본)으로 바꿉니다. 이전 내용은 파일로 남기고 [실행 취소]로도 되돌릴 수 있습니다.";
     public string RestoreDefaultsDone => "기본 정책으로 되돌렸습니다.";
     public string RestoreDefaultsFailed(string error) => $"기본 정책으로 되돌리지 못했습니다: {error}";
+    public string ArchiveCompressTitle => "압축하기";
+    public string ArchiveExtract => "압축 풀기";
+    public string ArchiveCompress => "압축하기";
+    public string ArchiveBrowse => "찾아보기…";
+    public string ArchiveItemCount(int count) => $"{count}개 항목을 하나의 zip 으로 묶습니다.";
+    public string ArchiveZipName => "압축 파일 이름";
+    public string ArchiveExtractTo => "풀 위치";
+    public string ArchiveSaveIn => "저장 위치";
+    public string ArchiveOpenFolder => "폴더 열기";
+    public string ArchiveListingInfo(int files, int folders, string size) => $"파일 {files}개 · 폴더 {folders}개 · {size}";
+    public string ArchiveListTruncated(int max) => $"처음 {max}개만 보여 줍니다";
+    public string ArchiveBroken(string error) => $"zip 을 읽지 못했어요: {error}";
+    public string ArchiveErrAlreadyExists(string name) => $"이미 있는 파일이라 멈췄어요(덮어쓰지 않아요): {name}";
+    public string ArchiveErrUnsafe(string name) => $"폴더 밖으로 나가는 경로라 풀지 않았어요: {name}";
+    public string ArchiveErrBadName => "압축 파일 이름이 올바르지 않아요.";
+    public string ArchiveErrNothing => "압축할 파일이나 폴더가 없어요.";
+    public string ArchiveErrNoFolder => "폴더를 입력해 주세요.";
+    public string ArchiveFailed(string error) => $"실패했어요: {error}";
+    public string ArchiveExtracting => "푸는 중…";
+    public string ArchiveCompressing => "압축하는 중…";
+    public string ArchiveExtracted(string folder) => $"풀었습니다: {folder}";
+    public string ArchiveCompressed(string zip) => $"압축했습니다: {zip}";
 }
