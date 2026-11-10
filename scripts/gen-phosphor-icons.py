@@ -26,6 +26,11 @@ ICONS = {
     "contrast": ("circle-half", "duotone"),
     # 글꼴 고르기 버튼의 화살표
     "caret-down": ("caret-down", "duotone"),
+    # 알림(스낵바): 오류 표시, 복사, 복사됨, 닫기
+    "warning": ("warning-circle", "duotone"),
+    "copy": ("copy", "duotone"),
+    "check": ("check", "duotone"),
+    "x": ("x", "duotone"),
 }
 
 

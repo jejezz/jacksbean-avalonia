@@ -13,6 +13,7 @@ using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using JackBean.App.Notifications;
 using JackBean.App.Views;
 using JackBean.Domain;
 using JackBean.Domain.Window;
@@ -235,11 +236,12 @@ public partial class DockWindow : Window
         Render();
 
         var plan = await App.Router.RouteAsync(items);
+        if (plan.Policy.Warnings.Count > 0) Snackbar.Error(Strings.Current.PolicyWarningsFound, string.Join(Environment.NewLine, plan.Policy.Warnings));
         var failure = plan.Failures.FirstOrDefault();
         var missing = plan.Outcomes.OfType<AppNotInPolicy>().FirstOrDefault();
         var opened = plan.Outcomes.OfType<Opened>().FirstOrDefault();
-        if (failure != null) { _status = Strings.Current.DockOpenFailed(failure.Error); _statusIsError = true; }
-        else if (missing != null) { _status = Strings.Current.DockAppMissing(missing.AppId); _statusIsError = true; }
+        if (failure != null) { SetError(Strings.Current.DockOpenFailed(failure.Error)); }
+        else if (missing != null) { SetError(Strings.Current.DockAppMissing(missing.AppId)); }
         else if (opened != null) _status = Strings.Current.DockOpenedWith(opened.App.Id);
         Render();
 
@@ -247,6 +249,9 @@ public partial class DockWindow : Window
         if (asks.Count > 0 && plan.Policy.Apps.Count > 0) OpenChooser(asks, plan.Policy.Apps.Values.ToList());
         else ScheduleClear();
     }
+
+    /// <summary>알약 부제목에 오류를 올리고, 원문을 복사할 수 있는 알림도 띄운다(알약은 한 줄이라 길면 잘린다).</summary>
+    private void SetError(string message) { _status = message; _statusIsError = true; Snackbar.Error(message); }
 
     private void ScheduleClear() { _clearTimer.Stop(); _clearTimer.Start(); }
 
@@ -284,8 +289,8 @@ public partial class DockWindow : Window
         _pickTimer.Stop();
         var result = await App.Router.ChooseAsync(app, asks, _remember && _suggestions.Count > 0);
         var failure = result.Failures.FirstOrDefault();
-        if (failure != null) { _status = Strings.Current.DockOpenFailed(failure.Error); _statusIsError = true; }
-        else if (result.SaveError != null) { _status = Strings.Current.DockRuleSaveFailed(result.SaveError); _statusIsError = true; }
+        if (failure != null) { SetError(Strings.Current.DockOpenFailed(failure.Error)); }
+        else if (result.SaveError != null) { SetError(Strings.Current.DockRuleSaveFailed(result.SaveError)); }
         else if (result.SavedRules.Count > 0) { _status = $"{Strings.Current.DockOpenedWith(app.Id)} · {Strings.Current.DockRuleSaved}"; _statusIsError = false; }
         else { _status = Strings.Current.DockOpenedWith(app.Id); _statusIsError = false; }
         _last = asks.Select(a => a.Item).ToList();

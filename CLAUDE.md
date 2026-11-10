@@ -15,6 +15,9 @@ Flutter 판 `jacksbean-flutter`를 C#/Avalonia(.NET 10)로 옮기는 프로젝�
 - `src/JackBean.App` — Avalonia UI. 창: `DockWindow`(항상 위 독), `HomeWindow`(규칙·앱 보기, 앱 바 44), `Views/SettingsWindow`, `Dialogs/AboutDialog`, `Views/LicensesWindow`.
 - 정체성·버전·업데이트 서버는 `Directory.Build.props` 하나(`AppIdentity`/`AppVersion`이 어셈블리 메타데이터로 읽는다). **저장소 URL(`AppIdentity.RepositoryUrl`)은 업데이트 서버가 앱을 아는 이름이다 — 다른 앱 것을 복사해 두면 그 앱의 릴리스를 업데이트로 내놓는다.**
 
+## 알림(스낵바)
+오류는 `Notifications/Snackbar.Error(메시지, 원문?)` 로 알린다(어느 스레드에서든). 독 옆에 뜨는 별도 창(`SnackbarWindow`)이 포커스를 가져가지 않고, 오류 10초·안내 4초 뒤 닫히며 마우스를 올려 두면 멈춘다. "복사"는 메시지+원문을 클립보드로 보낸다. 같은 알림이 3초 안에 또 오면 거른다(`Services/Notifications/NotificationGate`). UI 스레드의 처리되지 않은 예외도 여기로 온다(`App`). 독의 실행 실패·정책 경고·규칙 저장 실패가 연결되어 있다.
+
 ## 멀티 윈도우와 내장 도구
 - 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).
 - 정책의 앱 `command`가 `jackbean:<id>`면 프로세스를 띄우지 않고 `ToolRegistry`가 `IBuiltInTool.CreateWindow(path)`로 창을 연다(파일 하나당 창 하나).
@@ -40,12 +43,12 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 137개(Domain 51 · Services 78 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 140개(Domain 51 · Services 81 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
 - **못 본 것**: 실제 파일 드롭·물어보기 목록, 독 끌기·위치 기억, 여러 모니터, Windows/Linux, 업데이트 흐름(서버에 이 앱이 아직 없다), 설정 창 좁은 배치(<700).
 
 ## 아직 없는 것
-오류 스낵바(복사 액션), 빈 상태 화면, 룰 메이커(규칙·앱 편집), 정책 GitHub 동기화, 트레이·전역 단축키, 독 시작 시 다른 앱의 드래그 감지,
+빈 상태 화면, 룰 메이커(규칙·앱 편집), 정책 GitHub 동기화, 트레이·전역 단축키, 독 시작 시 다른 앱의 드래그 감지,
 설치 파일·릴리스 워크플로·README, 앱 아이콘의 소품 글리프 교체.
