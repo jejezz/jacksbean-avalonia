@@ -90,8 +90,7 @@ public sealed class KoreanStrings : IAppStrings
     public string DockChooseCancel => "취소";
     public string DockAlwaysOpen(string what) => $"항상 이렇게 열기 ({what})";
     public string DockSuggestExtension(string ext) => $".{ext} 파일";
-    public string DockSuggestGitFolder => "Git 폴더";
-    public string DockSuggestPlainFolder => "Git 없는 폴더";
+    public string DockSuggestFolder => "폴더";
     public string DockSuggestDrive => "드라이브";
     public string DockRuleSaved => "규칙 저장됨";
     public string DockRuleSaveFailed(string error) => $"규칙을 저장하지 못했습니다: {error}";
@@ -146,5 +145,52 @@ public sealed class KoreanStrings : IAppStrings
     public string AppDeleteFailed(string error) => $"앱을 삭제하지 못했습니다: {error}";
     public string AppDiscardConfirm => "저장하지 않은 변경이 있습니다. 버릴까요?";
     public string AppDiscard => "버리기";
+    public string HomeEditRules => "규칙 편집";
+    public string RulesEditorTitle => "규칙 편집";
+    public string RuleSectionDrive => "드라이브";
+    public string RuleSectionFolder => "폴더";
+    public string RuleSectionFiles => "파일 형식";
+    public string RuleSectionDefault => "그 밖의 파일";
+    public string RuleDescDrive => "드라이브를 끌어다 놓았을 때 여는 앱입니다.";
+    public string RuleDescFolder => "폴더를 끌어다 놓았을 때 여는 앱입니다. Git 저장소인지는 따지지 않으며, 저장소를 어떻게 다룰지는 앱이 정합니다.";
+    public string RuleDescFiles => "확장자별로 여는 앱입니다. 묶음을 고르거나 확장자를 직접 적습니다.";
+    public string RuleDescDefault => "위에서 정하지 않은 확장자의 파일을 여는 기본 앱입니다.";
+    public string RuleCount(int count, int max) => $"규칙 {count}/{max}";
+    public string RuleAppsTitle(int count, int max) => $"연결된 앱 {count}/{max}";
+    public string RuleAppsAdd => "앱 추가…";
+    public string RuleAppsNoneNote => "앱이 없으면 파일을 놓을 때마다 등록된 앱을 모두 보여 주며 묻습니다.";
+    public string RuleAppsOneNote => "앱이 하나면 바로 엽니다.";
+    public string RuleAppsManyNote => "앱이 둘 이상이면 이 앱들만 보여 주며 묻습니다.";
+    public string RuleAppMoveUp => "위로";
+    public string RuleAppMoveDown => "아래로";
+    public string RuleAppRemove => "빼기";
+    public string RuleAppMissing(string id) => $"{id} (정책에 없음)";
+    public string RuleExtGroups => "묶음";
+    public string RuleExtList => "확장자";
+    public string RuleExtHint => "쉼표나 공백으로 구분합니다. 예: heic, raw";
+    public string RuleExtAdd => "파일 형식 추가";
+    public string RuleExtNew => "새 파일 형식";
+    public string RuleExtEmpty => "파일 형식 규칙이 없습니다. 모든 파일은 ‘그 밖의 파일’ 규칙을 따릅니다.";
+    public string RuleDelete => "규칙 삭제";
+    public string RuleDeleteTitle => "규칙 삭제";
+    public string RuleDeleteConfirm(string name) => $"‘{name}’ 규칙을 삭제할까요? 이 확장자들은 ‘그 밖의 파일’ 규칙을 따르게 됩니다.";
+    public string RuleErrNoExt => "확장자를 하나 이상 적으세요.";
+    public string RuleErrExtTaken(string ext, string other) => $"{ext} 은(는) ‘{other}’ 규칙에도 있습니다. 한 확장자는 한 규칙에만 둘 수 있습니다.";
+    public string RuleErrLimit => "규칙은 255개까지입니다.";
+    public string RuleErrTooMany => "앱은 10개까지 연결할 수 있습니다.";
+    public string RuleErrUnknownApp(string id) => $"정책에 없는 앱입니다: {id}. 목록에서 빼 주세요.";
+    public string RuleSaved(string name) => $"‘{name}’ 규칙을 저장했습니다.";
+    public string RuleSaveFailed(string error) => $"규칙을 저장하지 못했습니다: {error}";
+    public string RuleDeleted(string name) => $"‘{name}’ 규칙을 삭제했습니다.";
+    public string RuleDeleteFailed(string error) => $"규칙을 삭제하지 못했습니다: {error}";
+    public string RuleAppsBrowse => "다른 앱 찾아보기…";
+    public string RuleAppsBrowseTitle => "열 앱 고르기";
+    public string RuleAppPending(string id) => $"{id} (새 앱 — 저장하면 등록됩니다)";
+    public string ExtensionGroupName(string id) => id switch
+    {
+        "image" => "이미지", "audio" => "음악·음성", "video" => "영상", "pdf" => "PDF", "document" => "문서",
+        "spreadsheet" => "스프레드시트", "presentation" => "프레젠테이션", "archive" => "압축", "text" => "텍스트", "code" => "코드",
+        _ => id,
+    };
     public string ViewerFailed(string error) => $"이미지를 열지 못했습니다: {error}";
 }

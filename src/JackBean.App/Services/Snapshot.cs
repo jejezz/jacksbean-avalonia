@@ -33,7 +33,14 @@ static class Snapshot
         var dock = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).MainWindow!;
         SettingsWindow.Open(dock);
         Dialogs.AboutDialog.Open(dock);
+        // 규칙 편집 창은 파일 형식 구역으로 열고, 예시 규칙 몇 개를 미리 넣는다(임시 HOME 이라 실제 정책은 건드리지 않는다).
+        await App.PolicyStore.LoadAsync();
+        await App.PolicyStore.UpsertAppAsync(new Services.AppUpsert("viewer", "viewer.exe", ["{path}"]));
+        await App.PolicyStore.UpsertRuleAsync(new Services.RuleEdit("image", Domain.Policy.RuleCondition.Extension(Domain.Policy.ExtensionGroups.Find("image")!.Extensions)!, ["viewer", "default"]));
+        await App.PolicyStore.UpsertRuleAsync(new Services.RuleEdit("pdf", Domain.Policy.RuleCondition.Extension(["pdf"])!, ["default"]));
+        App.NotifyPolicyChanged();
         AppsEditorWindow.Open(dock);
+        RulesEditorWindow.Open(dock, startOnFiles: true);
         Notifications.Snackbar.Error(Strings.Current.DockOpenFailed("D:/작업/보고서 최종.pdf 을(를) 실행하지 못했습니다 — 파일 형식과 연결된 앱이 없습니다"), "System.ComponentModel.Win32Exception: 지정된 파일을 찾을 수 없습니다");
         await Task.Delay(800);
         foreach (var c in configs)

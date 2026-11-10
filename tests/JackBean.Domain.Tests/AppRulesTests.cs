@@ -39,6 +39,26 @@ public class AppRulesTests
         Assert.Equal(AppFieldError.CommandEmpty, AppRules.Validate("Old App", "", ["Old App"], isNew: false));
     }
 
+    [Theory]
+    [InlineData(@"C:\Program Files\Notepad++\notepad++.exe", "notepad")]
+    [InlineData(@"C:\Windows\System32\notepad.exe", "notepad")]
+    [InlineData("/Applications/Visual Studio Code.app", "visual-studio-code")]
+    [InlineData("/usr/bin/code", "code")]
+    [InlineData(@"C:\Tools\7-Zip\7zFM.exe", "7zfm")]
+    [InlineData(@"C:\Tools\한글앱.exe", "app")]            // 쓸 글자가 없으면 app
+    [InlineData("", "app")]
+    [InlineData(@"C:\Tools\", "tools")]                   // 끝의 구분자는 무시
+    public void SuggestIdFromPath(string path, string expected) => Assert.Equal(expected, AppRules.SuggestId(path, []));
+
+    [Fact]
+    public void SuggestIdIsUniqueAndAlwaysValid()
+    {
+        Assert.Equal("notepad-3", AppRules.SuggestId(@"C:\a\notepad.exe", ["notepad", "notepad-2"]));
+        var longName = AppRules.SuggestId("/x/" + new string('a', 60) + ".exe", [new string('a', 28)]);
+        Assert.True(AppRules.IsValidId(longName), longName);
+        Assert.All(new[] { @"C:\a\--.exe", "/x/_underscore_.sh", "/x/.hidden", "/x/UPPER CASE.exe" }, p => Assert.True(AppRules.IsValidId(AppRules.SuggestId(p, [])), p));
+    }
+
     [Fact]
     public void ArgsParsing()
     {

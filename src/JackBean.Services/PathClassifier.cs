@@ -25,11 +25,7 @@ public static partial class PathClassifier
         // 연결이 끊긴 드라이브(빈 카드 리더 등)도 드라이브로 본다 — 무엇으로 열지는 규칙이 정한다.
         if (isDrive) return new DroppedItem(path, DropKind.Drive);
 
-        if (Directory.Exists(path))
-        {
-            var git = Path.Combine(path, ".git");
-            return new DroppedItem(path, DropKind.Folder, HasGit: Directory.Exists(git) || File.Exists(git));
-        }
+        if (Directory.Exists(path)) return new DroppedItem(path, DropKind.Folder);
         if (!File.Exists(path)) return new DroppedItem(path, DropKind.Missing);
 
         var baseName = path.Split('\\', '/')[^1];

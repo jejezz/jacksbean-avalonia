@@ -34,6 +34,35 @@ public static partial class AppRules
         return string.IsNullOrWhiteSpace(command) ? AppFieldError.CommandEmpty : AppFieldError.None;
     }
 
+    /// <summary>
+    /// 실행 파일 경로에서 새 앱의 이름(ID)을 만든다: 파일 이름(확장자 없이)을 소문자·숫자·`-` 로 고치고, 이미 있는 이름이면 `-2`, `-3` … 을 붙인다.
+    /// 쓸 글자가 하나도 없으면 `app`. 결과는 늘 <see cref="IsValidId"/> 를 통과한다.
+    /// </summary>
+    public static string SuggestId(string? command, IEnumerable<string> takenIds)
+    {
+        var name = (command ?? "").TrimEnd('/', '\\');
+        var cut = name.LastIndexOfAny(['/', '\\']);
+        if (cut >= 0) name = name[(cut + 1)..];
+        var dot = name.LastIndexOf('.');
+        if (dot > 0) name = name[..dot];
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var ch in name.ToLowerInvariant())
+        {
+            var keep = ch is (>= 'a' and <= 'z') or (>= '0' and <= '9');
+            if (keep) sb.Append(ch);
+            else if (sb.Length > 0 && sb[^1] != '-') sb.Append('-');
+        }
+        var baseId = sb.ToString().Trim('-');
+        if (baseId.Length == 0) baseId = "app";
+        if (baseId.Length > MaxIdLength - 4) baseId = baseId[..(MaxIdLength - 4)].TrimEnd('-');
+
+        var taken = takenIds.ToHashSet(StringComparer.Ordinal);
+        var id = baseId;
+        for (var i = 2; taken.Contains(id); i++) id = $"{baseId}-{i}";
+        return id;
+    }
+
     /// <summary>입력칸의 글 → 인자 목록. 한 줄에 하나, 앞뒤 공백을 버리고 빈 줄은 건너뛴다.</summary>
     public static IReadOnlyList<string> ParseArgs(string? text) =>
         (text ?? "").Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();

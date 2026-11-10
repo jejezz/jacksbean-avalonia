@@ -90,8 +90,7 @@ public sealed class EnglishStrings : IAppStrings
     public string DockChooseCancel => "Cancel";
     public string DockAlwaysOpen(string what) => $"Always open like this ({what})";
     public string DockSuggestExtension(string ext) => $".{ext} files";
-    public string DockSuggestGitFolder => "Git folders";
-    public string DockSuggestPlainFolder => "folders without Git";
+    public string DockSuggestFolder => "folders";
     public string DockSuggestDrive => "drives";
     public string DockRuleSaved => "rule saved";
     public string DockRuleSaveFailed(string error) => $"Couldn't save the rule: {error}";
@@ -146,5 +145,52 @@ public sealed class EnglishStrings : IAppStrings
     public string AppDeleteFailed(string error) => $"Couldn't delete the app: {error}";
     public string AppDiscardConfirm => "You have unsaved changes. Discard them?";
     public string AppDiscard => "Discard";
+    public string HomeEditRules => "Edit rules";
+    public string RulesEditorTitle => "Edit rules";
+    public string RuleSectionDrive => "Drives";
+    public string RuleSectionFolder => "Folders";
+    public string RuleSectionFiles => "File types";
+    public string RuleSectionDefault => "Other files";
+    public string RuleDescDrive => "The apps that open a drive dropped on the dock.";
+    public string RuleDescFolder => "The apps that open a folder dropped on the dock. Git repositories are not treated differently; the app decides how to handle them.";
+    public string RuleDescFiles => "The apps that open files by extension. Pick a group or type extensions.";
+    public string RuleDescDefault => "The default apps for files whose extension is not set above.";
+    public string RuleCount(int count, int max) => $"Rules {count}/{max}";
+    public string RuleAppsTitle(int count, int max) => $"Apps {count}/{max}";
+    public string RuleAppsAdd => "Add an app…";
+    public string RuleAppsNoneNote => "With no apps, every registered app is shown each time you drop something.";
+    public string RuleAppsOneNote => "With one app, it opens right away.";
+    public string RuleAppsManyNote => "With two or more apps, only these are shown for you to choose from.";
+    public string RuleAppMoveUp => "Move up";
+    public string RuleAppMoveDown => "Move down";
+    public string RuleAppRemove => "Remove";
+    public string RuleAppMissing(string id) => $"{id} (not in the policy)";
+    public string RuleExtGroups => "Groups";
+    public string RuleExtList => "Extensions";
+    public string RuleExtHint => "Separate with commas or spaces. Example: heic, raw";
+    public string RuleExtAdd => "Add file type";
+    public string RuleExtNew => "New file type";
+    public string RuleExtEmpty => "No file type rules. Every file follows the “Other files” rule.";
+    public string RuleDelete => "Delete rule";
+    public string RuleDeleteTitle => "Delete rule";
+    public string RuleDeleteConfirm(string name) => $"Delete the “{name}” rule? Those extensions will follow the “Other files” rule.";
+    public string RuleErrNoExt => "Enter at least one extension.";
+    public string RuleErrExtTaken(string ext, string other) => $"{ext} is also in the “{other}” rule. An extension can be in only one rule.";
+    public string RuleErrLimit => "Up to 255 rules.";
+    public string RuleErrTooMany => "Up to 10 apps can be linked.";
+    public string RuleErrUnknownApp(string id) => $"Not in the policy: {id}. Please remove it from the list.";
+    public string RuleSaved(string name) => $"Saved the “{name}” rule.";
+    public string RuleSaveFailed(string error) => $"Couldn't save the rule: {error}";
+    public string RuleDeleted(string name) => $"Deleted the “{name}” rule.";
+    public string RuleDeleteFailed(string error) => $"Couldn't delete the rule: {error}";
+    public string RuleAppsBrowse => "Browse for another app…";
+    public string RuleAppsBrowseTitle => "Choose an app";
+    public string RuleAppPending(string id) => $"{id} (new app — registered when you save)";
+    public string ExtensionGroupName(string id) => id switch
+    {
+        "image" => "Images", "audio" => "Music & voice", "video" => "Video", "pdf" => "PDF", "document" => "Documents",
+        "spreadsheet" => "Spreadsheets", "presentation" => "Presentations", "archive" => "Archives", "text" => "Text", "code" => "Code",
+        _ => id,
+    };
     public string ViewerFailed(string error) => $"Couldn't open the image: {error}";
 }

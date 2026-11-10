@@ -59,7 +59,7 @@ public class PolicyAppEditTests
         using var t = new TempDir();
         var store = Store(t);
         var doc = await store.LoadAsync();
-        var ruleId = doc.Rules.First(r => r.Open == "explorer").Id;
+        var ruleId = doc.Rules.First(r => r.Choices.Contains("explorer")).Id;
 
         var result = await store.RemoveAppAsync("explorer");
         Assert.False(result.Ok);
@@ -82,7 +82,7 @@ public class PolicyAppEditTests
         var after = await store.LoadAsync();
         Assert.DoesNotContain("explorer", after.Apps.Keys);
         Assert.Equal(doc.Rules.Count, after.Rules.Count);                     // 규칙은 지우지 않는다
-        foreach (var u in users) Assert.Null(after.Rules.First(r => r.Id == u.Id).Open);
+        foreach (var u in users) Assert.Empty(after.Rules.First(r => r.Id == u.Id).Choices);
         Assert.Empty(after.Warnings);
     }
 
