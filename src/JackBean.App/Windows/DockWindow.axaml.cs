@@ -45,6 +45,9 @@ public partial class DockWindow : Window
     private readonly DispatcherTimer _pickTimer = new() { Interval = ChooserTimeout };
     private readonly DispatcherTimer _movedTimer = new() { Interval = MovedSaveDelay };
 
+    private static readonly Lazy<Avalonia.Media.Imaging.Bitmap> DockIcon =
+        new(() => new Avalonia.Media.Imaging.Bitmap(Avalonia.Platform.AssetLoader.Open(new Uri("avares://JacksBean/Assets/dock_icon.png"))));
+
     private bool _hovering;
     private bool _renderedHover; // 마지막으로 그린 모양이 "끌어다 놓는 중"이었는지
     private IReadOnlyList<DroppedItem> _last = [];
@@ -156,9 +159,12 @@ public partial class DockWindow : Window
     {
         var scale = RenderScaling;
         _placing = true;
+        var target = new PixelPoint((int)Math.Round(_right - size.Width * scale), Position.Y);
+        // 위치와 크기를 한 번에 바꾼다(그 사이 어긋난 프레임이 안 보이게). 안 되는 OS 에서는 차례로 바꾼다.
+        NativeBounds.TrySet(this, target, new PixelSize((int)Math.Round(size.Width * scale), (int)Math.Round(size.Height * scale)));
         Width = size.Width;
         Height = size.Height;
-        Position = new PixelPoint((int)Math.Round(_right - size.Width * scale), Position.Y);
+        if (Position != target) Position = target;
         Dispatcher.UIThread.Post(() => _placing = false, DispatcherPriority.Background);
     }
 
@@ -192,8 +198,9 @@ public partial class DockWindow : Window
         _last = [];
         // 이미 알약으로 그려져 있으면 다시 그리지 않는다 — 자식 컨트롤을 갈아 끼우면 포인터 아래 대상이 바뀌어
         // Leave/Enter 가 다시 불리고, 그것이 깜박임으로 이어진다.
-        if (!_renderedHover) Render();
+        // 창을 먼저 키우고 그 다음에 그린다 — 반대로 하면 넓어진 알약이 아직 작은 창에 갇혀 잘려 보인다.
         _expansion.Expand(); // 키우기는 바로
+        if (!_renderedHover) Render();
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)
@@ -223,8 +230,8 @@ public partial class DockWindow : Window
         _last = items;
         _status = null;
         _statusIsError = false;
+        _expansion.Expand(); // 창을 먼저 키운 뒤 그린다
         Render();
-        _expansion.Expand();
 
         var plan = await App.Router.RouteAsync(items);
         var failure = plan.Failures.FirstOrDefault();
@@ -344,7 +351,7 @@ public partial class DockWindow : Window
         // 싹이 난 콩만, 정지된 그림 하나 — 상태는 테두리와 글자로만 알린다.
         row.Children.Add(new Image
         {
-            Source = new Avalonia.Media.Imaging.Bitmap(Avalonia.Platform.AssetLoader.Open(new Uri("avares://JacksBean/Assets/dock_icon.png"))),
+            Source = DockIcon.Value, // 한 번만 읽어 재사용 — 다시 그릴 때마다 새로 읽으면 한 프레임 비어 보일 수 있다
             Width = IconSize, Height = IconSize,
         });
         if (Expanded)
