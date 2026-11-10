@@ -187,6 +187,13 @@ public interface IAppStrings
     string HomeUndo { get; }
     string PolicyUndone { get; }
     string PolicyUndoFailed(string error);
+    string TrayHideDock { get; }
+    string TrayShowDock { get; }
+    string SettingsSectionBehavior { get; }
+    string SettingsHotkey { get; }
+    string SettingsHotkeyToggle(string combo);
+    string SettingsHotkeyNote { get; }
+    string HotkeyFailed(string combo);
     string ExtensionGroupName(string id);
     string ViewerFailed(string error);
 }

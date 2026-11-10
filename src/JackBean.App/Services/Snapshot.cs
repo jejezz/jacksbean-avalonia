@@ -53,6 +53,15 @@ static class Snapshot
                     if (w is not DockWindow) Save(w, Path.Combine(dir, $"{c.Name}-{w.GetType().Name}.png"));
             });
         }
+        // 설정 창의 "동작" 구역(전역 단축키 스위치)도 한 장 남긴다.
+        await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            var settingsWindow = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows.OfType<SettingsWindow>().FirstOrDefault();
+            if (settingsWindow == null) return;
+            settingsWindow.ShowBehavior();
+            await Task.Delay(500);
+            Save(settingsWindow, Path.Combine(dir, "behavior-SettingsWindow.png"));
+        });
         App.Quit();
     }
 

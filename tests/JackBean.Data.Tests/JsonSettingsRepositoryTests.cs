@@ -31,6 +31,18 @@ public class JsonSettingsRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void 전역_단축키는_기본이_꺼짐이고_저장한_값을_읽는다()
+    {
+        Assert.False(new AppSettings().GlobalHotkey);   // 다른 앱과 겹칠 수 있어 사용자가 켠다
+        Assert.False(Repo().Load().GlobalHotkey);
+        Repo().Save(new AppSettings { GlobalHotkey = true });
+        Assert.True(Repo().Load().GlobalHotkey);
+        Assert.Contains("\"global_hotkey\": true", File.ReadAllText(File_));
+        File.WriteAllText(File_, "{ \"theme_mode\": \"dark\" }");                       // 키가 없는 옛 파일도 읽힌다
+        Assert.False(Repo().Load().GlobalHotkey);
+    }
+
+    [Fact]
     public void 저장_키는_규약의_공통_이름이다()
     {
         Repo().Save(new AppSettings { Theme = ThemeMode.Light, Palette = ColorPalette.HighContrast, Locale = AppLocale.Korean });
