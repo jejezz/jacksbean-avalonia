@@ -245,20 +245,37 @@ public partial class DockWindow : Window
         if (failure != null) { SetError(Strings.Current.DockOpenFailed(failure.Error)); }
         else if (missing != null) { SetError(Strings.Current.DockAppMissing(missing.AppId)); }
         else if (opened != null) _status = Strings.Current.DockOpenedWith(opened.App.Id);
-        else if (plan.AskOutcomes.Count > 0 && plan.Policy.Apps.Count == 0) SetError(Strings.Current.DockNoApps, offerHome: true); // 고를 앱이 없다 — 조용히 사라지지 않게
+        else if (plan.AskOutcomes.Count > 0 && plan.ChoiceApps().Count == 0)
+        {
+            // 고를 앱이 없다 — 조용히 사라지지 않게. 연결된 앱이 없으면 그 구역의 규칙 편집으로 바로 안내한다.
+            if (plan.HasUnlinkedAsk) SetError(Strings.Current.DockNoLinkedApps, Strings.Current.SnackbarOpenRules, () => RulesEditorWindow.Open(this, SectionFor(plan)));
+            else SetError(Strings.Current.DockNoCommonApp);
+        }
         Render();
 
         var asks = plan.AskOutcomes;
-        if (asks.Count > 0 && plan.Policy.Apps.Count > 0) OpenChooser(asks, plan.ChoiceApps());
+        if (asks.Count > 0 && plan.ChoiceApps() is { Count: > 0 } choices) OpenChooser(asks, choices);
         else ScheduleClear();
     }
 
     /// <summary>알약 부제목에 오류를 올리고, 원문을 복사할 수 있는 알림도 띄운다(알약은 한 줄이라 길면 잘린다).</summary>
-    private void SetError(string message, bool offerHome = false)
+    private void SetError(string message, string? actionLabel = null, Action? action = null)
     {
         _status = message;
         _statusIsError = true;
-        Snackbar.Error(message, null, offerHome ? Strings.Current.SnackbarOpenHome : null, offerHome ? App.OpenHome : null);
+        Snackbar.Error(message, null, actionLabel, action);
+    }
+
+    /// <summary>연결된 앱이 없는 첫 항목의 종류에 맞는 규칙 편집 구역.</summary>
+    private static RulesEditorSection SectionFor(RoutePlan plan)
+    {
+        var ask = plan.AskOutcomes.First(a => a.Candidates is not { Count: > 0 });
+        return ask.Item.Kind switch
+        {
+            DropKind.Drive => RulesEditorSection.Drive,
+            DropKind.Folder => RulesEditorSection.Folder,
+            _ => plan.Policy.Rules.FirstOrDefault(r => r.Id == ask.RuleId)?.When.Kind == RuleKind.Extension ? RulesEditorSection.Files : RulesEditorSection.Default,
+        };
     }
 
     private void ScheduleClear() { _clearTimer.Stop(); _clearTimer.Start(); }

@@ -34,10 +34,12 @@ public class PolicyRuleEditTests
         Assert.True((await s.UpsertRuleAsync(new RuleEdit("img", Ext("png", "jpg"), ["b", "a"]))).Ok);
         Assert.Equal(["b", "a"], RuleJson(await ReadJson(s), "img")["open"]!.AsArray().Select(n => (string?)n));
 
-        Assert.True((await s.UpsertRuleAsync(new RuleEdit("img", Ext("png", "jpg"), []))).Ok);   // 0개 = 전부 보여 주며 묻기
+        var none = await s.UpsertRuleAsync(new RuleEdit("img", Ext("png", "jpg"), []));   // 앱이 하나도 없는 규칙은 저장하지 못한다
+        Assert.False(none.Ok);
+        Assert.Contains(none.Problems!, p => p.Kind == RuleProblemKind.NoApps);
         var doc = await s.LoadAsync();
         Assert.Empty(doc.Warnings);
-        Assert.Empty(doc.Rules.First(r => r.Id == "img").Choices);
+        Assert.Equal(["b", "a"], doc.Rules.First(r => r.Id == "img").Choices);   // 그대로
     }
 
     [Fact]
@@ -241,7 +243,7 @@ public class DropWithChoicesTests
     }
 
     [Fact]
-    public async Task ChoiceAppsIsTheIntersectionAcrossItemsAndFallsBackToAll()
+    public async Task ChoiceAppsIsTheIntersectionAcrossItems()
     {
         using var t = new TempDir();
         var (store, router) = await Setup(t);
@@ -254,8 +256,34 @@ public class DropWithChoicesTests
         Assert.Equal(["b"], both.ChoiceApps().Select(a => a.Id));   // 둘 다에 있는 앱만
 
         var none = await router.RouteAsync([PathClassifier.Classify(Make("y.png")), PathClassifier.Classify(Make("y.mp3")), PathClassifier.Classify(Make("y.mp4"))]);
-        string[] everyApp = ["a", "b", "c", "explorer", "default", "terminal"];
-        Assert.Equal(everyApp.Order(), none.ChoiceApps().Select(a => a.Id).Order());   // 교집합이 비면 등록된 앱 전부
+        Assert.Empty(none.ChoiceApps());          // 함께 열 수 있는 앱이 없다 — 등록된 앱 전부를 내놓지 않는다
+        Assert.False(none.HasUnlinkedAsk);        // (연결된 앱이 없어서가 아니라 겹치는 앱이 없어서)
+    }
+
+    [Fact]
+    public async Task FolderOnlyOffersFolderRelatedApps()
+    {
+        using var t = new TempDir();
+        var (store, router) = await Setup(t);   // a, b, c 는 등록만 했고 어느 규칙에도 없다(pdf 앱 같은 것)
+        var dir = Directory.CreateDirectory(Path.Combine(t.Path, "docs")).FullName;
+
+        var plan = await router.RouteAsync([PathClassifier.Classify(dir)]);
+        Assert.Equal(["explorer", "terminal"], plan.ChoiceApps().Select(a => a.Id));   // 폴더 규칙에 연결된 앱뿐
+        Assert.False(plan.HasUnlinkedAsk);
+    }
+
+    [Fact]
+    public async Task RuleWithoutAppsHasNothingToChooseAndIsFlagged()
+    {
+        using var t = new TempDir();
+        var (store, router) = await Setup(t);
+        await store.RemoveAppAsync("explorer", ReferencedRules.MakeAsk);
+        await store.RemoveAppAsync("terminal", ReferencedRules.MakeAsk);   // 폴더 규칙에 앱이 하나도 안 남는다
+        var dir = Directory.CreateDirectory(Path.Combine(t.Path, "docs")).FullName;
+
+        var plan = await router.RouteAsync([PathClassifier.Classify(dir)]);
+        Assert.Empty(plan.ChoiceApps());
+        Assert.True(plan.HasUnlinkedAsk);   // 규칙 편집에서 앱을 연결하라고 안내할 상황
     }
 
     [Fact]
