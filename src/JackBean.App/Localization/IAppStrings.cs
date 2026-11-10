@@ -142,5 +142,44 @@ public interface IAppStrings
     string AppDeleteFailed(string error);
     string AppDiscardConfirm { get; }
     string AppDiscard { get; }
+    string HomeEditRules { get; }
+    string RulesEditorTitle { get; }
+    string RuleSectionDrive { get; }
+    string RuleSectionFolder { get; }
+    string RuleSectionFiles { get; }
+    string RuleSectionDefault { get; }
+    string RuleDescDrive { get; }
+    string RuleDescFolder { get; }
+    string RuleDescFiles { get; }
+    string RuleDescDefault { get; }
+    string RuleCount(int count, int max);
+    string RuleAppsTitle(int count, int max);
+    string RuleAppsAdd { get; }
+    string RuleAppsNoneNote { get; }
+    string RuleAppsOneNote { get; }
+    string RuleAppsManyNote { get; }
+    string RuleAppMoveUp { get; }
+    string RuleAppMoveDown { get; }
+    string RuleAppRemove { get; }
+    string RuleAppMissing(string id);
+    string RuleExtGroups { get; }
+    string RuleExtList { get; }
+    string RuleExtHint { get; }
+    string RuleExtAdd { get; }
+    string RuleExtNew { get; }
+    string RuleExtEmpty { get; }
+    string RuleDelete { get; }
+    string RuleDeleteTitle { get; }
+    string RuleDeleteConfirm(string name);
+    string RuleErrNoExt { get; }
+    string RuleErrExtTaken(string ext, string other);
+    string RuleErrLimit { get; }
+    string RuleErrTooMany { get; }
+    string RuleErrUnknownApp(string id);
+    string RuleSaved(string name);
+    string RuleSaveFailed(string error);
+    string RuleDeleted(string name);
+    string RuleDeleteFailed(string error);
+    string ExtensionGroupName(string id);
     string ViewerFailed(string error);
 }

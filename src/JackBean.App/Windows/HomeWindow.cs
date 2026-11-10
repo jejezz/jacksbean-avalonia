@@ -204,7 +204,13 @@ public sealed class HomeWindow : Window
             return stack;
         }
 
-        var rules = new StackPanel { Spacing = 4, Children = { Heading(s.HomeRules) } };
+        var rulesTitle = Heading(s.HomeRules);
+        rulesTitle.VerticalAlignment = VerticalAlignment.Center;
+        var rulesHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { rulesTitle } };
+        var editRules = ToolButton("edit", s.HomeEditRules, () => RulesEditorWindow.Open(this));
+        Grid.SetColumn(editRules, 1);
+        rulesHeader.Children.Add(editRules);
+        var rules = new StackPanel { Spacing = 4, Children = { rulesHeader } };
         var n = 1;
         foreach (var r in _policy.Rules)
             rules.Children.Add(UserText($"{n++}. {r.Id}  ·  {Describe(r.When)}  →  {(r.Choices.Count == 0 ? s.HomeAsk : string.Join(", ", r.Choices))}"));

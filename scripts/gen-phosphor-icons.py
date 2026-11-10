@@ -44,6 +44,9 @@ ICONS = {
     "trash": ("trash", "duotone"),
     "edit": ("pencil-simple", "duotone"),
     "folder": ("folder-open", "duotone"),
+    # 규칙 편집 창: 앱 순서 바꾸기
+    "arrow-up": ("arrow-up", "duotone"),
+    "arrow-down": ("arrow-down", "duotone"),
 }
 
 
