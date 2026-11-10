@@ -28,18 +28,14 @@ public class PathClassifierTests
     public void FolderInsideVolumeIsNotDrive() => Assert.NotEqual(DropKind.Drive, PathClassifier.Classify("/Volumes/USB/photos", windows: false).Kind);
 
     [Fact]
-    public void FolderGitDetection()
+    public void FolderIsAFolderWhetherOrNotItIsAGitRepository()
     {
         using var t = new TempDir();
         var plain = Directory.CreateDirectory(Path.Combine(t.Path, "plain")).FullName;
         var repo = Directory.CreateDirectory(Path.Combine(t.Path, "repo")).FullName;
         Directory.CreateDirectory(Path.Combine(repo, ".git"));
-        var wt = Directory.CreateDirectory(Path.Combine(t.Path, "wt")).FullName;
-        File.WriteAllText(Path.Combine(wt, ".git"), "gitdir: ../repo/.git");
-        Assert.False(PathClassifier.Classify(plain).HasGit);
-        Assert.True(PathClassifier.Classify(repo).HasGit);
-        Assert.True(PathClassifier.Classify(wt).HasGit); // 워크트리는 .git 이 파일이다
         Assert.Equal(DropKind.Folder, PathClassifier.Classify(plain).Kind);
+        Assert.Equal(DropKind.Folder, PathClassifier.Classify(repo).Kind);   // 저장소인지는 앱이 판단한다
     }
 
     [Theory]
@@ -98,32 +94,9 @@ public class StoreAndRouterTests
         var d = await s.LoadAsync();
         Assert.Single(d.Warnings);
         Assert.Equal("{ not json", File.ReadAllText(s.FilePath));
-        var save = await s.UpsertRulesAsync([new("x", new JsonObject { ["kind"] = "hasGit" }, "explorer")]);
+        var save = await s.RememberAsync([new(SuggestionKind.Folder)], "explorer");
         Assert.False(save.Ok);
         Assert.Equal("{ not json", File.ReadAllText(s.FilePath));
-    }
-
-    [Fact]
-    public async Task UpsertInsertsBeforeAskRuleKeepsUnknownKeysAndReplacesInPlace()
-    {
-        using var t = new TempDir();
-        var s = Store(t);
-        await s.LoadAsync();
-        var json = JsonNode.Parse(File.ReadAllText(s.FilePath))!.AsObject();
-        json["custom"] = "keep me";
-        File.WriteAllText(s.FilePath, json.ToJsonString());
-
-        var save = await s.UpsertRulesAsync([new("auto-git-folder", new JsonObject { ["kind"] = "hasGit" }, "terminal", "folders")]);
-        Assert.True(save.Ok);
-        var after = JsonNode.Parse(File.ReadAllText(s.FilePath))!.AsObject();
-        Assert.Equal("keep me", (string?)after["custom"]);
-        Assert.Equal(["drives", "auto-git-folder", "folders", "files"], after["rules"]!.AsArray().Select(x => (string?)x!["id"]));
-
-        await s.UpsertRulesAsync([new("auto-git-folder", new JsonObject { ["kind"] = "hasGit" }, "explorer", "folders")]);
-        after = JsonNode.Parse(File.ReadAllText(s.FilePath))!.AsObject();
-        Assert.Equal(4, after["rules"]!.AsArray().Count);
-        Assert.Equal("explorer", (string?)after["rules"]![1]!["open"]);
-        Assert.False(File.Exists(s.FilePath + ".tmp"));
     }
 
     [Fact]
@@ -160,8 +133,8 @@ public class StoreAndRouterTests
 
         fail = false;
         var ok = await router.ChooseAsync(term, plan.AskOutcomes, remember: true);
-        Assert.Equal("folders", Assert.Single(ok.SavedRules).Id);   // 물어보게 한 folders 규칙이 바로 그 조건이라 그 규칙을 고친다
-        Assert.Equal(3, (await Store(t).LoadAsync()).Rules.Count(r => r.Id is "drives" or "folders" or "files"));   // 새 규칙이 쌓이지 않는다
+        Assert.Equal(SuggestionKind.Folder, Assert.Single(ok.SavedRules).Kind);
+        Assert.Equal(3, (await Store(t).LoadAsync()).Rules.Count);   // 기본 folders 규칙을 고칠 뿐 새 규칙이 쌓이지 않는다
         var again = await router.RouteAsync([PathClassifier.Classify(dir)]);
         Assert.IsType<Opened>(Assert.Single(again.Outcomes));
     }
@@ -169,11 +142,10 @@ public class StoreAndRouterTests
     [Fact]
     public void SuggestionsPerKind()
     {
-        DroppedItem I(DropKind k, string ext = "", bool git = false) => new("p", k, ext, git);
-        var s = RuleSuggester.Suggest([new(I(DropKind.File, "zip"), "folders"), new(I(DropKind.File, "zip")), new(I(DropKind.File)),
-            new(I(DropKind.Folder, git: true)), new(I(DropKind.Folder)), new(I(DropKind.Drive))]);
-        Assert.Equal(["auto-ext-zip", "auto-folder", "auto-drive"], s.Select(x => x.Id));   // Git 폴더든 아니든 폴더는 하나
-        Assert.Equal("folders", s[0].BeforeRuleId);
+        DroppedItem I(DropKind k, string ext = "") => new("p", k, ext);
+        var s = RuleSuggester.Suggest([new(I(DropKind.File, "zip")), new(I(DropKind.File, "zip")), new(I(DropKind.File)),
+            new(I(DropKind.Folder)), new(I(DropKind.Folder)), new(I(DropKind.Drive))]);
+        Assert.Equal([new(SuggestionKind.Extension, "zip"), new(SuggestionKind.Folder), new(SuggestionKind.Drive)], s);   // 같은 조건은 한 번, 확장자 없는 파일은 제안 없음
     }
 }
 

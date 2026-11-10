@@ -10,7 +10,7 @@ public static class DropKindExtensions
     public static string JsonName(this DropKind kind) => kind.ToString().ToLowerInvariant();
 }
 
-public sealed record DroppedItem(string Path, DropKind Kind, string Extension = "", bool HasGit = false)
+public sealed record DroppedItem(string Path, DropKind Kind, string Extension = "")
 {
     /// <summary>경로의 마지막 이름. 드라이브(`D:\`)와 루트는 경로 자체를 돌려준다.</summary>
     public string Name

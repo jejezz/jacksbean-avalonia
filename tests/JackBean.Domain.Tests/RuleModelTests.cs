@@ -9,96 +9,110 @@ public class RuleModelTests
     private static JsonObject Json(string text) => JsonNode.Parse(text)!.AsObject();
 
     private static PolicyDocument Doc(string rulesJson, string appsJson = """{"a":{"command":"a.exe"},"b":{"command":"b.exe"},"c":{"command":"c.exe"}}""") =>
-        PolicyDocument.FromJson(Json($$"""{"schema":1,"os":"windows","apps":{{appsJson}},"rules":{{rulesJson}}}"""));
+        PolicyDocument.FromJson(Json($$"""{"schema":2,"os":"windows","apps":{{appsJson}},"rules":{{rulesJson}}}"""));
 
-    private static DroppedItem File(string name) => PathClassifierFake.File(name);
+    private static DroppedItem File(string name) => new(Path.Combine(Path.GetTempPath(), name), DropKind.File, Path.GetExtension(name).TrimStart('.').ToLowerInvariant());
 
-    // --- choices 읽기·쓰기 ---
+    private static Rule Ext(string id, string[] exts, params string[] apps) => new(id, RuleCondition.Extension(exts)!, apps);
+
+    // --- 조건 ---
 
     [Fact]
-    public void ReadsOpenChoicesAndAskForms()
+    public void ConditionRoundTripsThroughJson()
     {
-        Assert.Equal(["a"], RuleChoices.Read(Json("""{"open":"a"}""")));
-        Assert.Empty(RuleChoices.Read(Json("""{"open":null}""")) ?? throw new Exception("null"));
+        foreach (var when in new[] { RuleCondition.Drive, RuleCondition.Folder, RuleCondition.File, RuleCondition.Extension([".PNG", "jpg", "png"])! })
+        {
+            var back = RuleCondition.Parse(when.ToJson())!;
+            Assert.Equal(when.Kind, back.Kind);
+            Assert.Equal(when.Extensions, back.Extensions);
+        }
+        Assert.Equal(["png", "jpg"], RuleCondition.Extension([".PNG", "jpg", "png"])!.Extensions);   // 소문자·점 없음·중복 없음
+    }
+
+    [Fact]
+    public void ConditionRejectsBadShapes()
+    {
+        Assert.Null(RuleCondition.Extension([]));
+        Assert.Null(RuleCondition.Extension(["", "."]));
+        Assert.Null(RuleCondition.Parse(Json("""{"kind":"extension","extensions":[]}""")));
+        Assert.Null(RuleCondition.Parse(Json("""{"kind":"extension"}""")));
+        Assert.Null(RuleCondition.Parse(Json("""{"kind":"extension","extensions":[1]}""")));
+        Assert.Null(RuleCondition.Parse(Json("""{"kind":"hasGit"}""")));   // 없앤 조건
+        Assert.Null(RuleCondition.Parse(Json("""{"kind":"nameGlob","pattern":"*"}""")));
+        Assert.Null(RuleCondition.Parse(null));
+    }
+
+    // --- open 읽기·쓰기 ---
+
+    [Fact]
+    public void ReadsOpenAsAList()
+    {
+        Assert.Equal(["a"], RuleChoices.Read(Json("""{"open":["a"]}""")));
+        Assert.Equal(["a", "b"], RuleChoices.Read(Json("""{"open":["a","b","a"]}""")));   // 중복은 처음 것만
+        Assert.Empty(RuleChoices.Read(Json("""{"open":[]}""")) ?? throw new Exception("null"));
         Assert.Empty(RuleChoices.Read(Json("""{}""")) ?? throw new Exception("null"));
-        Assert.Equal(["a", "b"], RuleChoices.Read(Json("""{"open":null,"choices":["a","b"]}""")));
-        Assert.Equal(["a", "b"], RuleChoices.Read(Json("""{"open":"zzz","choices":["a","b"]}""")));   // choices 가 우선
-        Assert.Equal(["a"], RuleChoices.Read(Json("""{"open":"a","choices":[]}""")));                   // 빈 choices 는 없는 것
-        Assert.Equal(["a", "b"], RuleChoices.Read(Json("""{"choices":["a","b","a"]}""")));              // 중복은 처음 것만
+        Assert.Empty(RuleChoices.Read(Json("""{"open":null}""")) ?? throw new Exception("null"));   // null 은 없는 것과 같다
     }
 
     [Theory]
-    [InlineData("""{"open":5}""")]
-    [InlineData("""{"choices":"a"}""")]
-    [InlineData("""{"choices":["a",3]}""")]
-    [InlineData("""{"choices":["a",""]}""")]
-    public void MalformedChoicesAreNull(string rule) => Assert.Null(RuleChoices.Read(Json(rule)));
+    [InlineData("""{"open":"a"}""")]       // 문자열 하나는 이제 틀린 모양이다
+    [InlineData("""{"open":["a",3]}""")]
+    [InlineData("""{"open":["a",""]}""")]
+    public void MalformedOpenIsNull(string rule) => Assert.Null(RuleChoices.Read(Json(rule)));
 
     [Fact]
-    public void WriteUsesOpenForOneAndChoicesForMany()
+    public void WriteKeepsOtherKeys()
     {
-        var one = Json("""{"id":"x","note":"내 메모","choices":["old","older"]}""");
-        RuleChoices.Write(one, ["a"]);
-        Assert.Equal("a", (string?)one["open"]);
-        Assert.False(one.ContainsKey("choices"));
-        Assert.Equal("내 메모", (string?)one["note"]);   // 모르는 키는 그대로
-
-        var many = Json("""{"id":"x"}""");
-        RuleChoices.Write(many, ["a", "b", "c"]);
-        Assert.Null(many["open"]);
-        Assert.Equal(["a", "b", "c"], many["choices"]!.AsArray().Select(n => (string?)n));
-
-        var none = Json("""{"id":"x","open":"a"}""");
-        RuleChoices.Write(none, []);
-        Assert.Null(none["open"]);
-        Assert.False(none.ContainsKey("choices"));
+        var rule = Json("""{"id":"x","note":"내 메모"}""");
+        RuleChoices.Write(rule, ["a", "b"]);
+        Assert.Equal(["a", "b"], rule["open"]!.AsArray().Select(n => (string?)n));
+        Assert.Equal("내 메모", (string?)rule["note"]);
+        RuleChoices.Write(rule, []);
+        Assert.Empty(rule["open"]!.AsArray());
     }
 
-    // --- 정책 읽기 ---
+    // --- 판정 ---
 
     [Fact]
     public void RuleWithTwoAppsAsksAmongThemOnly()
     {
-        var d = Doc("""[{"id":"img","when":{"kind":"extension","values":["png"]},"open":null,"choices":["b","a"]}]""");
-        var decision = d.Decide(File("x.png"));
-        var ask = Assert.IsType<Ask>(decision);
+        var d = Doc("""[{"id":"img","when":{"kind":"extension","extensions":["png"]},"open":["b","a"]}]""");
+        var ask = Assert.IsType<Ask>(d.Decide(File("x.png")));
         Assert.Equal(["b", "a"], ask.Candidates!.Select(x => x.Id));   // 적은 순서 그대로
     }
 
     [Fact]
     public void RuleWithOneAppOpensDirectlyAndNoneAsksAll()
     {
-        var d = Doc("""[{"id":"p","when":{"kind":"extension","values":["pdf"]},"open":"c"},{"id":"any","when":{"kind":"kind","value":"file"},"open":null}]""");
+        var d = Doc("""[{"id":"p","when":{"kind":"extension","extensions":["pdf"]},"open":["c"]},{"id":"any","when":{"kind":"file"},"open":[]}]""");
         Assert.Equal("c", Assert.IsType<OpenWith>(d.Decide(File("x.pdf"))).App.Id);
         Assert.Null(Assert.IsType<Ask>(d.Decide(File("x.zip"))).Candidates);   // null = 등록된 앱 전부
     }
 
     [Fact]
-    public void UnknownAppsInChoicesAreDroppedAndAllMissingIsMissingApp()
+    public void UnknownAppsInOpenAreDroppedAndAllMissingIsMissingApp()
     {
-        var some = Doc("""[{"id":"r","when":{"kind":"kind","value":"file"},"choices":["a","ghost","b"]}]""");
+        var some = Doc("""[{"id":"r","when":{"kind":"file"},"open":["a","ghost","b"]}]""");
         Assert.Equal(["a", "b"], Assert.IsType<Ask>(some.Decide(File("x.txt"))).Candidates!.Select(x => x.Id));
 
-        var none = Doc("""[{"id":"r","when":{"kind":"kind","value":"file"},"choices":["ghost","phantom"]}]""");
-        var missing = Assert.IsType<MissingApp>(none.Decide(File("x.txt")));
-        Assert.Equal("ghost", missing.AppId);
+        var none = Doc("""[{"id":"r","when":{"kind":"file"},"open":["ghost","phantom"]}]""");
+        Assert.Equal("ghost", Assert.IsType<MissingApp>(none.Decide(File("x.txt"))).AppId);
     }
 
     [Fact]
-    public void OpenCompatibleWithOldFlutterShape()
+    public void RulesUsingFindsRulesByAnyOfTheirApps()
     {
-        var d = Doc("""[{"id":"r","when":{"kind":"kind","value":"file"},"open":"a"}]""");
-        Assert.Equal("a", d.Rules[0].Open);
-        Assert.Equal(["a"], d.Rules[0].Choices);
-        Assert.Single(d.RulesUsing("a"));
-        Assert.Empty(d.RulesUsing("b"));
+        var d = Doc("""[{"id":"one","when":{"kind":"file"},"open":["a"]},{"id":"two","when":{"kind":"folder"},"open":["a","b"]}]""");
+        Assert.Equal(["one", "two"], d.RulesUsing("a").Select(r => r.Id));
+        Assert.Equal(["two"], d.RulesUsing("b").Select(r => r.Id));
+        Assert.Empty(d.RulesUsing("c"));
     }
 
     [Fact]
     public void MoreThanTenAppsKeepsFirstTenWithWarning()
     {
         var ids = string.Join(",", Enumerable.Range(1, 12).Select(i => $"\"a{i}\""));
-        var d = Doc($$"""[{"id":"r","when":{"kind":"kind","value":"file"},"choices":[{{ids}}]}]""");
+        var d = Doc($$"""[{"id":"r","when":{"kind":"file"},"open":[{{ids}}]}]""");
         Assert.Equal(PolicyLimits.MaxAppsPerRule, d.Rules[0].Choices.Count);
         Assert.Single(d.Warnings);
     }
@@ -107,17 +121,9 @@ public class RuleModelTests
     public void MoreThanLimitRulesAreKeptWithOneWarning()
     {
         var rules = string.Join(",", Enumerable.Range(0, PolicyLimits.MaxRules + 3)
-            .Select(i => $$"""{"id":"r{{i}}","when":{"kind":"extension","values":["x{{i}}"]},"open":"a"}"""));
+            .Select(i => $$"""{"id":"r{{i}}","when":{"kind":"extension","extensions":["x{{i}}"]},"open":["a"]}"""));
         var d = Doc($"[{rules}]");
         Assert.Equal(PolicyLimits.MaxRules + 3, d.Rules.Count);   // 지우지 않는다
-        Assert.Single(d.Warnings);
-    }
-
-    [Fact]
-    public void BadChoicesSkipOnlyThatRule()
-    {
-        var d = Doc("""[{"id":"bad","when":{"kind":"kind","value":"file"},"choices":[1]},{"id":"ok","when":{"kind":"kind","value":"folder"},"open":"a"}]""");
-        Assert.Single(d.Rules);
         Assert.Single(d.Warnings);
     }
 
@@ -144,31 +150,28 @@ public class RuleModelTests
 
     // --- 검사 ---
 
-    private static Rule Ext(string id, string[] exts, params string[] apps) =>
-        new(id, RuleCondition.Parse(Json($$"""{"kind":"extension","values":[{{string.Join(",", exts.Select(e => $"\"{e}\""))}}]}"""))!, apps);
-
     [Fact]
-    public void ValidateAcceptsGoodRule()
-    {
-        var d = Doc("[]");
-        Assert.Empty(RuleCheck.Validate(Ext("img", ["png", "jpg"], "a", "b"), d, isNew: true));
-    }
+    public void ValidateAcceptsGoodRule() =>
+        Assert.Empty(RuleCheck.Validate(Ext("img", ["png", "jpg"], "a", "b"), Doc("[]"), isNew: true));
 
     [Fact]
     public void ValidateFindsEachProblem()
     {
-        var d = Doc("""[{"id":"other","when":{"kind":"extension","values":["png"]},"open":"a"}]""");
+        var d = Doc("""[{"id":"other","when":{"kind":"extension","extensions":["png"]},"open":["a"]},{"id":"folders","when":{"kind":"folder"},"open":[]}]""");
         Assert.Contains(RuleCheck.Validate(Ext("x", ["png"], "a"), d, true), p => p is { Kind: RuleProblemKind.ExtensionTaken, Detail: "png", Other: "other" });
         Assert.Contains(RuleCheck.Validate(Ext("x", ["gif"], "ghost"), d, true), p => p is { Kind: RuleProblemKind.UnknownApp, Detail: "ghost" });
         Assert.Contains(RuleCheck.Validate(Ext("other", ["gif"], "a"), d, true), p => p.Kind == RuleProblemKind.IdTaken);
-        var tooMany = Ext("x", ["gif"], Enumerable.Range(0, 11).Select(i => "a").ToArray());
+        var tooMany = Ext("x", ["gif"], Enumerable.Repeat("a", PolicyLimits.MaxAppsPerRule + 1).ToArray());
         Assert.Contains(RuleCheck.Validate(tooMany, d, true), p => p.Kind == RuleProblemKind.TooManyApps);
+        // 폴더 규칙은 하나만
+        Assert.Contains(RuleCheck.Validate(new Rule("f2", RuleCondition.Folder, ["a"]), d, true), p => p is { Kind: RuleProblemKind.KindTaken, Other: "folders" });
+        Assert.Empty(RuleCheck.Validate(new Rule("folders", RuleCondition.Folder, ["a"]), d, isNew: false));   // 자기 자신은 괜찮다
     }
 
     [Fact]
     public void EditingARuleDoesNotConflictWithItself()
     {
-        var d = Doc("""[{"id":"img","when":{"kind":"extension","values":["png","jpg"]},"open":"a"}]""");
+        var d = Doc("""[{"id":"img","when":{"kind":"extension","extensions":["png","jpg"]},"open":["a"]}]""");
         Assert.Empty(RuleCheck.Validate(Ext("img", ["png", "jpg", "gif"], "b"), d, isNew: false));
     }
 
@@ -176,39 +179,19 @@ public class RuleModelTests
     public void RuleLimitBlocksNewButNotEditing()
     {
         var rules = string.Join(",", Enumerable.Range(0, PolicyLimits.MaxRules)
-            .Select(i => $$"""{"id":"r{{i}}","when":{"kind":"extension","values":["x{{i}}"]},"open":"a"}"""));
+            .Select(i => $$"""{"id":"r{{i}}","when":{"kind":"extension","extensions":["x{{i}}"]},"open":["a"]}"""));
         var d = Doc($"[{rules}]");
         Assert.Contains(RuleCheck.Validate(Ext("new", ["new"], "a"), d, isNew: true), p => p.Kind == RuleProblemKind.RuleLimit);
         Assert.Empty(RuleCheck.Validate(Ext("r5", ["x5", "more"], "a"), d, isNew: false));
     }
 
-    [Fact]
-    public void FindsConflictsInHandEditedPolicy()
-    {
-        var d = Doc("""[{"id":"one","when":{"kind":"extension","values":["png"]},"open":"a"},{"id":"two","when":{"kind":"extension","values":["png","gif"]},"open":"b"}]""");
-        var conflicts = RuleCheck.FindExtensionConflicts(d.Rules);
-        Assert.Single(conflicts);
-        Assert.Equal("one", conflicts[0].Other);
-    }
-
     // --- 순서 ---
 
     [Fact]
-    public void RankPutsSpecificFirstAndFallbackFileLast()
+    public void RankPutsExtensionsFirstAndFileFallbackLast()
     {
-        int R(string json) => RuleOrder.Rank(RuleCondition.Parse(Json(json))!);
-        var glob = R("""{"kind":"nameGlob","pattern":"*.test.js"}""");
-        var ext = R("""{"kind":"extension","values":["png"]}""");
-        var git = R("""{"kind":"hasGit"}""");
-        var folder = R("""{"kind":"kind","value":"folder"}""");
-        var drive = R("""{"kind":"kind","value":"drive"}""");
-        var file = R("""{"kind":"kind","value":"file"}""");
-        Assert.True(glob < ext && ext < git && git < folder && folder == drive && drive < file);
+        int R(RuleCondition c) => RuleOrder.Rank(c);
+        var ext = RuleCondition.Extension(["png"])!;
+        Assert.True(R(ext) < R(RuleCondition.Folder) && R(RuleCondition.Folder) == R(RuleCondition.Drive) && R(RuleCondition.Drive) < R(RuleCondition.File));
     }
-}
-
-/// <summary>시험용 파일 항목(디스크를 만들지 않는다).</summary>
-internal static class PathClassifierFake
-{
-    public static DroppedItem File(string name) => new(Path.Combine(Path.GetTempPath(), name), DropKind.File, Path.GetExtension(name).TrimStart('.').ToLowerInvariant());
 }

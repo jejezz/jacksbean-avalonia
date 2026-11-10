@@ -5,11 +5,8 @@ using System.Text.Json.Nodes;
 
 namespace JackBean.Services;
 
-/// <summary>정책에 넣거나 고칠 규칙 하나. <see cref="BeforeRuleId"/> 규칙 바로 위에 넣는다(없으면 맨 위).</summary>
-public sealed record RuleUpsert(string Id, JsonObject When, string Open, string? BeforeRuleId = null);
-
 /// <summary>규칙 편집 폼이 만든 규칙 하나. <paramref name="Choices"/> 는 앱 ID 들(0~10개, 순서가 목록 순서).</summary>
-public sealed record RuleEdit(string Id, JsonObject When, IReadOnlyList<string> Choices);
+public sealed record RuleEdit(string Id, RuleCondition When, IReadOnlyList<string> Choices);
 
 /// <summary>정책에 넣거나 고칠 앱 하나(편집 폼이 만든다).</summary>
 public sealed record AppUpsert(string Id, string Command, IReadOnlyList<string> Args);
@@ -45,7 +42,7 @@ public sealed class PolicyStore
 
     /// <summary>
     /// 사용자 데이터 폴더: Windows `%APPDATA%\JacksBean`, macOS `~/Library/Application Support/JacksBean`,
-    /// Linux `${XDG_CONFIG_HOME:-~/.config}/JacksBean`. 기존 Flutter 앱과 같은 폴더라 정책 파일을 그대로 이어 쓴다.
+    /// Linux `${XDG_CONFIG_HOME:-~/.config}/JacksBean`.
     /// </summary>
     public static string DataDirectory(PolicyOs os, IReadOnlyDictionary<string, string?>? env = null)
     {
@@ -113,37 +110,61 @@ public sealed class PolicyStore
     }
 
     /// <summary>
-    /// 규칙을 넣거나 고친다. 파일의 나머지(사용자가 적은 앱·규칙·모르는 키)는 그대로 둔다.
-    /// 같은 id 가 있으면 그 자리에서 when/open 만 바꾼다. 파일이 깨져 있으면 아무것도 쓰지 않는다.
-    /// 임시 파일에 쓰고 바꿔 끼운다.
+    /// "항상 이렇게 열기": 제안한 규칙들을 <paramref name="appId"/> 로 열도록 저장한다. 규칙은 대상마다 하나씩이라
+    /// 드라이브·폴더는 이미 있는 그 규칙의 앱을 바꾸고(없으면 `drives`/`folders` 를 만들고), 확장자는 다른 규칙에서 빼서
+    /// 그 확장자만의 규칙(`auto-ext-확장자`)으로 옮긴다 — 개별 지정이 우선이고, 같은 확장자가 두 규칙에 겹치지 않는다.
+    /// 규칙이 비게 되면 지운다. 저장하면 규칙들은 구체적인 것이 위로 정렬된다.
     /// </summary>
-    public Task<SaveResult> UpsertRulesAsync(IReadOnlyList<RuleUpsert> upserts, DateTime? now = null) => MutateAsync(decoded =>
+    public Task<SaveResult> RememberAsync(IReadOnlyList<RuleSuggestion> suggestions, string appId, DateTime? now = null) => MutateAsync(decoded =>
     {
         var rules = new List<JsonNode?>();
         if (decoded["rules"] is JsonArray existing) foreach (var r in existing) rules.Add(r?.DeepClone());
         var stamp = Stamp(now);
-        int IndexOf(string? id) => id == null ? -1 : rules.FindIndex(r => r is JsonObject o && RuleCondition.Str(o["id"]) == id);
-
-        foreach (var u in upserts)
+        var objects = rules.OfType<JsonObject>().ToList();
+        JsonObject? Of(RuleKind kind) => objects.FirstOrDefault(o => RuleCondition.Parse(o["when"])?.Kind == kind);
+        string FreeId(string wanted)
         {
-            var at = IndexOf(u.Id);
-            if (at >= 0)
+            if (!objects.Any(o => RuleCondition.Str(o["id"]) == wanted)) return wanted;
+            for (var i = 2; ; i++) if (!objects.Any(o => RuleCondition.Str(o["id"]) == $"{wanted}-{i}")) return $"{wanted}-{i}";
+        }
+        void Upsert(JsonObject? rule, string newId, RuleCondition when)
+        {
+            if (rule == null)
             {
-                var rule = (JsonObject)rules[at]!;
-                rule["when"] = u.When.DeepClone();
-                rule["open"] = u.Open;
-                rule["updated"] = stamp;
+                rule = new JsonObject { ["id"] = FreeId(newId), ["when"] = when.ToJson() };
+                rules.Insert(0, rule);
+                objects.Add(rule);
             }
-            else
+            RuleChoices.Write(rule, [appId]);
+            rule["updated"] = stamp;
+        }
+
+        foreach (var s in suggestions)
+        {
+            switch (s.Kind)
             {
-                var before = IndexOf(u.BeforeRuleId);
-                rules.Insert(before >= 0 ? before : 0, new JsonObject
-                {
-                    ["id"] = u.Id, ["when"] = u.When.DeepClone(), ["open"] = u.Open, ["updated"] = stamp,
-                });
+                case SuggestionKind.Drive: Upsert(Of(RuleKind.Drive), "drives", RuleCondition.Drive); break;
+                case SuggestionKind.Folder: Upsert(Of(RuleKind.Folder), "folders", RuleCondition.Folder); break;
+                case SuggestionKind.Extension:
+                    var ext = ExtensionGroups.Normalize(s.Arg);
+                    if (ext.Length == 0) break;
+                    // 다른 확장자 규칙에서 이 확장자를 뺀다(비면 그 규칙을 지운다).
+                    foreach (var o in objects.ToList())
+                    {
+                        if (RuleCondition.Str(o["id"]) == $"auto-ext-{ext}") continue;
+                        var when = RuleCondition.Parse(o["when"]);
+                        if (when is not { Kind: RuleKind.Extension } || !when.Extensions.Contains(ext)) continue;
+                        var left = RuleCondition.Extension(when.Extensions.Where(e => e != ext));
+                        if (left == null) { rules.Remove(o); objects.Remove(o); }
+                        else { o["when"] = left.ToJson(); o["updated"] = stamp; }
+                    }
+                    var own = objects.FirstOrDefault(o => RuleCondition.Str(o["id"]) == $"auto-ext-{ext}");
+                    Upsert(own, $"auto-ext-{ext}", RuleCondition.Extension([ext])!);
+                    break;
             }
         }
-        decoded["rules"] = new JsonArray(rules.ToArray());
+        if (rules.Count > PolicyLimits.MaxRules) return new SaveResult($"규칙은 {PolicyLimits.MaxRules}개까지입니다");
+        decoded["rules"] = new JsonArray(SortByRank(rules).ToArray());
         return null;
     });
 
@@ -194,11 +215,9 @@ public sealed class PolicyStore
     /// </summary>
     public Task<SaveResult> UpsertRuleAsync(RuleEdit edit, DateTime? now = null) => MutateAsync(decoded =>
     {
-        var when = RuleCondition.Parse(edit.When);
-        if (when == null) return new SaveResult("규칙의 조건이 올바르지 않습니다(확장자 규칙은 확장자가 하나 이상 있어야 합니다)");
         var doc = PolicyDocument.FromJson(decoded);
         var isNew = doc.Rules.All(r => r.Id != edit.Id);
-        var problems = RuleCheck.Validate(new Rule(edit.Id, when, edit.Choices), doc, isNew);
+        var problems = RuleCheck.Validate(new Rule(edit.Id, edit.When, edit.Choices), doc, isNew);
         if (problems.Count > 0) return new SaveResult(string.Join("; ", problems.Select(Describe)), problems);
 
         var rules = new List<JsonNode?>();
@@ -208,7 +227,7 @@ public sealed class PolicyStore
         JsonObject rule;
         if (at >= 0) rule = (JsonObject)rules[at]!;
         else rules.Insert(0, rule = new JsonObject { ["id"] = edit.Id });
-        rule["when"] = edit.When.DeepClone();
+        rule["when"] = edit.When.ToJson();
         RuleChoices.Write(rule, edit.Choices);
         rule["updated"] = stamp;
         decoded["rules"] = new JsonArray(SortByRank(rules).ToArray());
@@ -235,6 +254,7 @@ public sealed class PolicyStore
         RuleProblemKind.RuleLimit => $"규칙은 {PolicyLimits.MaxRules}개까지입니다",
         RuleProblemKind.TooManyApps => $"규칙 하나에 앱은 {PolicyLimits.MaxAppsPerRule}개까지입니다",
         RuleProblemKind.UnknownApp => $"정책에 없는 앱입니다: {p.Detail}",
+        RuleProblemKind.KindTaken => $"{p.Detail} 규칙은 하나만 둘 수 있습니다(이미 규칙 {p.Other} 가 있습니다)",
         RuleProblemKind.ExtensionTaken => $"확장자 {p.Detail} 은(는) 규칙 {p.Other} 에도 있습니다",
         RuleProblemKind.IdTaken => $"이미 있는 규칙 이름입니다: {p.Detail}",
         _ => p.Kind.ToString(),
@@ -254,8 +274,8 @@ public sealed class PolicyStore
             var decoded = ParseObject(await File.ReadAllTextAsync(FilePath));
             if (RuleCondition.Str(decoded["os"]) != Os.JsonName())
                 return new SaveResult($"정책 파일의 os 가 {Os.JsonName()} 이 아닙니다: {decoded["os"]}");
-            if (!(decoded["schema"] is JsonValue sv && sv.TryGetValue<int>(out var sch) && sch == 1))
-                return new SaveResult($"정책 파일의 schema 가 1 이 아닙니다: {decoded["schema"]}");
+            if (!(decoded["schema"] is JsonValue sv && sv.TryGetValue<int>(out var sch) && sch == PolicyDocument.SchemaVersion))
+                return new SaveResult($"정책 파일의 schema 가 {PolicyDocument.SchemaVersion} 이 아닙니다: {decoded["schema"]}");
             if (decoded["rules"] is { } rr && rr is not JsonArray) return new SaveResult("정책 파일의 rules 가 목록이 아닙니다");
 
             if (edit(decoded) is { } failure) return failure;

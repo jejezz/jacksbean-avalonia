@@ -1,8 +1,8 @@
 // 독: 화면 가장자리에 항상 떠 있는 작은 창. 드래그가 들어오면 커지고, 떨어뜨리면 정책(규칙)에 따라 앱으로 보낸다.
 // 규칙이 "물어보기"이거나 맞는 규칙이 없으면 독이 아래로 늘어나 앱 목록을 보여 준다.
 //
-// Flutter 판과 달라진 점: Avalonia 는 창 크기를 DIP, 위치를 물리 픽셀로 주고 모니터별 배율(Screen.Scaling)을 직접 알려 주므로
-// Win32 직접 조회와 최소 폭 보정이 필요 없다. 독 ↔ 창 전환도 없다 — 창(홈, 도구)은 **별도 창**으로 독과 함께 뜬다.
+// Avalonia 는 창 크기를 DIP, 위치를 물리 픽셀로 주고 모니터별 배율(Screen.Scaling)을 직접 알려 준다.
+// 독 ↔ 창 전환은 없다 — 창(홈, 도구)은 **별도 창**으로 독과 함께 뜬다.
 
 using Avalonia;
 using Avalonia.Controls;
@@ -299,7 +299,7 @@ public partial class DockWindow : Window
         var failure = result.Failures.FirstOrDefault();
         if (failure != null) { SetError(Strings.Current.DockOpenFailed(failure.Error)); }
         else if (result.SaveError != null) { SetError(Strings.Current.DockRuleSaveFailed(result.SaveError)); }
-        else if (result.SavedRules.Count > 0) { _status = $"{Strings.Current.DockOpenedWith(app.Id)} · {Strings.Current.DockRuleSaved}"; _statusIsError = false; }
+        else if (result.SavedRules.Count > 0) { App.NotifyPolicyChanged(); _status = $"{Strings.Current.DockOpenedWith(app.Id)} · {Strings.Current.DockRuleSaved}"; _statusIsError = false; }
         else { _status = Strings.Current.DockOpenedWith(app.Id); _statusIsError = false; }
         _last = asks.Select(a => a.Item).ToList();
         _pickAsks = null; _pickApps = []; _suggestions = [];
