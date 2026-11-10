@@ -8,13 +8,16 @@ namespace JackBean.Services;
 /// <summary>정책에 넣거나 고칠 규칙 하나. <see cref="BeforeRuleId"/> 규칙 바로 위에 넣는다(없으면 맨 위).</summary>
 public sealed record RuleUpsert(string Id, JsonObject When, string Open, string? BeforeRuleId = null);
 
+/// <summary>규칙 편집 폼이 만든 규칙 하나. <paramref name="Choices"/> 는 앱 ID 들(0~10개, 순서가 목록 순서).</summary>
+public sealed record RuleEdit(string Id, JsonObject When, IReadOnlyList<string> Choices);
+
 /// <summary>정책에 넣거나 고칠 앱 하나(편집 폼이 만든다).</summary>
 public sealed record AppUpsert(string Id, string Command, IReadOnlyList<string> Args);
 
 /// <summary>앱을 지울 때 그 앱을 여는 규칙을 어떻게 할지.</summary>
 public enum ReferencedRules { Refuse, MakeAsk }
 
-public sealed record SaveResult(string? Error)
+public sealed record SaveResult(string? Error, IReadOnlyList<RuleProblem>? Problems = null)
 {
     public bool Ok => Error == null;
     public static SaveResult Success { get; } = new((string?)null);
@@ -167,17 +170,75 @@ public sealed class PolicyStore
     {
         if (decoded["apps"] is not JsonObject apps || !apps.ContainsKey(id)) return new SaveResult($"앱 {id} 이(가) 정책에 없습니다");
         var users = (decoded["rules"] as JsonArray ?? [])
-            .OfType<JsonObject>().Where(r => RuleCondition.Str(r["open"]) == id).ToList();
+            .OfType<JsonObject>().Where(r => RuleChoices.Read(r)?.Contains(id) == true).ToList();
         if (users.Count > 0)
         {
             if (referenced == ReferencedRules.Refuse)
                 return new SaveResult($"규칙 {users.Count}개가 이 앱을 씁니다: {string.Join(", ", users.Select(r => RuleCondition.Str(r["id"])))}");
             var stamp = Stamp(now);
-            foreach (var r in users) { r["open"] = null; r["updated"] = stamp; }
+            foreach (var r in users)
+            {
+                // 그 규칙의 앱 목록에서만 뺀다: 목록에 다른 앱이 남으면 그 앱(들)로, 마지막 앱이었으면 "물어보기".
+                RuleChoices.Write(r, RuleChoices.Read(r)!.Where(c => c != id).ToList());
+                r["updated"] = stamp;
+            }
         }
         apps.Remove(id);
         return null;
     });
+
+    /// <summary>
+    /// 규칙 하나를 넣거나 고친다(앱 1~10개 = `open`/`choices`). 저장 전에 <see cref="RuleCheck"/> 로 검사한다 — 한도(255)·앱 수(10)·
+    /// 없는 앱·겹치는 확장자 — 그리고 통과하면 규칙들을 <see cref="RuleOrder"/> 순서(구체적인 것이 위)로 정렬해 쓴다.
+    /// 그 규칙의 `open`/`choices`/`when`/`updated` 말고 사용자가 적은 키는 그대로 둔다.
+    /// </summary>
+    public Task<SaveResult> UpsertRuleAsync(RuleEdit edit, DateTime? now = null) => MutateAsync(decoded =>
+    {
+        var when = RuleCondition.Parse(edit.When);
+        if (when == null) return new SaveResult("규칙의 조건이 올바르지 않습니다(확장자 규칙은 확장자가 하나 이상 있어야 합니다)");
+        var doc = PolicyDocument.FromJson(decoded);
+        var isNew = doc.Rules.All(r => r.Id != edit.Id);
+        var problems = RuleCheck.Validate(new Rule(edit.Id, when, edit.Choices), doc, isNew);
+        if (problems.Count > 0) return new SaveResult(string.Join("; ", problems.Select(Describe)), problems);
+
+        var rules = new List<JsonNode?>();
+        if (decoded["rules"] is JsonArray existing) foreach (var r in existing) rules.Add(r?.DeepClone());
+        var stamp = Stamp(now);
+        var at = rules.FindIndex(r => r is JsonObject o && RuleCondition.Str(o["id"]) == edit.Id);
+        JsonObject rule;
+        if (at >= 0) rule = (JsonObject)rules[at]!;
+        else rules.Insert(0, rule = new JsonObject { ["id"] = edit.Id });
+        rule["when"] = edit.When.DeepClone();
+        RuleChoices.Write(rule, edit.Choices);
+        rule["updated"] = stamp;
+        decoded["rules"] = new JsonArray(SortByRank(rules).ToArray());
+        return null;
+    });
+
+    /// <summary>규칙 하나를 지운다. 그 규칙의 앱은 건드리지 않는다.</summary>
+    public Task<SaveResult> RemoveRuleAsync(string id) => MutateAsync(decoded =>
+    {
+        if (decoded["rules"] is not JsonArray rules) return new SaveResult($"규칙 {id} 이(가) 정책에 없습니다");
+        var at = rules.ToList().FindIndex(r => r is JsonObject o && RuleCondition.Str(o["id"]) == id);
+        if (at < 0) return new SaveResult($"규칙 {id} 이(가) 정책에 없습니다");
+        rules.RemoveAt(at);
+        return null;
+    });
+
+    /// <summary>구체적인 규칙이 위로 오게 안정 정렬한다(같은 자리 규칙들은 원래 순서 그대로). 조건을 못 읽는 규칙은 일반 규칙 자리.</summary>
+    private static List<JsonNode?> SortByRank(List<JsonNode?> rules) => rules
+        .Select((node, index) => (node, index, rank: node is JsonObject o && RuleCondition.Parse(o["when"]) is { } w ? RuleOrder.Rank(w) : 3))
+        .OrderBy(x => x.rank).ThenBy(x => x.index).Select(x => x.node).ToList();
+
+    private static string Describe(RuleProblem p) => p.Kind switch
+    {
+        RuleProblemKind.RuleLimit => $"규칙은 {PolicyLimits.MaxRules}개까지입니다",
+        RuleProblemKind.TooManyApps => $"규칙 하나에 앱은 {PolicyLimits.MaxAppsPerRule}개까지입니다",
+        RuleProblemKind.UnknownApp => $"정책에 없는 앱입니다: {p.Detail}",
+        RuleProblemKind.ExtensionTaken => $"확장자 {p.Detail} 은(는) 규칙 {p.Other} 에도 있습니다",
+        RuleProblemKind.IdTaken => $"이미 있는 규칙 이름입니다: {p.Detail}",
+        _ => p.Kind.ToString(),
+    };
 
     private static string Stamp(DateTime? now) => (now ?? DateTime.UtcNow).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ");
 

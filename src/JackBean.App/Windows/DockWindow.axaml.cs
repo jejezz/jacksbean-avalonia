@@ -249,7 +249,7 @@ public partial class DockWindow : Window
         Render();
 
         var asks = plan.AskOutcomes;
-        if (asks.Count > 0 && plan.Policy.Apps.Count > 0) OpenChooser(asks, plan.Policy.Apps.Values.ToList());
+        if (asks.Count > 0 && plan.Policy.Apps.Count > 0) OpenChooser(asks, plan.ChoiceApps());
         else ScheduleClear();
     }
 

@@ -26,7 +26,12 @@ Flutter 판 `jacksbean-flutter`를 C#/Avalonia(.NET 10)로 옮기는 프로젝�
 홈 창은 **보기 전용**이고 편집은 별도 창에서 한다(JSON 을 직접 고치지 않아도 되게 폼으로). 지금은 **앱 편집 창**(`Views/AppsEditorWindow`: 왼쪽 앱 목록 + 오른쪽 폼 — 이름·실행 파일·인자)만 있고,
 홈 창 "앱" 카드의 [앱 편집]과 빈 상태의 [앱 추가]로 연다. 저장·삭제는 `PolicyStore.UpsertAppAsync/RemoveAppAsync`(임시 파일에 쓰고 교체, 사용자가 적은 모르는 키는 보존, 깨진 파일은 쓰지 않음).
 앱 ID 는 규칙이 가리키는 이름이라 만들 때만 정하고 바꾸지 않으며(`AppRules`), 지울 때 그 앱을 쓰는 규칙은 지우지 않고 "물어보기"로 바꾼다. 정책을 바꾸면 `App.NotifyPolicyChanged()` 로 홈 창 등이 다시 읽는다.
-규칙 편집 창은 아직 없다(ROADMAP 3-2).
+규칙 편집 창은 아직 없다(ROADMAP 3-2b). 규칙의 **모델**은 이미 확장되어 있다(3-2a, 아래).
+
+## 규칙 모델 (3-2a)
+규칙 하나는 앱을 0~10개 가진다(`Rule.Choices`, 한도 `PolicyLimits.MaxAppsPerRule`): 1개면 바로 열고, 2개 이상이면 **그 앱들만** 독에서 고르게 하고(`Ask.Candidates` → `NeedsChoice.Candidates` → `RoutePlan.ChoiceApps()`, 여러 항목이면 교집합·비면 전부), 0개면 등록된 앱 전부를 보여 주며 묻는다. 정책의 규칙은 255개까지(`PolicyLimits.MaxRules`) — 읽을 때는 넘어도 지우지 않고 경고만, 편집할 때(`RuleCheck`)만 막는다.
+파일 모양(Flutter 판 호환): 1개면 `"open":"a"`, 2개 이상이면 `"open":null` + `"choices":["a","b"]`(`RuleChoices.Read/Write`). 확장자 묶음은 `ExtensionGroups`(이미지·음악·영상·PDF·문서·스프레드시트·프레젠테이션·압축·텍스트·코드, 한 확장자는 한 묶음에만) — 저장은 확장자 목록이다.
+같은 확장자가 두 규칙에 겹치면 저장을 막고(`RuleCheck`), 저장할 때 규칙은 구체적인 것이 위로 정렬된다(`RuleOrder`: 이름 패턴 → 확장자 → Git → 드라이브·폴더 → 그 밖의 파일). `PolicyStore.UpsertRuleAsync/RemoveRuleAsync` 가 이것을 한다. 앱을 지우면 규칙은 지우지 않고 그 규칙의 앱 목록에서만 빠진다.
 
 ## 멀티 윈도우와 내장 도구
 - 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).
@@ -54,7 +59,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 167개(Domain 67 · Services 92 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 199개(Domain 88 · Services 103 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
