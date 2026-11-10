@@ -186,6 +186,10 @@ public sealed class EnglishStrings : IAppStrings
     public string RuleAppsBrowse => "Browse for another app…";
     public string RuleAppsBrowseTitle => "Choose an app";
     public string RuleAppPending(string id) => $"{id} (new app — registered when you save)";
+    public string SnackbarUndo => "Undo";
+    public string HomeUndo => "Undo last change";
+    public string PolicyUndone => "Undid the last change.";
+    public string PolicyUndoFailed(string error) => $"Couldn't undo: {error}";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "Images", "audio" => "Music & voice", "video" => "Video", "pdf" => "PDF", "document" => "Documents",

@@ -177,7 +177,9 @@ public sealed class HomeWindow : Window
         reload.Click += async (_, _) => await ReloadAsync();
         var openFile = new Button { Content = s.HomeOpenPolicyFile };
         openFile.Click += (_, _) => OpenPolicyFile();
-        var fileButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { reload, openFile } };
+        var undo = new Button { Content = s.HomeUndo, IsEnabled = App.PolicyStore.CanUndo };
+        undo.Click += (_, _) => PolicyNotices.Undo();
+        var fileButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { reload, openFile, undo } };
         stack.Children.Add(Card(new StackPanel { Spacing = 8, Children = { Heading(s.HomePolicyFile), path, fileButtons } }));
 
         if (_policy == null) return stack;

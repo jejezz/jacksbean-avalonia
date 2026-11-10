@@ -66,7 +66,9 @@ internal sealed class SnackbarWindow : Window
         card.Bind(Border.BorderBrushProperty, this.GetResourceObservable(isError ? "AppDanger" : "AppStroke"));
         Content = new Border { Padding = new Thickness(12), Child = card }; // 그림자가 잘리지 않을 여백
 
-        _closeTimer.Interval = NotificationGate.DurationOf(notification.Kind);
+        var duration = NotificationGate.DurationOf(notification.Kind);
+        if (actionLabel != null && action != null && duration < NotificationGate.ActionDuration) duration = NotificationGate.ActionDuration;   // 누를 시간을 준다
+        _closeTimer.Interval = duration;
         _closeTimer.Tick += (_, _) => Close();
         _copiedTimer.Tick += (_, _) => { _copiedTimer.Stop(); ShowCopied(false); };
         PointerEntered += (_, _) => _closeTimer.Stop();   // 읽고 복사하는 동안은 닫지 않는다

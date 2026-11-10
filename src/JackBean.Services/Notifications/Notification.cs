@@ -17,6 +17,8 @@ public sealed class NotificationGate(TimeProvider? time = null)
 {
     public static readonly TimeSpan InfoDuration = TimeSpan.FromSeconds(4);
     public static readonly TimeSpan ErrorDuration = TimeSpan.FromSeconds(10);
+    /// <summary>실행 취소 같은 액션 버튼이 있는 알림이 최소한 머무는 시간.</summary>
+    public static readonly TimeSpan ActionDuration = TimeSpan.FromSeconds(8);
     public static readonly TimeSpan DuplicateWindow = TimeSpan.FromSeconds(3);
 
     private readonly TimeProvider _time = time ?? TimeProvider.System;

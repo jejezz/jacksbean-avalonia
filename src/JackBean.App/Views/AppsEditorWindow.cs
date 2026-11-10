@@ -344,7 +344,7 @@ public sealed class AppsEditorWindow : Window
             _isNew = false;
             await ReloadAsync(selectFirst: false, select: id);
             App.NotifyPolicyChanged();
-            Snackbar.Info(Strings.Current.AppSaved(id));
+            PolicyNotices.Saved(Strings.Current.AppSaved(id));
         }
         finally { _saving = false; }
     }
@@ -364,7 +364,7 @@ public sealed class AppsEditorWindow : Window
             _selectedId = null;
             await ReloadAsync(selectFirst: true);
             App.NotifyPolicyChanged();
-            Snackbar.Info(s.AppDeleted(id));
+            PolicyNotices.Saved(s.AppDeleted(id));
         }
         finally { _saving = false; }
     }

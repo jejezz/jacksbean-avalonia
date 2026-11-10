@@ -186,6 +186,10 @@ public sealed class KoreanStrings : IAppStrings
     public string RuleAppsBrowse => "다른 앱 찾아보기…";
     public string RuleAppsBrowseTitle => "열 앱 고르기";
     public string RuleAppPending(string id) => $"{id} (새 앱 — 저장하면 등록됩니다)";
+    public string SnackbarUndo => "실행 취소";
+    public string HomeUndo => "마지막 변경 되돌리기";
+    public string PolicyUndone => "방금 변경을 되돌렸습니다.";
+    public string PolicyUndoFailed(string error) => $"되돌리지 못했습니다: {error}";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "이미지", "audio" => "음악·음성", "video" => "영상", "pdf" => "PDF", "document" => "문서",
