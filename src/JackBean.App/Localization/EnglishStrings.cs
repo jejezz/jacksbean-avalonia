@@ -183,6 +183,9 @@ public sealed class EnglishStrings : IAppStrings
     public string RuleSaveFailed(string error) => $"Couldn't save the rule: {error}";
     public string RuleDeleted(string name) => $"Deleted the “{name}” rule.";
     public string RuleDeleteFailed(string error) => $"Couldn't delete the rule: {error}";
+    public string RuleAppsBrowse => "Browse for another app…";
+    public string RuleAppsBrowseTitle => "Choose an app";
+    public string RuleAppPending(string id) => $"{id} (new app — registered when you save)";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "Images", "audio" => "Music & voice", "video" => "Video", "pdf" => "PDF", "document" => "Documents",

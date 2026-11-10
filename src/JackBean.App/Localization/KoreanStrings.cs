@@ -183,6 +183,9 @@ public sealed class KoreanStrings : IAppStrings
     public string RuleSaveFailed(string error) => $"규칙을 저장하지 못했습니다: {error}";
     public string RuleDeleted(string name) => $"‘{name}’ 규칙을 삭제했습니다.";
     public string RuleDeleteFailed(string error) => $"규칙을 삭제하지 못했습니다: {error}";
+    public string RuleAppsBrowse => "다른 앱 찾아보기…";
+    public string RuleAppsBrowseTitle => "열 앱 고르기";
+    public string RuleAppPending(string id) => $"{id} (새 앱 — 저장하면 등록됩니다)";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "이미지", "audio" => "음악·음성", "video" => "영상", "pdf" => "PDF", "document" => "문서",

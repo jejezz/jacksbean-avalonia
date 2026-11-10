@@ -10,6 +10,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using JackBean.App.Dialogs;
 using JackBean.App.Icons;
@@ -56,6 +57,7 @@ public sealed partial class RulesEditorWindow : Window
     private List<string> _apps = [];
     private string _extText = "";
     private string _origKey = "";
+    private readonly Dictionary<string, AppUpsert> _pending = [];   // 찾아본 새 앱: 규칙을 저장할 때 정책의 apps 에 등록한다
 
     // 폼 컨트롤
     private ContentControl _appsHost = new();   // 페이지를 다시 만들 때마다 새로 만든다(이전 페이지의 자식으로 남아 있으면 다시 붙일 수 없다)
@@ -150,6 +152,7 @@ public sealed partial class RulesEditorWindow : Window
 
     private void LoadDraft()
     {
+        _pending.Clear();
         var rule = CurrentRule();
         _apps = rule?.Choices.ToList() ?? [];
         _extText = rule is { When.Kind: RuleKind.Extension } ? string.Join(", ", rule.When.Extensions) : "";
@@ -417,18 +420,24 @@ public sealed partial class RulesEditorWindow : Window
 
         if (_apps.Count < PolicyLimits.MaxAppsPerRule)
         {
-            var free = (_policy?.Apps.Keys ?? []).Where(id => !_apps.Contains(id)).ToList();
+            var free = (_policy?.Apps.Keys ?? []).Concat(_pending.Keys).Where(id => !_apps.Contains(id)).ToList();
+            var addRow = new WrapPanel { Orientation = Orientation.Horizontal };   // 좁으면 줄을 바꾼다
             if (free.Count > 0)
             {
-                var combo = new ComboBox { PlaceholderText = s.RuleAppsAdd, ItemsSource = free, MinWidth = 240, HorizontalAlignment = HorizontalAlignment.Left };
+                var combo = new ComboBox { PlaceholderText = s.RuleAppsAdd, ItemsSource = free, MinWidth = 240, Margin = new Thickness(0, 0, 8, 6) };
                 combo.SelectionChanged += (_, _) =>
                 {
                     if (combo.SelectedItem is not string id) return;
                     _apps.Add(id);
                     RebuildApps();
                 };
-                panel.Children.Add(combo);
+                addRow.Children.Add(combo);
             }
+            // 등록해 둔 앱에 없는 앱도 파일에서 직접 골라 연결할 수 있다(저장할 때 정책에 새 앱으로 등록된다).
+            var browse = new Button { Margin = new Thickness(0, 0, 0, 6), Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new DuoIcon { Icon = "folder" }, new TextBlock { Text = s.RuleAppsBrowse, VerticalAlignment = VerticalAlignment.Center } } } };
+            browse.Click += async (_, _) => await BrowseAppAsync();
+            addRow.Children.Add(browse);
+            panel.Children.Add(addRow);
         }
         panel.Children.Add(Muted(_apps.Count == 0 ? s.RuleAppsNoneNote : _apps.Count == 1 ? s.RuleAppsOneNote : s.RuleAppsManyNote, small: true));
         return panel;
@@ -438,14 +447,16 @@ public sealed partial class RulesEditorWindow : Window
     {
         var s = Strings.Current;
         var id = _apps[index];
-        var known = _policy?.Apps.ContainsKey(id) == true;
+        var pending = _pending.TryGetValue(id, out var pendingApp);
+        var known = pending || _policy?.Apps.ContainsKey(id) == true;
 
         var number = Muted((index + 1).ToString());
         number.VerticalAlignment = VerticalAlignment.Center;
         number.Width = 20;
-        var name = new TextBlock { Text = known ? id : s.RuleAppMissing(id), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+        var name = new TextBlock { Text = pending ? s.RuleAppPending(id) : known ? id : s.RuleAppMissing(id), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         name.Classes.Add("user");   // 앱 이름은 사용자가 정했다 — 시스템 글꼴
         if (!known) name.Classes.Add("failed");
+        if (pending) ToolTip.SetTip(name, pendingApp!.Command);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
         var up = SmallButton("arrow-up", s.RuleAppMoveUp, () => Move(index, -1)); up.IsEnabled = index > 0;
@@ -532,7 +543,7 @@ public sealed partial class RulesEditorWindow : Window
         var cond = Condition();
         var messages = new List<string>();
         if (cond == null) { if (dirty || _isNewExt) messages.Add(s.RuleErrNoExt); }
-        else messages.AddRange(RuleCheck.Validate(new Rule(RuleIdForSave(cond), cond, _apps), _policy, IsNewRule).Select(Describe));
+        else messages.AddRange(RuleCheck.Validate(new Rule(RuleIdForSave(cond), cond, _apps), PolicyWithPending(), IsNewRule).Select(Describe));
         if (_policy.IsFallback) messages.Add(s.HomeFallbackNote);   // 파일을 못 읽은 상태에서는 저장하지 않는다(덮어쓰지 않는다)
 
         _errorText.Text = string.Join("\n", messages.Distinct());
@@ -543,6 +554,29 @@ public sealed partial class RulesEditorWindow : Window
 
     // --- 저장과 삭제 ---
 
+    /// <summary>찾아본 새 앱까지 등록된 것으로 본 정책(저장 전 검사용 — "정책에 없는 앱" 오류를 내지 않게).</summary>
+    private PolicyDocument PolicyWithPending()
+    {
+        var apps = _policy!.Apps.ToDictionary(kv => kv.Key, kv => kv.Value);
+        foreach (var (id, app) in _pending) apps[id] = new AppEntry(id, app.Command, app.Args);
+        return new PolicyDocument(apps, _policy.Rules, _policy.Warnings, _policy.IsFallback);
+    }
+
+    /// <summary>파일을 골라 앱으로 연결한다. 같은 실행 파일이 이미 등록되어 있으면 그 앱을 쓰고, 아니면 새 앱(이름은 파일 이름에서)으로 올려 둔다.</summary>
+    private async Task BrowseAppAsync()
+    {
+        if (_policy == null || _apps.Count >= PolicyLimits.MaxAppsPerRule) return;
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = Strings.Current.RuleAppsBrowseTitle, AllowMultiple = false });
+        if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
+
+        var existing = _policy.Apps.Values.FirstOrDefault(a => string.Equals(a.Command, path, StringComparison.OrdinalIgnoreCase))?.Id
+                       ?? _pending.Values.FirstOrDefault(a => string.Equals(a.Command, path, StringComparison.OrdinalIgnoreCase))?.Id;
+        var id = existing ?? AppRules.SuggestId(path, _policy.Apps.Keys.Concat(_pending.Keys));
+        if (existing == null) _pending[id] = new AppUpsert(id, path, [AppRules.PathPlaceholder]);
+        if (!_apps.Contains(id)) _apps.Add(id);
+        RebuildApps();
+    }
+
     private async Task SaveAsync()
     {
         if (_saveButton is not { IsEnabled: true } || _saving || Condition() is not { } cond) return;
@@ -550,6 +584,12 @@ public sealed partial class RulesEditorWindow : Window
         try
         {
             var id = RuleIdForSave(cond);
+            // 찾아본 새 앱 중 이 규칙이 쓰는 것을 먼저 정책에 등록한다.
+            foreach (var appId in _apps.Where(_pending.ContainsKey).ToList())
+            {
+                var registered = await App.PolicyStore.UpsertAppAsync(_pending[appId]);
+                if (!registered.Ok) { Snackbar.Error(Strings.Current.AppSaveFailed(registered.Error!)); return; }
+            }
             var result = await App.PolicyStore.UpsertRuleAsync(new RuleEdit(id, cond, _apps.ToList()));
             if (!result.Ok) { Snackbar.Error(Strings.Current.RuleSaveFailed(result.Error!)); return; }
             _isNewExt = false;
