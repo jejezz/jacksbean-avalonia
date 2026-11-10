@@ -61,10 +61,15 @@ static class Snapshot
             settingsWindow.ShowBehavior();
             await Task.Delay(500);
             Save(settingsWindow, Path.Combine(dir, "behavior-SettingsWindow.png"));
-            App.Settings.Update(x => x with { SyncRepository = "https://github.com/jejezz/jacksbean-policy.git", SyncLastAt = DateTimeOffset.Now.AddMinutes(-3) });
+            App.Settings.Update(x => x with { SyncRepo = "octo/jacksbean-policy", SyncLastAt = DateTimeOffset.Now.AddMinutes(-3) });
             settingsWindow.ShowSync();
             await Task.Delay(500);
             Save(settingsWindow, Path.Combine(dir, "sync-SettingsWindow.png"));
+            // 로그인 창(이 빌드에 Client ID 가 없으면 토큰 입력만 보인다).
+            _ = Dialogs.GitHubLoginDialog.ShowAsync(settingsWindow);
+            await Task.Delay(600);
+            var login = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows.OfType<Dialogs.GitHubLoginDialog>().FirstOrDefault();
+            if (login != null) { Save(login, Path.Combine(dir, "login-GitHubLoginDialog.png")); login.CloseFromState(); }
         });
         App.Quit();
     }

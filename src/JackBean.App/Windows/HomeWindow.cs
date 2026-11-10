@@ -183,7 +183,7 @@ public sealed class HomeWindow : Window
         var undo = new Button { Content = s.HomeUndo, IsEnabled = App.PolicyStore.CanUndo };
         undo.Click += (_, _) => PolicyNotices.Undo();
         var fileButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { reload, openFile, undo } };
-        if (!string.IsNullOrWhiteSpace(App.Settings.Value.SyncRepository))
+        if (App.Github.CanSync)
         {
             var sync = new Button { Content = App.SyncRunning ? s.SyncRunning : s.HomeSyncNow, IsEnabled = !App.SyncRunning };
             sync.Click += async (_, _) => await App.SyncNowAsync();

@@ -202,8 +202,37 @@ public interface IAppStrings
     string SettingsSectionSync { get; }
     string SyncTitle { get; }
     string SyncDescription { get; }
+    string SyncSignedInAs(string login);
+    string SyncSignIn { get; }
+    string SyncSignOut { get; }
+    string SyncReauth { get; }
     string SyncRepoLabel { get; }
-    string SyncRepoHint { get; }
+    string SyncRepoNone { get; }
+    string SyncRepoCurrent(string repo);
+    string SyncChooseRepo { get; }
+    string SyncNoSecureStore { get; }
+    string GitHubLoginTitle { get; }
+    string GitHubLoginWait { get; }
+    string GitHubLoginWaiting { get; }
+    string GitHubOpenBrowser { get; }
+    string GitHubCopyCode { get; }
+    string GitHubTokenAdvanced { get; }
+    string GitHubTokenHint { get; }
+    string GitHubSignInButton { get; }
+    string GitHubNoClientId { get; }
+    string GitHubLoginFailed(string error);
+    string RepoDialogTitle { get; }
+    string RepoLoading { get; }
+    string RepoNone { get; }
+    string RepoAppRepo { get; }
+    string RepoPublicWarning { get; }
+    string RepoPublicConfirm(string repo);
+    string RepoCreateTitle { get; }
+    string RepoExistingTitle { get; }
+    string RepoCreateButton { get; }
+    string RepoConnect { get; }
+    string RepoConnected(string repo);
+    string RepoFailed(string error);
     string SyncNow { get; }
     string SyncRunning { get; }
     string SyncNever { get; }

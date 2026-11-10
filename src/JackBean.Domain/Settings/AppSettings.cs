@@ -74,9 +74,13 @@ public sealed record AppSettings
     [JsonPropertyName("global_hotkey")]
     public bool GlobalHotkey { get; init; }
 
-    /// <summary>정책을 동기화할 GitHub 저장소 주소(https 또는 ssh). null 이면 동기화를 쓰지 않는다. 로그인은 이 PC 의 git 설정이 처리하므로 토큰은 저장하지 않는다.</summary>
-    [JsonPropertyName("sync_repository")]
-    public string? SyncRepository { get; init; }
+    /// <summary>정책을 동기화할 GitHub 저장소(`소유자/이름`). null 이면 동기화를 쓰지 않는다. 토큰은 설정 파일이 아니라 OS 보안 저장소에만 둔다.</summary>
+    [JsonPropertyName("sync_repo")]
+    public string? SyncRepo { get; init; }
+
+    /// <summary>GitHub 에 로그인한 사용자 이름(표시용). 토큰이 아니다.</summary>
+    [JsonPropertyName("sync_login")]
+    public string? SyncLogin { get; init; }
 
     /// <summary>마지막으로 동기화에 성공한 시각(표시용).</summary>
     [JsonPropertyName("sync_last_at")]
