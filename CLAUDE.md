@@ -64,6 +64,11 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 확장자 묶음은 `ExtensionGroups`(이미지·음악·영상·PDF·문서·스프레드시트·프레젠테이션·압축·텍스트·코드, 한 확장자는 한 묶음에만) — 저장은 확장자 목록이라 묶음 정의가 바뀌어도 저장한 규칙은 그대로다.
 저장할 때 규칙은 구체적인 것이 위로 정렬된다(`RuleOrder`: 확장자 → 드라이브·폴더 → 그 밖의 파일). `PolicyStore` 의 `UpsertRuleAsync`/`RemoveRuleAsync`(편집), `RememberAsync`("항상 이렇게 열기": 드라이브·폴더는 있는 규칙의 앱을 바꾸고, 확장자는 다른 규칙에서 빼서 `auto-ext-확장자` 로 옮긴다)가 이것을 한다. 앱을 지우면 규칙은 지우지 않고 그 규칙의 앱 목록에서만 빠진다.
 
+## 한 번에 하나만 (단일 실행)과 설치
+앱은 하나만 뜬다(`SingleInstance`, `Program.Main`): 이름 있는 뮤텍스(`AppIdentity.Id`)를 먼저 잡은 쪽이 본체이고, 나중에 실행한 쪽은 본체에 **보이기** 신호(Windows 의 이름 있는 이벤트 — 독이 숨어 있으면 보인다)를 보내고 바로 끝난다. 다른 OS 는 신호 없이 조용히 끝난다.
+`JacksBean.exe --quit` 는 떠 있는 앱에 **종료**를 알린다(없으면 아무것도 안 한다) — 설치 프로그램이 쓴다. 확인용 `--snapshot`·`--tool` 은 단일 실행을 건너뛴다.
+Windows 설치 프로그램(`installer/windows/app.iss`)은 트레이에 숨어 있는 앱을 Setup 의 기본 감지(Restart Manager)가 놓치므로 `CloseApplications=no` 로 끄고 **직접** 멈춘다([Code] `StopRunningApp`): 뮤텍스가 있으면 `--quit` 로 정상 종료를 요청하고 몇 초 기다린 뒤, 남은 `JacksBean.exe` 는 `taskkill /F`(뮤텍스·`--quit` 이 없던 옛 버전용). 설치·제거 모두. 뮤텍스 이름(`art.zoomon.jacksbean.avalonia`)은 `SingleInstance` 와 `.iss` 가 같아야 한다. **Inno Setup 이 이 PC 에 없어 `.iss` 는 컴파일해 보지 못했다 — 릴리스 워크플로에서 처음 돈다.**
+
 ## 멀티 윈도우와 내장 도구
 - 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).
   **알약을 펼쳐도 콩은 제자리**: 콩은 정원일 때의 자리(`_idleLeft`)에 그대로 있고 창은 콩의 반대쪽으로 자란다(`GrowsRight`: 화면 왼쪽 절반이면 오른쪽으로 `콩 글자`, 오른쪽 절반이면 왼쪽으로 `글자 콩`). 저장하는 독 위치(`dock_position.right`)는 정원 크기일 때의 오른쪽 끝이다.

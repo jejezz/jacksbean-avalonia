@@ -211,6 +211,13 @@ public partial class DockWindow : Window
 
     private void OpenHome() => App.OpenHome();
 
+    /// <summary>독이 숨어 있으면 보인다(앱을 다시 실행했을 때 — 이미 떠 있다는 것을 보여 준다).</summary>
+    public void EnsureVisible()
+    {
+        if (!IsVisible) Show();
+        Topmost = true;
+    }
+
     /// <summary>독을 숨기거나 다시 보인다(트레이 아이콘·전역 단축키·독 메뉴). 위치는 그대로 기억한다.</summary>
     public void ToggleVisible()
     {

@@ -106,6 +106,10 @@ public partial class App : Application
             var dock = new DockWindow();
             desktop.MainWindow = dock;
             dock.Show();
+            // 두 번째 실행(보이기)과 설치 프로그램의 종료 요청(`--quit`)을 받는다.
+            SingleInstance.Listen(
+                () => Dispatcher.UIThread.Post(dock.EnsureVisible),
+                () => Dispatcher.UIThread.Post(Quit));
             _tray = new TrayService(this, dock);
             Hotkeys = new HotkeyService();
             Hotkeys.Apply(Settings.Value.GlobalHotkey);
