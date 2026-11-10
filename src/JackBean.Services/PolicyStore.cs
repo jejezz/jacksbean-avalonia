@@ -111,6 +111,33 @@ public sealed class PolicyStore
     }
 
     /// <summary>
+    /// 규칙과 앱을 이 OS 의 **기본 정책**으로 바꾼다(파일은 멀쩡하지만 새 기본 규칙을 받고 싶을 때 — 홈 창 [기본 정책으로 되돌리기]).
+    /// 사용자가 적은 그 밖의 최상위 키는 그대로 두고, 바꾸기 전 내용은 같은 폴더에 `.backup-날짜시각` 으로 남기며 <see cref="UndoAsync"/> 로도 되돌릴 수 있다.
+    /// 파일을 못 읽는 경우(깨진 파일)는 <see cref="ResetToDefaultsAsync"/> 를 쓴다.
+    /// </summary>
+    public async Task<ResetResult> RestoreDefaultsAsync(DateTime? now = null)
+    {
+        var result = await MutateAsync(decoded =>
+        {
+            var defaults = PolicyDocument.DefaultJson(Os);
+            decoded["apps"] = defaults["apps"]!.DeepClone();
+            decoded["rules"] = defaults["rules"]!.DeepClone();
+            return null;
+        });
+        if (!result.Ok) return new ResetResult(result.Error, null);
+        try
+        {
+            var backup = $"{FilePath}.backup-{(now ?? DateTime.Now):yyyyMMdd-HHmmss}";
+            await File.WriteAllTextAsync(backup, _previousText ?? "");
+            return new ResetResult(null, backup);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return new ResetResult(null, null);   // 바꾸기는 됐고 사본만 못 남겼다(실행 취소로는 되돌릴 수 있다)
+        }
+    }
+
+    /// <summary>
     /// "항상 이렇게 열기": 제안한 규칙들을 <paramref name="appId"/> 로 열도록 저장한다. 규칙은 대상마다 하나씩이라
     /// 드라이브·폴더는 이미 있는 그 규칙의 앱을 바꾸고(없으면 `drives`/`folders` 를 만들고), 확장자는 다른 규칙에서 빼서
     /// 그 확장자만의 규칙(`auto-ext-확장자`)으로 옮긴다 — 개별 지정이 우선이고, 같은 확장자가 두 규칙에 겹치지 않는다.

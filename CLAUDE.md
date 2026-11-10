@@ -21,6 +21,7 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 ## 빈 상태와 정책 복구
 홈 창은 규칙·앱이 모두 없으면 빈 상태 카드(규약 ui-ux §6)를, 한쪽만 없으면 한 줄 안내를 보인다. 정책 파일 **전체**를 못 읽으면(`PolicyDocument.IsFallback`) 기본 정책을 대신 쓰되 파일은 그대로 두고,
 홈 창의 [기본 정책 다시 만들기]가 `PolicyStore.ResetToDefaultsAsync` 로 새로 만든다(이전 파일은 `.broken-날짜시각`으로 옮겨 둔다). 규칙 하나만 건너뛴 경우는 경고만 보이고 복구 버튼은 없다.
+파일이 멀쩡할 때는 정책 카드의 **[기본 정책으로 되돌리기]**(`PolicyStore.RestoreDefaultsAsync`)가 늘 있다: 확인 대화상자 뒤 규칙·앱만 기본 정책으로 바꾸고(모르는 최상위 키는 보존) 이전 내용을 `.backup-날짜시각` 으로 남기며 [실행 취소]로 되돌릴 수 있다 — 새 기본 규칙을 받고 싶을 때.
 
 ## 정책 동기화 (GitHub)
 설정 창 "동기화" 구역: **GitHub 로그인 → 저장소 고르기(새로 만들기/기존 선택) → [지금 동기화]**(홈 창 정책 카드에도 같은 버튼). **버튼으로 직접**만 한다(자동 동기화 없음). 같은 방식을 Notes2Hub(`../../FLUTTER/notes2hub-flutter`)가 먼저 쓴다 — 참고: `lib/github/device_flow.dart`, `github_api.dart`, `sync/sync_service.dart`.
@@ -86,7 +87,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 299개(Domain 106 · Services 183 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 300개(Domain 106 · Services 184 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
