@@ -2,8 +2,8 @@
   <!-- 버전·정체성의 유일한 원본. 코드는 AppIdentity/AppVersion으로 읽는다 (어셈블리 메타데이터, AOT 안전).
        AppId는 릴리스 후 바꾸지 않는다. MAJOR는 1 이상 (macOS 패키징이 0.y.z를 거부) — 첫 릴리스 전에는 0.1.0-rc.1 로 둔다. -->
   <PropertyGroup>
-    <AppVersion>0.1.0-rc.5</AppVersion>
-    <AppBuild>5</AppBuild>
+    <AppVersion>0.1.0-rc.6</AppVersion>
+    <AppBuild>6</AppBuild>
     <AppId>art.zoomon.jacksbean.avalonia</AppId>
     <AppDisplayName>Jack’s Bean</AppDisplayName>
     <!-- 실행 파일과 사용자 데이터 폴더(%APPDATA%\JacksBean 등)에 쓰는 공백 없는 이름. -->
