@@ -211,7 +211,9 @@ public sealed class HomeWindow : Window
         if (_policy.Rules.Count == 0) rules.Children.Add(Muted(s.HomeNoRules));
         stack.Children.Add(Card(rules));
 
-        var appsHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { Heading(s.HomeApps) } };
+        var appsTitle = Heading(s.HomeApps);
+        appsTitle.VerticalAlignment = VerticalAlignment.Center;   // 오른쪽 편집 버튼(30px)과 같은 줄 가운데에 맞춘다
+        var appsHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { appsTitle } };
         var editApps = ToolButton("edit", s.HomeEditApps, () => AppsEditorWindow.Open(this));
         Grid.SetColumn(editApps, 1);
         appsHeader.Children.Add(editApps);
