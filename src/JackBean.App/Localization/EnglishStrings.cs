@@ -104,7 +104,7 @@ public sealed class EnglishStrings : IAppStrings
     public string HomeWarnings => "Policy file warnings";
     public string HomePolicyFile => "Policy file";
     public string HomeReload => "Reload";
-    public string HomeAsk => "Ask";
+    public string HomeAsk => "OS default";
     public string HomeEmpty => "No rules or apps yet. Drop a file or folder on the dock to get started.";
     public string HomeOpenPolicyFile => "Open policy file";
     public string HomeNoRules => "No rules — everything will ask.";
@@ -113,7 +113,7 @@ public sealed class EnglishStrings : IAppStrings
     public string HomeResetPolicy => "Recreate default policy";
     public string HomeResetDone(string? backup) => backup == null ? "Created the default policy." : $"Recreated the default policy. The previous file is at {backup}.";
     public string HomeResetFailed(string error) => $"Couldn't create the default policy: {error}";
-    public string DockNoApps => "No apps are registered, so there is nothing to choose. Check the policy file in the home window.";
+    public string DockNoCommonApp => "No app can open all of these together. Drop each kind separately.";
     public string SnackbarOpenHome => "Open home";
     public string HomeEditApps => "Edit apps";
     public string AppsEditorTitle => "Edit apps";
@@ -158,7 +158,7 @@ public sealed class EnglishStrings : IAppStrings
     public string RuleCount(int count, int max) => $"Rules {count}/{max}";
     public string RuleAppsTitle(int count, int max) => $"Apps {count}/{max}";
     public string RuleAppsAdd => "Add an app…";
-    public string RuleAppsNoneNote => "With no apps, every registered app is shown each time you drop something.";
+    public string RuleAppsNoneNote => "With no apps linked, it opens the operating system’s default way (Explorer, Finder, …).";
     public string RuleAppsOneNote => "With one app, it opens right away.";
     public string RuleAppsManyNote => "With two or more apps, only these are shown for you to choose from.";
     public string RuleAppMoveUp => "Move up";
@@ -186,6 +186,10 @@ public sealed class EnglishStrings : IAppStrings
     public string RuleAppsBrowse => "Browse for another app…";
     public string RuleAppsBrowseTitle => "Choose an app";
     public string RuleAppPending(string id) => $"{id} (new app — registered when you save)";
+    public string SnackbarUndo => "Undo";
+    public string HomeUndo => "Undo last change";
+    public string PolicyUndone => "Undid the last change.";
+    public string PolicyUndoFailed(string error) => $"Couldn't undo: {error}";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "Images", "audio" => "Music & voice", "video" => "Video", "pdf" => "PDF", "document" => "Documents",

@@ -20,12 +20,15 @@ using JackBean.Services;
 
 namespace JackBean.App.Views;
 
+/// <summary>규칙 편집 창의 구역(처음 어느 구역을 보여 줄지).</summary>
+public enum RulesEditorSection { Drive, Folder, Files, Default }
+
 public sealed partial class RulesEditorWindow : Window
 {
     private static RulesEditorWindow? _instance;
 
-    /// <summary>규칙 편집 창을 연다. 이미 열려 있으면 앞으로 가져온다.</summary>
-    public static void Open(Window origin, bool startOnFiles = false)
+    /// <summary>규칙 편집 창을 연다. 이미 열려 있으면 앞으로 가져온다. <paramref name="start"/> = 처음 보여 줄 구역.</summary>
+    public static void Open(Window origin, RulesEditorSection start = RulesEditorSection.Drive)
     {
         if (_instance is { } open)
         {
@@ -33,12 +36,12 @@ public sealed partial class RulesEditorWindow : Window
             open.Activate();
             return;
         }
-        var window = new RulesEditorWindow(startOnFiles ? Section.Files : Section.Drive);
+        var window = new RulesEditorWindow((Section)start);
         _instance = window;
         WindowPlacementHelper.OpenNear(origin, window);
     }
 
-    private enum Section { Drive, Folder, Files, Default }
+    private enum Section { Drive, Folder, Files, Default }   // RulesEditorSection 과 같은 순서
 
     [GeneratedRegex(@"[,\s;]+")]
     private static partial Regex ExtSeparators();
@@ -559,7 +562,7 @@ public sealed partial class RulesEditorWindow : Window
     {
         var apps = _policy!.Apps.ToDictionary(kv => kv.Key, kv => kv.Value);
         foreach (var (id, app) in _pending) apps[id] = new AppEntry(id, app.Command, app.Args);
-        return new PolicyDocument(apps, _policy.Rules, _policy.Warnings, _policy.IsFallback);
+        return new PolicyDocument(apps, _policy.Rules, _policy.Warnings, _policy.IsFallback, _policy.Os);
     }
 
     /// <summary>파일을 골라 앱으로 연결한다. 같은 실행 파일이 이미 등록되어 있으면 그 앱을 쓰고, 아니면 새 앱(이름은 파일 이름에서)으로 올려 둔다.</summary>
@@ -596,7 +599,7 @@ public sealed partial class RulesEditorWindow : Window
             if (_section == Section.Files) _extRuleId = id;
             await ReloadAsync(first: false, selectExt: _section == Section.Files ? id : null);
             App.NotifyPolicyChanged();
-            Snackbar.Info(Strings.Current.RuleSaved(NameOfRuleId(id)));
+            PolicyNotices.Saved(Strings.Current.RuleSaved(NameOfRuleId(id)));
         }
         finally { _saving = false; }
     }
@@ -616,7 +619,7 @@ public sealed partial class RulesEditorWindow : Window
             _extRuleId = null;
             await ReloadAsync(first: true);
             App.NotifyPolicyChanged();
-            Snackbar.Info(s.RuleDeleted(name));
+            PolicyNotices.Saved(s.RuleDeleted(name));
         }
         finally { _saving = false; }
     }

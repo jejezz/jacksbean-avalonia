@@ -14,20 +14,21 @@ public sealed record RoutePlan(IReadOnlyList<RouteOutcome> Outcomes, PolicyDocum
     public IReadOnlyList<OpenFailed> Failures => Outcomes.OfType<OpenFailed>().ToList();
 
     /// <summary>
-    /// 앱 고르기에 보여 줄 앱. 항목마다 "그 앱들만"이 다를 수 있어서 **모두에게 맞는 앱**(교집합, 규칙에 적힌 순서)만 보인다 —
-    /// 고른 앱 하나로 항목을 전부 여니까, 어느 항목에도 안 맞는 앱을 내놓지 않는다. 교집합이 비면 등록된 앱 전부.
+    /// 앱 고르기에 보여 줄 앱 — **그 항목의 규칙에 연결된 앱뿐**이다(폴더에 pdf 앱이 뜨지 않는다). 항목마다 연결된 앱이 다를 수 있어서
+    /// 모두에게 연결된 앱(교집합, 규칙에 적힌 순서)만 보인다. 고른 앱 하나로 항목을 전부 여니까, 어느 항목에도 안 맞는 앱을 내놓지 않는다.
+    /// 비어 있으면 함께 열 수 있는 앱이 없다(종류가 다른 항목을 같이 놓았다).
     /// </summary>
     public IReadOnlyList<AppEntry> ChoiceApps()
     {
-        var all = Policy.Apps.Values.ToList();
         IReadOnlyList<AppEntry>? common = null;
         foreach (var ask in AskOutcomes)
         {
-            var mine = ask.Candidates ?? all;
+            var mine = ask.Candidates ?? [];
             common = common == null ? mine : common.Where(a => mine.Any(m => m.Id == a.Id)).ToList();
         }
-        return common is { Count: > 0 } ? common : all;
+        return common ?? [];
     }
+
 }
 
 public sealed record ChoiceResult(IReadOnlyList<RouteOutcome> Outcomes, IReadOnlyList<RuleSuggestion>? Saved = null, string? SaveError = null)

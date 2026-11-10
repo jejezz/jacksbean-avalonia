@@ -82,11 +82,11 @@ public class RuleModelTests
     }
 
     [Fact]
-    public void RuleWithOneAppOpensDirectlyAndNoneAsksAll()
+    public void RuleWithOneAppOpensDirectlyAndNoAppsUsesTheOsDefault()
     {
         var d = Doc("""[{"id":"p","when":{"kind":"extension","extensions":["pdf"]},"open":["c"]},{"id":"any","when":{"kind":"file"},"open":[]}]""");
         Assert.Equal("c", Assert.IsType<OpenWith>(d.Decide(File("x.pdf"))).App.Id);
-        Assert.Null(Assert.IsType<Ask>(d.Decide(File("x.zip"))).Candidates);   // null = 등록된 앱 전부
+        Assert.Equal("default", Assert.IsType<OpenWith>(d.Decide(File("x.zip"))).App.Id);   // 연결된 앱이 없다 — 운영체제 기본 방식(등록된 앱 전부를 내놓지 않는다)
     }
 
     [Fact]

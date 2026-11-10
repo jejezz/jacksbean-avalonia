@@ -112,7 +112,7 @@ public interface IAppStrings
     string HomeResetPolicy { get; }
     string HomeResetDone(string? backup);
     string HomeResetFailed(string error);
-    string DockNoApps { get; }
+    string DockNoCommonApp { get; }
     string SnackbarOpenHome { get; }
     string HomeEditApps { get; }
     string AppsEditorTitle { get; }
@@ -183,6 +183,10 @@ public interface IAppStrings
     string RuleAppsBrowse { get; }
     string RuleAppsBrowseTitle { get; }
     string RuleAppPending(string id);
+    string SnackbarUndo { get; }
+    string HomeUndo { get; }
+    string PolicyUndone { get; }
+    string PolicyUndoFailed(string error);
     string ExtensionGroupName(string id);
     string ViewerFailed(string error);
 }

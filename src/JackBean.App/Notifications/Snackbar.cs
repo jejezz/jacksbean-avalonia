@@ -19,7 +19,8 @@ internal static class Snackbar
     public static void Error(string message, string? detail = null, string? actionLabel = null, Action? action = null) =>
         Show(new Notification(NotificationKind.Error, message, detail), actionLabel, action);
 
-    public static void Info(string message) => Show(new Notification(NotificationKind.Info, message));
+    public static void Info(string message, string? actionLabel = null, Action? action = null) =>
+        Show(new Notification(NotificationKind.Info, message), actionLabel, action);
 
     public static void Show(Notification notification, string? actionLabel = null, Action? action = null)
     {

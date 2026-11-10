@@ -25,9 +25,11 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 ## 정책 편집(룰 메이커)
 홈 창은 **보기 전용**이고 편집은 별도 창에서 한다(JSON 을 직접 고치지 않아도 되게 폼으로). 지금은 **앱 편집 창**(`Views/AppsEditorWindow`: 왼쪽 앱 목록 + 오른쪽 폼 — 이름·실행 파일·인자)만 있고,
 홈 창 "앱" 카드의 [앱 편집]과 빈 상태의 [앱 추가]로 연다. 저장·삭제는 `PolicyStore.UpsertAppAsync/RemoveAppAsync`(임시 파일에 쓰고 교체, 사용자가 적은 모르는 키는 보존, 깨진 파일은 쓰지 않음).
-앱 ID 는 규칙이 가리키는 이름이라 만들 때만 정하고 바꾸지 않으며(`AppRules`), 지울 때 그 앱을 쓰는 규칙은 지우지 않고 "물어보기"로 바꾼다. 정책을 바꾸면 `App.NotifyPolicyChanged()` 로 홈 창 등이 다시 읽는다.
+앱 ID 는 규칙이 가리키는 이름이라 만들 때만 정하고 바꾸지 않으며(`AppRules`), 지울 때 그 앱을 쓰는 규칙은 지우지 않고 그 규칙의 앱 목록에서만 뺀다(앱이 하나도 안 남으면 그 규칙은 운영체제 기본 방식으로 열린다). 정책을 바꾸면 `App.NotifyPolicyChanged()` 로 홈 창 등이 다시 읽는다.
 **규칙 편집 창**(`Views/RulesEditorWindow`, 홈 창 "규칙" 카드의 [규칙 편집]으로 연다)은 네 가지 대상 — 드라이브 · 폴더 · 파일 형식 · 그 밖의 파일 — 을 왼쪽 목록으로 고르고, 대상마다 연결한 앱(0~10개, 순서 바꾸기·빼기·등록된 앱에서 추가)을 고친다. 등록되지 않은 앱은 [다른 앱 찾아보기…]로 파일을 골라 바로 연결할 수 있다 — 이름은 파일 이름에서 정하고(`AppRules.SuggestId`), 같은 실행 파일이 이미 있으면 그 앱을 쓰며, 새 앱은 규칙을 **저장할 때** 정책의 `apps` 에 등록된다(저장하지 않으면 남지 않는다).
 파일 형식 구역은 확장자 규칙 목록 + 묶음 칩(누르면 그 묶음의 확장자가 들어가고 빠진다) + 확장자 입력칸이며, 저장 전에 `RuleCheck`로 겹침·한도·없는 앱을 보여 준다(저장할 때 서비스가 한 번 더 막는다). 규칙 ID 는 사용자가 정하지 않는다(묶음과 똑같으면 묶음 이름, 아니면 `ext-첫확장자`). 규칙 모델은 아래.
+
+**실행 취소(한 단계)**: 편집 창의 저장·삭제와 "항상 이렇게 열기"는 `PolicyStore.UndoAsync` 로 되돌릴 수 있다(앱을 끌 때까지, 마지막 변경 하나). 알림에 [실행 취소]가 붙고(`PolicyNotices.Saved`), 홈 창 정책 카드에 [마지막 변경 되돌리기]가 있다. 한 번 더 누르면 다시 실행. 그 뒤 파일을 손으로 고쳤으면 그 수정을 덮어쓰지 않도록 거절하고, [기본 정책 다시 만들기]는 기록을 비운다.
 
 ## 규칙 모델 (정책 파일 schema 2)
 ```
@@ -37,7 +39,7 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 ```
 대상은 **네 가지**(`RuleKind`): 드라이브 · 폴더 · 그 밖의 파일(`file` = 기본 앱) · 확장자 묶음(`extension`). 드라이브·폴더·파일 규칙은 하나씩만, 확장자는 어느 규칙에서든 한 번만 나올 수 있다(`RuleCheck`가 저장을 막는다).
 **Git 저장소 규칙은 없다**: 폴더는 폴더 하나, 저장소를 어떻게 다룰지는 지정한 앱이 정한다. 이름 패턴 규칙도 없다.
-규칙 하나는 앱을 0~10개 가진다(`Rule.Choices` ← JSON `open` 배열, `PolicyLimits.MaxAppsPerRule`): 1개면 바로 열고, 2개 이상이면 **그 앱들만** 독에서 고르게 하고(`Ask.Candidates` → `NeedsChoice.Candidates` → `RoutePlan.ChoiceApps()`, 여러 항목이면 교집합·비면 전부), 0개면 등록된 앱 전부를 보여 주며 묻는다.
+규칙 하나는 앱을 0~10개 가진다(`Rule.Choices` ← JSON `open` 배열, `PolicyLimits.MaxAppsPerRule`): 1개면 바로 열고, 2개 이상이면 **그 앱들만** 독에서 고르게 하고(`Ask.Candidates` → `NeedsChoice.Candidates` → `RoutePlan.ChoiceApps()`, 여러 항목이면 교집합), 0개면 **운영체제 기본 방식**으로 연다 — 카탈로그의 `default`(Windows 탐색기 · macOS Finder(`open`) · Linux `xdg-open`, `PolicyDocument.DefaultApp`)이고 정책의 `apps` 에 등록하지 않아도 늘 쓸 수 있다. 어느 규칙에도 안 맞는 항목도 마찬가지라 아무 설정이 없어도 OS 가 하는 대로 동작한다. 등록된 앱 전부를 보여 주며 묻지는 않는다(폴더에 pdf 앱이 뜨면 안 된다). 항목마다 겹치는 앱이 없으면 독이 "종류별로 따로 놓아 달라"고 알린다. 기본 정책은 드라이브 → 파일 관리자, 폴더 → 파일 관리자·터미널 중에서 고르기(있는 OS 만), 파일 → 기본 앱이다.
 정책의 규칙은 255개까지(`PolicyLimits.MaxRules`) — 읽을 때는 넘어도 지우지 않고 경고만, 편집할 때만 막는다. 모양이 틀린 규칙·앱은 건너뛰고 경고(`PolicyDocument.Warnings`), schema 가 다르면 파일 전체를 못 읽은 것으로 보고 기본 정책을 쓴다(`IsFallback`, 홈 창의 [기본 정책 다시 만들기]).
 확장자 묶음은 `ExtensionGroups`(이미지·음악·영상·PDF·문서·스프레드시트·프레젠테이션·압축·텍스트·코드, 한 확장자는 한 묶음에만) — 저장은 확장자 목록이라 묶음 정의가 바뀌어도 저장한 규칙은 그대로다.
 저장할 때 규칙은 구체적인 것이 위로 정렬된다(`RuleOrder`: 확장자 → 드라이브·폴더 → 그 밖의 파일). `PolicyStore` 의 `UpsertRuleAsync`/`RemoveRuleAsync`(편집), `RememberAsync`("항상 이렇게 열기": 드라이브·폴더는 있는 규칙의 앱을 바꾸고, 확장자는 다른 규칙에서 빼서 `auto-ext-확장자` 로 옮긴다)가 이것을 한다. 앱을 지우면 규칙은 지우지 않고 그 규칙의 앱 목록에서만 빠진다.
@@ -68,7 +70,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 205개(Domain 92 · Services 105 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 215개(Domain 92 · Services 115 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
