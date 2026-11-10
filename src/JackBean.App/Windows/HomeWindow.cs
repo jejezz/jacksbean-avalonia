@@ -257,11 +257,6 @@ public sealed class HomeWindow : Window
         Snackbar.Info(Strings.Current.HomeResetDone(result.BackupPath));
     }
 
-    private static string Describe(RuleCondition c) => c.Kind switch
-    {
-        "extension" => "ext: " + string.Join(", ", c.Values),
-        "nameGlob" => "name: " + c.Pattern,
-        "hasGit" => c.Value == "true" ? "git folder" : "folder without git",
-        _ => $"{c.Kind}: {c.Value}",
-    };
+    private static string Describe(RuleCondition c) =>
+        c.Kind == RuleKind.Extension ? "ext: " + string.Join(", ", c.Extensions) : c.Kind.ToString().ToLowerInvariant();
 }

@@ -6,7 +6,7 @@
     <AppBuild>1</AppBuild>
     <AppId>art.zoomon.jacksbean.avalonia</AppId>
     <AppDisplayName>Jack’s Bean</AppDisplayName>
-    <!-- 실행 파일과 사용자 데이터 폴더(%APPDATA%\JacksBean 등)에 쓰는 공백 없는 이름. Flutter 판과 같은 폴더라 정책 파일을 이어 쓴다. -->
+    <!-- 실행 파일과 사용자 데이터 폴더(%APPDATA%\JacksBean 등)에 쓰는 공백 없는 이름. -->
     <AppFileName>JacksBean</AppFileName>
     <AppCopyrightHolder>Jongyun Ahn</AppCopyrightHolder>
     <AppFirstReleaseYear>2026</AppFirstReleaseYear>

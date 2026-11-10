@@ -1,15 +1,16 @@
-// 정책 파일(schema 1)을 읽은 모습과 규칙 판정.
+// 정책 파일(schema 2)을 읽은 모습과 규칙 판정.
 //
-//   { "schema": 1, "os": "windows",
-//     "apps":  { "<논리 ID>": { "command": "...", "args": ["{path}"] } },
-//     "rules": [ { "id": "...", "when": { "kind": "extension", "values": ["png"] }, "open": "<논리 ID>" } ] }
+//   { "schema": 2, "os": "windows",
+//     "apps":  { "<앱 ID>": { "command": "...", "args": ["{path}"] } },
+//     "rules": [ { "id": "...", "when": { "kind": "extension", "extensions": ["png", "jpg"] }, "open": ["<앱 ID>", ...] } ] }
 //
-// 규칙은 **위에서부터 처음 맞는 것**이 이긴다. `open`이 없거나 null 이면 "물어보기"다.
+// 대상(`when.kind`)은 네 가지다: drive · folder · file(그 밖의 모든 파일 = 기본 앱) · extension(확장자 묶음).
+// 규칙은 **위에서부터 처음 맞는 것**이 이긴다(저장할 때 구체적인 것이 위로 정렬된다 — RuleOrder). `open` 은 앱 0~10개:
+// 1개면 바로 열고, 2개 이상이면 그 앱들만 골라서 묻고, 0개면 등록된 앱 전부를 보여 주며 묻는다.
 // 읽을 때는 관대하다: 모양이 틀린 앱·규칙은 건너뛰고 Warnings 에 이유를 남긴다 — 규칙 하나가 틀렸다고 독 전체가 멈추면 안 된다.
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using JackBean.Domain.Drop;
 
 namespace JackBean.Domain.Policy;
@@ -19,91 +20,84 @@ public sealed record AppEntry(string Id, string Command, IReadOnlyList<string> A
     public AppEntry(string id, string command) : this(id, command, ["{path}"]) { }
 }
 
-/// <summary>
-/// 규칙 하나의 조건(JSON 의 `when`). extension / hasGit / kind / nameGlob — 어느 OS 에서나 뜻이 같다.
-/// </summary>
+/// <summary>규칙의 대상 종류.</summary>
+public enum RuleKind { Drive, Folder, File, Extension }
+
+/// <summary>규칙 하나의 조건(JSON 의 `when`): 대상 종류, 확장자 규칙이면 확장자 목록.</summary>
 public sealed class RuleCondition
 {
-    private RuleCondition(string kind, IReadOnlyList<string>? values = null, string? value = null, string? pattern = null)
+    private RuleCondition(RuleKind kind, IReadOnlyList<string>? extensions = null)
     {
         Kind = kind;
-        Values = values ?? [];
-        Value = value;
-        Pattern = pattern;
-        if (pattern != null) _glob = GlobToRegex(pattern);
+        Extensions = extensions ?? [];
     }
 
-    public string Kind { get; }
-    public IReadOnlyList<string> Values { get; }
-    public string? Value { get; }
-    public string? Pattern { get; }
-    private readonly Regex? _glob;
+    public RuleKind Kind { get; }
+
+    /// <summary>확장자 규칙의 확장자(소문자, 점 없음, 중복 없음). 다른 종류는 비어 있다.</summary>
+    public IReadOnlyList<string> Extensions { get; }
+
+    public static RuleCondition Drive { get; } = new(RuleKind.Drive);
+    public static RuleCondition Folder { get; } = new(RuleKind.Folder);
+    public static RuleCondition File { get; } = new(RuleKind.File);
+
+    /// <summary>확장자 규칙. `.PNG` 도 `png` 로 고르고 중복은 버린다. 확장자가 하나도 없으면 null.</summary>
+    public static RuleCondition? Extension(IEnumerable<string> extensions)
+    {
+        var list = extensions.Select(ExtensionGroups.Normalize).Where(e => e.Length > 0).Distinct().ToList();
+        return list.Count == 0 ? null : new RuleCondition(RuleKind.Extension, list);
+    }
+
+    private static string KindName(RuleKind kind) => kind.ToString().ToLowerInvariant();
 
     /// <summary>모양이 틀리면 null.</summary>
     public static RuleCondition? Parse(JsonNode? json)
     {
         if (json is not JsonObject obj) return null;
-        var kind = Str(obj["kind"]);
-        switch (kind)
+        switch (Str(obj["kind"]))
         {
+            case "drive": return Drive;
+            case "folder": return Folder;
+            case "file": return File;
             case "extension":
-                if (obj["values"] is not JsonArray arr || arr.Count == 0) return null;
+                if (obj["extensions"] is not JsonArray arr) return null;
                 var values = new List<string>();
                 foreach (var v in arr)
                 {
                     var s = Str(v);
                     if (s == null) return null;
-                    var lower = s.ToLowerInvariant();
-                    values.Add(lower.StartsWith('.') ? lower[1..] : lower);
+                    values.Add(s);
                 }
-                return new RuleCondition("extension", values);
-            case "hasGit":
-                var raw = obj["value"];
-                if (raw != null && !(raw is JsonValue jv && jv.TryGetValue<bool>(out _))) return null;
-                return new RuleCondition("hasGit", value: raw == null ? "true" : raw.GetValue<bool>() ? "true" : "false");
-            case "kind":
-                var k = Str(obj["value"]);
-                return k is "drive" or "folder" or "file" ? new RuleCondition("kind", value: k) : null;
-            case "nameGlob":
-                var p = Str(obj["pattern"]);
-                return string.IsNullOrEmpty(p) ? null : new RuleCondition("nameGlob", pattern: p);
+                return Extension(values);
             default:
                 return null;
         }
+    }
+
+    public JsonObject ToJson()
+    {
+        var json = new JsonObject { ["kind"] = KindName(Kind) };
+        if (Kind == RuleKind.Extension) json["extensions"] = new JsonArray(Extensions.Select(e => (JsonNode?)JsonValue.Create(e)).ToArray());
+        return json;
     }
 
     public static string? Str(JsonNode? n) => n is JsonValue v && v.TryGetValue<string>(out var s) ? s : null;
 
     public bool Matches(DroppedItem item) => Kind switch
     {
-        "extension" => item.Kind == DropKind.File && Values.Contains(item.Extension),
-        "hasGit" => item.Kind == DropKind.Folder && item.HasGit == (Value == "true"),
-        "kind" => item.Kind.JsonName() == Value,
-        "nameGlob" => _glob!.IsMatch(item.Name),
+        RuleKind.Drive => item.Kind == DropKind.Drive,
+        RuleKind.Folder => item.Kind == DropKind.Folder,
+        RuleKind.File => item.Kind == DropKind.File,
+        RuleKind.Extension => item.Kind == DropKind.File && Extensions.Contains(item.Extension),
         _ => false,
     };
-
-    private static Regex GlobToRegex(string pattern)
-    {
-        var sb = new System.Text.StringBuilder("^");
-        foreach (var ch in pattern)
-            sb.Append(ch switch { '*' => ".*", '?' => ".", _ => Regex.Escape(ch.ToString()) });
-        sb.Append('$');
-        return new Regex(sb.ToString(), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
-    }
 }
 
 /// <summary>
 /// 규칙 하나: 조건에 맞으면 <see cref="Choices"/> 의 앱으로 연다. 앱이 1개면 바로 열고, 2개 이상이면 **그 앱들만** 골라서 묻고,
 /// 0개면 등록된 앱 전부를 보여 주며 묻는다. 한 규칙에 최대 <see cref="PolicyLimits.MaxAppsPerRule"/>개.
 /// </summary>
-public sealed record Rule(string Id, RuleCondition When, IReadOnlyList<string> Choices)
-{
-    public Rule(string id, RuleCondition when, string? open) : this(id, when, open == null ? [] : [open]) { }
-
-    /// <summary>앱이 정확히 1개일 때 그 앱(Flutter 판이 읽는 `open`). 0개나 2개 이상이면 null.</summary>
-    public string? Open => Choices.Count == 1 ? Choices[0] : null;
-}
+public sealed record Rule(string Id, RuleCondition When, IReadOnlyList<string> Choices);
 
 public abstract record Decision;
 
@@ -121,7 +115,7 @@ public sealed record Ignore : Decision;
 
 public sealed class PolicyDocument
 {
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
 
     public PolicyDocument(IReadOnlyDictionary<string, AppEntry>? apps = null, IReadOnlyList<Rule>? rules = null, IReadOnlyList<string>? warnings = null, bool isFallback = false)
     {
@@ -143,7 +137,7 @@ public sealed class PolicyDocument
     /// <summary>읽다가 건너뛴 것들의 이유.</summary>
     public IReadOnlyList<string> Warnings { get; }
 
-    /// <summary>정책 JSON 을 읽는다. 모양이 아예 틀리면 <see cref="FormatException"/>.</summary>
+    /// <summary>정책 JSON 을 읽는다. 모양이 아예 틀리면(schema 가 다르면) <see cref="FormatException"/>.</summary>
     public static PolicyDocument FromJson(JsonObject json)
     {
         var schema = json["schema"] is JsonValue sv && sv.TryGetValue<int>(out var n) ? n : (int?)null;
@@ -182,7 +176,7 @@ public sealed class PolicyDocument
                 var when = RuleCondition.Parse(obj["when"]);
                 if (when == null) { warnings.Add($"규칙 \"{id}\": 조건(when)을 알 수 없어 건너뜀"); continue; }
                 var choices = RuleChoices.Read(obj);
-                if (choices == null) { warnings.Add($"규칙 \"{id}\": open/choices 가 올바른 앱 이름이 아니라 건너뜀"); continue; }
+                if (choices == null) { warnings.Add($"규칙 \"{id}\": open 이 앱 이름의 목록이 아니라 건너뜀"); continue; }
                 if (choices.Count > PolicyLimits.MaxAppsPerRule)
                 {
                     warnings.Add($"규칙 \"{id}\": 앱이 {PolicyLimits.MaxAppsPerRule}개를 넘어 앞 {PolicyLimits.MaxAppsPerRule}개만 씀");
@@ -214,7 +208,7 @@ public sealed class PolicyDocument
 
     /// <summary>
     /// 이 OS의 기본 정책: 카탈로그가 아는 앱만. 드라이브는 파일 관리자로, 파일은 시스템 기본 앱으로 열고,
-    /// 폴더는 물어본다. 형제 앱은 설치 경로를 모르므로 일부러 넣지 않는다.
+    /// 폴더는 물어본다. 설치 경로를 모르는 앱은 일부러 넣지 않는다.
     /// </summary>
     public static JsonObject DefaultJson(PolicyOs os)
     {
@@ -230,11 +224,16 @@ public sealed class PolicyDocument
             ["os"] = os.JsonName(),
             ["apps"] = apps,
             ["rules"] = new JsonArray(
-                Rule("drives", new JsonObject { ["kind"] = "kind", ["value"] = "drive" }, "explorer"),
-                Rule("folders", new JsonObject { ["kind"] = "kind", ["value"] = "folder" }, null),
-                Rule("files", new JsonObject { ["kind"] = "kind", ["value"] = "file" }, "default")),
+                Rule("drives", RuleCondition.Drive, "explorer"),
+                Rule("folders", RuleCondition.Folder),
+                Rule("files", RuleCondition.File, "default")),
         };
 
-        static JsonObject Rule(string id, JsonObject when, string? open) => new() { ["id"] = id, ["when"] = when, ["open"] = open };
+        static JsonObject Rule(string id, RuleCondition when, params string[] open)
+        {
+            var rule = new JsonObject { ["id"] = id, ["when"] = when.ToJson() };
+            RuleChoices.Write(rule, open);
+            return rule;
+        }
     }
 }

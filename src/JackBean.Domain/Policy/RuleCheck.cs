@@ -10,6 +10,8 @@ public enum RuleProblemKind
     UnknownApp,
     /// <summary>다른 규칙에도 있는 확장자다. Detail = 확장자, Other = 그 규칙 ID.</summary>
     ExtensionTaken,
+    /// <summary>드라이브·폴더·그 밖의 파일은 규칙이 하나씩만 있다. Other = 이미 있는 규칙 ID.</summary>
+    KindTaken,
     /// <summary>새 규칙의 ID 가 이미 있다.</summary>
     IdTaken,
 }
@@ -38,42 +40,33 @@ public static class RuleCheck
         foreach (var id in candidate.Choices)
             if (!policy.Apps.ContainsKey(id)) problems.Add(new(RuleProblemKind.UnknownApp, id));
 
-        if (candidate.When.Kind == "extension")
+        if (candidate.When.Kind == RuleKind.Extension)
         {
-            foreach (var ext in candidate.When.Values)
+            foreach (var ext in candidate.When.Extensions)
             {
-                var other = policy.Rules.FirstOrDefault(r => r.Id != candidate.Id && r.When.Kind == "extension" && r.When.Values.Contains(ext));
+                var other = policy.Rules.FirstOrDefault(r => r.Id != candidate.Id && r.When.Kind == RuleKind.Extension && r.When.Extensions.Contains(ext));
                 if (other != null) problems.Add(new(RuleProblemKind.ExtensionTaken, ext, other.Id));
             }
         }
+        else
+        {
+            var other = policy.Rules.FirstOrDefault(r => r.Id != candidate.Id && r.When.Kind == candidate.When.Kind);
+            if (other != null) problems.Add(new(RuleProblemKind.KindTaken, candidate.When.Kind.ToString(), other.Id));
+        }
         return problems;
-    }
-
-    /// <summary>정책 전체에서 같은 확장자를 가진 규칙 쌍(손으로 고친 파일 점검용).</summary>
-    public static IReadOnlyList<RuleProblem> FindExtensionConflicts(IEnumerable<Rule> rules)
-    {
-        var owner = new Dictionary<string, string>();
-        var found = new List<RuleProblem>();
-        foreach (var rule in rules.Where(r => r.When.Kind == "extension"))
-            foreach (var ext in rule.When.Values)
-                if (!owner.TryAdd(ext, rule.Id) && owner[ext] != rule.Id)
-                    found.Add(new(RuleProblemKind.ExtensionTaken, ext, owner[ext]));
-        return found;
     }
 }
 
 /// <summary>
-/// 규칙의 자리: **구체적인 것을 위에**. 편집 창이 저장할 때 이 순서로 정렬한다(사용자는 순서를 신경 쓰지 않는다).
-/// 이름 패턴 → 확장자 → Git 구분 → 드라이브·폴더 → 그 밖의 파일. 확장자 규칙끼리는 겹치지 않으므로 서로의 순서는 상관없다.
+/// 규칙의 자리: **구체적인 것을 위에**. 저장할 때 이 순서로 정렬한다(사용자는 순서를 신경 쓰지 않는다).
+/// 확장자 → 드라이브·폴더 → 그 밖의 파일. 확장자 규칙끼리는 겹치지 않고 드라이브·폴더·파일도 하나씩이라 같은 자리끼리의 순서는 상관없다.
 /// </summary>
 public static class RuleOrder
 {
     public static int Rank(RuleCondition when) => when.Kind switch
     {
-        "nameGlob" => 0,
-        "extension" => 1,
-        "hasGit" => 2,
-        "kind" => when.Value == "file" ? 4 : 3,
-        _ => 3,
+        RuleKind.Extension => 0,
+        RuleKind.Drive or RuleKind.Folder => 1,
+        _ => 2,
     };
 }
