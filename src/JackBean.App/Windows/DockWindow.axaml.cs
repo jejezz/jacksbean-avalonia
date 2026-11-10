@@ -63,7 +63,12 @@ public partial class DockWindow : Window
     public DockWindow()
     {
         InitializeComponent();
-        _expansion = new DockExpansion(expanded => ResizeTo(expanded ? new Size(ActiveWidth, IdleSize) : new Size(IdleSize, IdleSize)));
+        // 줄이기는 스레드 풀 타이머에서 불리므로 UI 스레드로 넘겨서 창 속성을 만진다.
+        _expansion = new DockExpansion(expanded =>
+        {
+            void Apply() => ResizeTo(expanded ? new Size(ActiveWidth, IdleSize) : new Size(IdleSize, IdleSize));
+            if (Dispatcher.UIThread.CheckAccess()) Apply(); else Dispatcher.UIThread.Post(Apply);
+        });
 
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DragEnterEvent, OnDragEnter);
