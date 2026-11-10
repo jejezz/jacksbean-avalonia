@@ -336,7 +336,7 @@ public sealed class HomeWindow : Window
         var row = new Border { Child = grid, Padding = new Thickness(8, 8), CornerRadius = new CornerRadius(8), Cursor = new Cursor(StandardCursorType.Hand), Background = Brushes.Transparent };
         row.Classes.Add("row");
         var section = rule.When.Kind switch { RuleKind.Drive => RulesEditorSection.Drive, RuleKind.Folder => RulesEditorSection.Folder, RuleKind.File => RulesEditorSection.Default, _ => RulesEditorSection.Files };
-        row.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left) RulesEditorWindow.Open(this, section); };
+        row.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left) RulesEditorWindow.Open(this, section, rule.When.Kind == RuleKind.Extension ? rule.Id : null); };
         return row;
     }
 
