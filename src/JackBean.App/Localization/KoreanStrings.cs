@@ -190,6 +190,13 @@ public sealed class KoreanStrings : IAppStrings
     public string HomeUndo => "마지막 변경 되돌리기";
     public string PolicyUndone => "방금 변경을 되돌렸습니다.";
     public string PolicyUndoFailed(string error) => $"되돌리지 못했습니다: {error}";
+    public string TrayHideDock => "독 숨기기";
+    public string TrayShowDock => "독 보이기";
+    public string SettingsSectionBehavior => "동작";
+    public string SettingsHotkey => "전역 단축키";
+    public string SettingsHotkeyToggle(string combo) => $"{combo} 로 독 숨기기·보이기";
+    public string SettingsHotkeyNote => "어느 앱에 있어도 눌립니다. 다른 앱이 같은 단축키를 쓰고 있으면 켜지지 않습니다.";
+    public string HotkeyFailed(string combo) => $"{combo} 단축키를 켜지 못했습니다. 다른 앱이 쓰고 있을 수 있습니다.";
     public string ExtensionGroupName(string id) => id switch
     {
         "image" => "이미지", "audio" => "음악·음성", "video" => "영상", "pdf" => "PDF", "document" => "문서",

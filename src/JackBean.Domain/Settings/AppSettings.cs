@@ -34,7 +34,7 @@ public static class TextScales
 /// <summary>
 /// 영속화되는 앱 설정. 저장 키는 모든 앱 공통 규약을 따른다 (conventions localization.md §5):
 /// <c>theme_mode</c>, <c>accent_palette</c>, <c>text_scale</c>, <c>app_locale</c>, <c>window_placement</c>.
-/// 앱 고유 설정은 <c>&lt;기능&gt;_&lt;이름&gt;</c> 키를 쓴다 (<c>dock_*</c>). 같은 키 이름의 JSON 파일 하나에 저장한다
+/// 앱 고유 설정은 <c>&lt;기능&gt;_&lt;이름&gt;</c> 키를 쓴다 (<c>dock_*</c>, <c>global_hotkey</c>). 같은 키 이름의 JSON 파일 하나에 저장한다
 /// (정책 파일 <c>policy.&lt;os&gt;.json</c>과는 별개 — 정책만 동기화 대상이다).
 /// <para>
 /// 모든 필드에 기본값이 있어서 옛 파일에 없는 키가 있어도, 새 버전이 키를 더해도 읽힌다. 불변이라 <c>with</c>로 바꾼다.
@@ -69,6 +69,10 @@ public sealed record AppSettings
     /// <summary>사용자가 끌어다 놓은 독의 자리(오른쪽 끝·위쪽). null이면 오른쪽 가장자리 세로 가운데.</summary>
     [JsonPropertyName("dock_position")]
     public DockPosition? Dock { get; init; }
+
+    /// <summary>전역 단축키(Ctrl+Alt+J)로 독을 숨기거나 보이게 한다. 기본은 꺼짐 — 다른 앱과 겹칠 수 있어서 사용자가 켠다. 이 OS 에서 쓸 수 없으면 의미 없다.</summary>
+    [JsonPropertyName("global_hotkey")]
+    public bool GlobalHotkey { get; init; }
 
     public AppSettings WithTextScale(double scale) => this with { TextScale = TextScales.Snap(scale) };
 

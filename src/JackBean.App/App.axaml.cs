@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using JackBean.App.Notifications;
 using JackBean.App.Tools;
+using JackBean.App.Tray;
 using JackBean.App.Updates;
 using JackBean.App.Views;
 using JackBean.App.Windows;
@@ -33,6 +34,11 @@ public partial class App : Application
     internal static void NotifyPolicyChanged() => PolicyChanged?.Invoke();
 
     internal static ToolRegistry Tools { get; private set; } = null!;
+
+    /// <summary>전역 단축키(독 숨기기·보이기). 이 OS 에서 쓸 수 없으면 <see cref="HotkeyService.IsSupported"/> 가 false.</summary>
+    internal static HotkeyService Hotkeys { get; private set; } = null!;
+
+    private TrayService? _tray;
 
     /// <summary>업데이트 확인·설치. 서버 주소가 없는 빌드(<c>-p:AppUpdateServer=</c>)나 로컬 빌드는 null.</summary>
     internal static UpdateService? Updates { get; private set; }
@@ -73,12 +79,16 @@ public partial class App : Application
             var dock = new DockWindow();
             desktop.MainWindow = dock;
             dock.Show();
+            _tray = new TrayService(this, dock);
+            Hotkeys = new HotkeyService();
+            Hotkeys.Apply(Settings.Value.GlobalHotkey);
+            Settings.Changed += st => Dispatcher.UIThread.Post(() => Hotkeys.Apply(st.GlobalHotkey));
             Updates = UpdateService.Create(
                 FileUpdateStateStore.BesideSettings(settingsFile),
                 owner: () => desktop.Windows.OfType<HomeWindow>().FirstOrDefault(w => w.IsActive) ?? desktop.Windows.OfType<HomeWindow>().FirstOrDefault(),
                 isBusy: () => false);
             Updates?.StartAutomaticCheck();
-            desktop.Exit += (_, _) => Settings.Dispose(); // 종료할 때 마지막 변경까지 저장
+            desktop.Exit += (_, _) => { Hotkeys.Dispose(); _tray?.Dispose(); Settings.Dispose(); }; // 종료할 때 단축키를 풀고 마지막 변경까지 저장
 
             // 확인용 인자: `--home` `--settings` `--about` 으로 그 창도 함께 띄운다.
             foreach (var arg in desktop.Args ?? [])
@@ -103,6 +113,12 @@ public partial class App : Application
             || previous.TextScale != s.TextScale || previous.UiFontFamily != s.UiFontFamily)
             ThemeService.Apply(s);
         if (previous is null || previous.Locale != s.Locale) Strings.Apply(s.Locale);
+    }
+
+    /// <summary>독을 숨기거나 다시 보인다.</summary>
+    internal static void ToggleDock()
+    {
+        if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: DockWindow dock }) dock.ToggleVisible();
     }
 
     /// <summary>홈 창을 연다(이미 있으면 앞으로).</summary>

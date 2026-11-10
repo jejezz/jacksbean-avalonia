@@ -39,6 +39,7 @@ public partial class DockWindow : Window
 
     private readonly MenuItem OpenWindowItem = new();
     private readonly MenuItem QuitItem = new();
+    private readonly MenuItem HideItem = new();
     private readonly MenuItem SettingsItem = new();
     private readonly MenuItem AboutItem = new();
     private readonly DockExpansion _expansion;
@@ -93,9 +94,10 @@ public partial class DockWindow : Window
 
         PointerPressed += OnPointerPressed;
         DoubleTapped += (_, _) => OpenHome();
-        ContextMenu = new ContextMenu { ItemsSource = new[] { OpenWindowItem, SettingsItem, AboutItem, QuitItem } };
+        ContextMenu = new ContextMenu { ItemsSource = new[] { OpenWindowItem, SettingsItem, AboutItem, HideItem, QuitItem } };
         OpenWindowItem.Click += (_, _) => OpenHome();
         QuitItem.Click += (_, _) => App.Quit();
+        HideItem.Click += (_, _) => ToggleVisible();
         SettingsItem.Click += (_, _) => SettingsWindow.Open(this);
         AboutItem.Click += (_, _) => Dialogs.AboutDialog.Open(this);
         PositionChanged += OnPositionChanged;
@@ -124,6 +126,7 @@ public partial class DockWindow : Window
         SettingsItem.Header = Strings.Current.SettingsTooltip;
         AboutItem.Header = Strings.Current.AboutTooltip;
         QuitItem.Header = Strings.Current.DockMenuQuit;
+        HideItem.Header = Strings.Current.TrayHideDock;
     }
 
     // ── 창 위치와 크기 ──────────────────────────────────────────────────────────────
@@ -189,6 +192,13 @@ public partial class DockWindow : Window
     }
 
     private void OpenHome() => App.OpenHome();
+
+    /// <summary>독을 숨기거나 다시 보인다(트레이 아이콘·전역 단축키·독 메뉴). 위치는 그대로 기억한다.</summary>
+    public void ToggleVisible()
+    {
+        if (IsVisible) Hide();
+        else Show();
+    }
 
     // ── 드래그와 드롭 ───────────────────────────────────────────────────────────────
 

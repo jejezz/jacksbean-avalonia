@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using JackBean.App.Tray;
 using JackBean.Domain;
 using JackBean.Domain.Settings;
 using JackBean.Domain.Theme;
@@ -50,7 +51,7 @@ public sealed class SettingsWindow : Window
         window.Show();
     }
 
-    enum Section { Appearance }
+    enum Section { Appearance, Behavior }
 
     readonly Grid _root = new();
     readonly StackPanel _nav = new() { Spacing = 4 };
@@ -145,9 +146,11 @@ public sealed class SettingsWindow : Window
         _nav.Children.Clear();
         var s = Strings.Current;
         AddNavItem(Section.Appearance, s.SettingsSectionAppearance, "palette");
+        if (App.Hotkeys.IsSupported) AddNavItem(Section.Behavior, s.SettingsSectionBehavior, "sliders");   // 이 OS 에서 쓸 수 있는 동작 설정이 있을 때만
 
         var page = new StackPanel { Spacing = 8, MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left };
-        BuildAppearance(page);
+        if (_section == Section.Behavior && App.Hotkeys.IsSupported) BuildBehavior(page);
+        else BuildAppearance(page);
         _scroll.Content = page;
         OnSettingsChanged(App.Settings.Value);
     }
@@ -181,6 +184,31 @@ public sealed class SettingsWindow : Window
         var block = new TextBlock { Text = text, FontWeight = FontWeight.Bold, Margin = new Thickness(0, first ? 0 : 20, 0, 4) };
         block.Bind(TextBlock.FontSizeProperty, Application.Current!.GetResourceObservable("FsMid"));
         return block;
+    }
+
+    /// <summary>확인용(--snapshot): "동작" 구역으로 넘어간다. 이 OS 에 그 구역이 없으면 아무것도 하지 않는다.</summary>
+    internal void ShowBehavior()
+    {
+        if (!App.Hotkeys.IsSupported) return;
+        _section = Section.Behavior;
+        Rebuild();
+    }
+
+    void BuildBehavior(StackPanel page)
+    {
+        var s = Strings.Current;
+        page.Children.Add(Heading(s.SettingsHotkey, first: true));
+        var toggle = new ToggleSwitch { IsChecked = App.Settings.Value.GlobalHotkey, OnContent = s.SettingsHotkeyToggle(HotkeyService.Combo), OffContent = s.SettingsHotkeyToggle(HotkeyService.Combo) };
+        toggle.IsCheckedChanged += (_, _) =>
+        {
+            var on = toggle.IsChecked == true;
+            if (on != App.Settings.Value.GlobalHotkey) App.Settings.Update(x => x with { GlobalHotkey = on });
+        };
+        _refreshers.Add(() => toggle.IsChecked = App.Settings.Value.GlobalHotkey);   // 켜지 못해 설정이 다시 꺼지면 스위치도 따라간다
+        page.Children.Add(toggle);
+        var note = new TextBlock { Text = s.SettingsHotkeyNote, TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
+        note.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsSmall"));
+        page.Children.Add(note);
     }
 
     void BuildAppearance(StackPanel page)
