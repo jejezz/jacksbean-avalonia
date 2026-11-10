@@ -116,5 +116,35 @@ public sealed class EnglishStrings : IAppStrings
     public string HomeResetFailed(string error) => $"Couldn't create the default policy: {error}";
     public string DockNoApps => "No apps are registered, so there is nothing to choose. Check the policy file in the home window.";
     public string SnackbarOpenHome => "Open home";
+    public string HomeEditApps => "Edit apps";
+    public string AppsEditorTitle => "Edit apps";
+    public string AppsEditorList => "Apps";
+    public string AppsEditorAdd => "Add app";
+    public string AppsEditorNewApp => "New app";
+    public string FieldAppId => "Name (ID)";
+    public string FieldAppIdHint => "Lowercase letters, digits, - and _. Rules refer to the app by this name, so it can't be changed after saving.";
+    public string FieldAppCommand => "Program";
+    public string FieldAppCommandHint => "Path to the program, or a name on your PATH. Built-in tools use jackbean:name.";
+    public string FieldAppBrowse => "Browse…";
+    public string FieldAppArgs => "Arguments";
+    public string FieldAppArgsHint => "One per line. {path} is replaced with the dropped file or folder.";
+    public string AppArgsNoPath => "There is no {path} in the arguments, so the dropped item won't be passed to the app.";
+    public string AppSave => "Save";
+    public string AppDelete => "Delete";
+    public string AppRevert => "Revert";
+    public string AppErrIdEmpty => "Enter a name.";
+    public string AppErrIdInvalid => "Use lowercase letters, digits, - and _ only, up to 32 characters.";
+    public string AppErrIdTaken => "That name is already used.";
+    public string AppErrCommandEmpty => "Enter a program.";
+    public string AppSaved(string id) => $"Saved app ‘{id}’.";
+    public string AppSaveFailed(string error) => $"Couldn't save the app: {error}";
+    public string AppDeleteTitle => "Delete app";
+    public string AppDeleteConfirm(string id, int rules) => rules == 0
+        ? $"Delete app ‘{id}’?"
+        : $"Delete app ‘{id}’? {rules} rule(s) that use it will be changed to “ask”.";
+    public string AppDeleted(string id) => $"Deleted app ‘{id}’.";
+    public string AppDeleteFailed(string error) => $"Couldn't delete the app: {error}";
+    public string AppDiscardConfirm => "You have unsaved changes. Discard them?";
+    public string AppDiscard => "Discard";
     public string ViewerFailed(string error) => $"Couldn't open the image: {error}";
 }

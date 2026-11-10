@@ -22,6 +22,12 @@ Flutter 판 `jacksbean-flutter`를 C#/Avalonia(.NET 10)로 옮기는 프로젝�
 홈 창은 규칙·앱이 모두 없으면 빈 상태 카드(규약 ui-ux §6)를, 한쪽만 없으면 한 줄 안내를 보인다. 정책 파일 **전체**를 못 읽으면(`PolicyDocument.IsFallback`) 기본 정책을 대신 쓰되 파일은 그대로 두고,
 홈 창의 [기본 정책 다시 만들기]가 `PolicyStore.ResetToDefaultsAsync` 로 새로 만든다(이전 파일은 `.broken-날짜시각`으로 옮겨 둔다). 규칙 하나만 건너뛴 경우는 경고만 보이고 복구 버튼은 없다.
 
+## 정책 편집(룰 메이커)
+홈 창은 **보기 전용**이고 편집은 별도 창에서 한다(JSON 을 직접 고치지 않아도 되게 폼으로). 지금은 **앱 편집 창**(`Views/AppsEditorWindow`: 왼쪽 앱 목록 + 오른쪽 폼 — 이름·실행 파일·인자)만 있고,
+홈 창 "앱" 카드의 [앱 편집]과 빈 상태의 [앱 추가]로 연다. 저장·삭제는 `PolicyStore.UpsertAppAsync/RemoveAppAsync`(임시 파일에 쓰고 교체, 사용자가 적은 모르는 키는 보존, 깨진 파일은 쓰지 않음).
+앱 ID 는 규칙이 가리키는 이름이라 만들 때만 정하고 바꾸지 않으며(`AppRules`), 지울 때 그 앱을 쓰는 규칙은 지우지 않고 "물어보기"로 바꾼다. 정책을 바꾸면 `App.NotifyPolicyChanged()` 로 홈 창 등이 다시 읽는다.
+규칙 편집 창은 아직 없다(ROADMAP 3-2).
+
 ## 멀티 윈도우와 내장 도구
 - 독은 항상 떠 있고, 홈·설정·도구는 **별도 창**이다. 종료는 독 메뉴의 "종료"(`ShutdownMode.OnExplicitShutdown`).
 - 정책의 앱 `command`가 `jackbean:<id>`면 프로세스를 띄우지 않고 `ToolRegistry`가 `IBuiltInTool.CreateWindow(path)`로 창을 연다(파일 하나당 창 하나).
@@ -47,12 +53,12 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 143개(Domain 51 · Services 84 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 167개(Domain 67 · Services 92 · Data 8). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
 - **못 본 것**: 실제 파일 드롭·물어보기 목록, 독 끌기·위치 기억, 여러 모니터, Windows/Linux, 업데이트 흐름(서버에 이 앱이 아직 없다), 설정 창 좁은 배치(<700).
 
 ## 아직 없는 것
-룰 메이커(규칙·앱 편집), 정책 GitHub 동기화, 트레이·전역 단축키, 독 시작 시 다른 앱의 드래그 감지,
+룰 메이커 중 규칙 편집(앱 편집은 있다), 정책 GitHub 동기화, 트레이·전역 단축키, 독 시작 시 다른 앱의 드래그 감지,
 설치 파일·릴리스 워크플로·README, 앱 아이콘의 소품 글리프 교체.

@@ -27,6 +27,11 @@ public partial class App : Application
 
     internal static PolicyStore PolicyStore { get; private set; } = null!;
 
+    /// <summary>정책 파일을 앱 안에서 바꿨다(편집 창의 저장·삭제, 복구). 홈 창처럼 정책을 보여 주는 창이 다시 읽는다.</summary>
+    internal static event Action? PolicyChanged;
+
+    internal static void NotifyPolicyChanged() => PolicyChanged?.Invoke();
+
     internal static ToolRegistry Tools { get; private set; } = null!;
 
     /// <summary>업데이트 확인·설치. 서버 주소가 없는 빌드(<c>-p:AppUpdateServer=</c>)나 로컬 빌드는 null.</summary>

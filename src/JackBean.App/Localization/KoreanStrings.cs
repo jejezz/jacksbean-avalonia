@@ -116,5 +116,35 @@ public sealed class KoreanStrings : IAppStrings
     public string HomeResetFailed(string error) => $"기본 정책을 만들지 못했습니다: {error}";
     public string DockNoApps => "등록된 앱이 없어 고를 수 없습니다. 홈 창에서 정책 파일을 확인하세요.";
     public string SnackbarOpenHome => "홈 창 열기";
+    public string HomeEditApps => "앱 편집";
+    public string AppsEditorTitle => "앱 편집";
+    public string AppsEditorList => "앱";
+    public string AppsEditorAdd => "앱 추가";
+    public string AppsEditorNewApp => "새 앱";
+    public string FieldAppId => "이름(ID)";
+    public string FieldAppIdHint => "영문 소문자·숫자·-·_ 로 짓습니다. 규칙이 이 이름으로 앱을 가리키므로 저장한 뒤에는 바꿀 수 없습니다.";
+    public string FieldAppCommand => "실행 파일";
+    public string FieldAppCommandHint => "실행 파일의 경로, 또는 PATH 에 있는 이름입니다. 내장 도구는 jackbean:이름 입니다.";
+    public string FieldAppBrowse => "찾아보기";
+    public string FieldAppArgs => "인자";
+    public string FieldAppArgsHint => "한 줄에 하나씩 적습니다. {path} 는 끌어다 놓은 파일·폴더의 경로로 바뀝니다.";
+    public string AppArgsNoPath => "인자에 {path} 가 없어서 끌어다 놓은 대상이 앱에 전달되지 않습니다.";
+    public string AppSave => "저장";
+    public string AppDelete => "삭제";
+    public string AppRevert => "되돌리기";
+    public string AppErrIdEmpty => "이름을 입력하세요.";
+    public string AppErrIdInvalid => "이름은 영문 소문자·숫자·-·_ 만, 32자까지 쓸 수 있습니다.";
+    public string AppErrIdTaken => "이미 있는 이름입니다.";
+    public string AppErrCommandEmpty => "실행 파일을 입력하세요.";
+    public string AppSaved(string id) => $"‘{id}’ 앱을 저장했습니다.";
+    public string AppSaveFailed(string error) => $"앱을 저장하지 못했습니다: {error}";
+    public string AppDeleteTitle => "앱 삭제";
+    public string AppDeleteConfirm(string id, int rules) => rules == 0
+        ? $"‘{id}’ 앱을 삭제할까요?"
+        : $"‘{id}’ 앱을 삭제할까요? 이 앱을 쓰는 규칙 {rules}개는 ‘물어보기’로 바뀝니다.";
+    public string AppDeleted(string id) => $"‘{id}’ 앱을 삭제했습니다.";
+    public string AppDeleteFailed(string error) => $"앱을 삭제하지 못했습니다: {error}";
+    public string AppDiscardConfirm => "저장하지 않은 변경이 있습니다. 버릴까요?";
+    public string AppDiscard => "버리기";
     public string ViewerFailed(string error) => $"이미지를 열지 못했습니다: {error}";
 }

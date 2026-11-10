@@ -8,6 +8,12 @@ namespace JackBean.Services;
 /// <summary>정책에 넣거나 고칠 규칙 하나. <see cref="BeforeRuleId"/> 규칙 바로 위에 넣는다(없으면 맨 위).</summary>
 public sealed record RuleUpsert(string Id, JsonObject When, string Open, string? BeforeRuleId = null);
 
+/// <summary>정책에 넣거나 고칠 앱 하나(편집 폼이 만든다).</summary>
+public sealed record AppUpsert(string Id, string Command, IReadOnlyList<string> Args);
+
+/// <summary>앱을 지울 때 그 앱을 여는 규칙을 어떻게 할지.</summary>
+public enum ReferencedRules { Refuse, MakeAsk }
+
 public sealed record SaveResult(string? Error)
 {
     public bool Ok => Error == null;
@@ -108,7 +114,78 @@ public sealed class PolicyStore
     /// 같은 id 가 있으면 그 자리에서 when/open 만 바꾼다. 파일이 깨져 있으면 아무것도 쓰지 않는다.
     /// 임시 파일에 쓰고 바꿔 끼운다.
     /// </summary>
-    public async Task<SaveResult> UpsertRulesAsync(IReadOnlyList<RuleUpsert> upserts, DateTime? now = null)
+    public Task<SaveResult> UpsertRulesAsync(IReadOnlyList<RuleUpsert> upserts, DateTime? now = null) => MutateAsync(decoded =>
+    {
+        var rules = new List<JsonNode?>();
+        if (decoded["rules"] is JsonArray existing) foreach (var r in existing) rules.Add(r?.DeepClone());
+        var stamp = Stamp(now);
+        int IndexOf(string? id) => id == null ? -1 : rules.FindIndex(r => r is JsonObject o && RuleCondition.Str(o["id"]) == id);
+
+        foreach (var u in upserts)
+        {
+            var at = IndexOf(u.Id);
+            if (at >= 0)
+            {
+                var rule = (JsonObject)rules[at]!;
+                rule["when"] = u.When.DeepClone();
+                rule["open"] = u.Open;
+                rule["updated"] = stamp;
+            }
+            else
+            {
+                var before = IndexOf(u.BeforeRuleId);
+                rules.Insert(before >= 0 ? before : 0, new JsonObject
+                {
+                    ["id"] = u.Id, ["when"] = u.When.DeepClone(), ["open"] = u.Open, ["updated"] = stamp,
+                });
+            }
+        }
+        decoded["rules"] = new JsonArray(rules.ToArray());
+        return null;
+    });
+
+    /// <summary>
+    /// 앱을 넣거나 고친다. 있는 앱이면 command·args 만 바꾸고 그 앱의 나머지 키(사용자가 적은 것)는 그대로 둔다.
+    /// ID 는 규칙이 가리키는 이름이라 여기서 바꾸지 않는다.
+    /// </summary>
+    public Task<SaveResult> UpsertAppAsync(AppUpsert app) => MutateAsync(decoded =>
+    {
+        if (decoded["apps"] is not null and not JsonObject) return new SaveResult("정책 파일의 apps 가 객체가 아닙니다");
+        var apps = decoded["apps"] as JsonObject;
+        if (apps is null) decoded["apps"] = apps = new JsonObject();
+        if (apps[app.Id] is not JsonObject node) apps[app.Id] = node = new JsonObject();
+        node["command"] = app.Command;
+        node["args"] = new JsonArray(app.Args.Select(a => (JsonNode?)JsonValue.Create(a)).ToArray());
+        return null;
+    });
+
+    /// <summary>
+    /// 앱을 지운다. 그 앱을 여는 규칙이 있으면 <paramref name="referenced"/> 에 따라 막거나(<see cref="ReferencedRules.Refuse"/>),
+    /// 그 규칙들을 "물어보기"(`open: null`)로 바꾼다 — 규칙은 지우지 않는다.
+    /// </summary>
+    public Task<SaveResult> RemoveAppAsync(string id, ReferencedRules referenced = ReferencedRules.Refuse, DateTime? now = null) => MutateAsync(decoded =>
+    {
+        if (decoded["apps"] is not JsonObject apps || !apps.ContainsKey(id)) return new SaveResult($"앱 {id} 이(가) 정책에 없습니다");
+        var users = (decoded["rules"] as JsonArray ?? [])
+            .OfType<JsonObject>().Where(r => RuleCondition.Str(r["open"]) == id).ToList();
+        if (users.Count > 0)
+        {
+            if (referenced == ReferencedRules.Refuse)
+                return new SaveResult($"규칙 {users.Count}개가 이 앱을 씁니다: {string.Join(", ", users.Select(r => RuleCondition.Str(r["id"])))}");
+            var stamp = Stamp(now);
+            foreach (var r in users) { r["open"] = null; r["updated"] = stamp; }
+        }
+        apps.Remove(id);
+        return null;
+    });
+
+    private static string Stamp(DateTime? now) => (now ?? DateTime.UtcNow).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ");
+
+    /// <summary>
+    /// 파일을 읽어 <paramref name="edit"/> 로 고치고 임시 파일에 쓴 뒤 바꿔 끼운다. 파일이 깨져 있거나 다른 OS 것이면 아무것도 쓰지 않는다.
+    /// <paramref name="edit"/> 가 SaveResult 를 돌려주면 그것을 결과로 하고 쓰지 않는다(null 이면 저장).
+    /// </summary>
+    private async Task<SaveResult> MutateAsync(Func<JsonObject, SaveResult?> edit)
     {
         try
         {
@@ -120,31 +197,7 @@ public sealed class PolicyStore
                 return new SaveResult($"정책 파일의 schema 가 1 이 아닙니다: {decoded["schema"]}");
             if (decoded["rules"] is { } rr && rr is not JsonArray) return new SaveResult("정책 파일의 rules 가 목록이 아닙니다");
 
-            var rules = new List<JsonNode?>();
-            if (decoded["rules"] is JsonArray existing) foreach (var r in existing) rules.Add(r?.DeepClone());
-            var stamp = (now ?? DateTime.UtcNow).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ");
-            int IndexOf(string? id) => id == null ? -1 : rules.FindIndex(r => r is JsonObject o && RuleCondition.Str(o["id"]) == id);
-
-            foreach (var u in upserts)
-            {
-                var at = IndexOf(u.Id);
-                if (at >= 0)
-                {
-                    var rule = (JsonObject)rules[at]!;
-                    rule["when"] = u.When.DeepClone();
-                    rule["open"] = u.Open;
-                    rule["updated"] = stamp;
-                }
-                else
-                {
-                    var before = IndexOf(u.BeforeRuleId);
-                    rules.Insert(before >= 0 ? before : 0, new JsonObject
-                    {
-                        ["id"] = u.Id, ["when"] = u.When.DeepClone(), ["open"] = u.Open, ["updated"] = stamp,
-                    });
-                }
-            }
-            decoded["rules"] = new JsonArray(rules.ToArray());
+            if (edit(decoded) is { } failure) return failure;
 
             var tmp = FilePath + ".tmp";
             await File.WriteAllTextAsync(tmp, Serialize(decoded));

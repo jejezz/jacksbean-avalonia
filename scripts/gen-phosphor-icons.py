@@ -35,6 +35,11 @@ ICONS = {
     "tray": ("tray", "duotone"),
     "file-text": ("file-text", "duotone"),
     "reset": ("arrow-counter-clockwise", "duotone"),
+    # 앱 편집 창
+    "plus": ("plus", "duotone"),
+    "trash": ("trash", "duotone"),
+    "edit": ("pencil-simple", "duotone"),
+    "folder": ("folder-open", "duotone"),
 }
 
 
