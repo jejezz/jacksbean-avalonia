@@ -106,7 +106,7 @@ dotnet build JackBean.slnx
 dotnet test JackBean.slnx
 dotnet run --project src/JackBean.App            # --home --settings --about 로 그 창도 함께 띄움, --tool <id> <파일> 로 내장 도구를 바로 엶
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
-HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
+dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장(설정·정책은 매번 새 임시 폴더 — 실제 설정을 건드리지 않는다)
 ```
 테스트 328개(Domain 111 · Services 207 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
