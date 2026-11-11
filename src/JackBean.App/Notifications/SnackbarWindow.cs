@@ -38,7 +38,7 @@ internal sealed class SnackbarWindow : Window
         TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
         Opacity = 0; // 자리를 잡은 뒤에 보인다(PlaceNear)
 
-        var icon = new DuoIcon { Icon = isError ? "warning" : "check", ColorKey = isError ? "AppDanger" : "AppPrimary", VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) };
+        var icon = new DuoIcon { Icon = isError ? "warning" : notification.Kind == NotificationKind.Tip ? "info" : "check", ColorKey = isError ? "AppDanger" : "AppPrimary", VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) };
         var text = new TextBlock { Text = notification.Message, TextWrapping = TextWrapping.Wrap, MaxWidth = 380, VerticalAlignment = VerticalAlignment.Center };
         text.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsBody"));
         text.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextHi"));

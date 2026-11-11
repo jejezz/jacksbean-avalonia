@@ -1,3 +1,4 @@
+using JackBean.Domain.Tips;
 using JackBean.Domain;
 
 namespace JackBean.App.Localization;
@@ -196,6 +197,20 @@ public sealed class EnglishStrings : IAppStrings
     public string SettingsHotkey => "Global shortcut";
     public string SettingsHotkeyToggle(string combo) => $"Hide or show the dock with {combo}";
     public string SettingsHotkeyNote => "Works from any app. It won't turn on if another app already uses the same shortcut.";
+    public string SettingsTips => "Tips";
+    public string SettingsTipsToggle => "Show a tip at startup";
+    public string SettingsTipsNote => "Not shown when the app starts automatically at sign-in. Choose Show a Tip in the dock menu any time.";
+    public string Tip(TipId tip) => tip switch
+    {
+        TipId.DropOnBean => "Drag a file or folder onto the bean to open it in the right app.",
+        TipId.ChooseApp => "Link several apps to one kind of item, and you can pick one on the dock when you drop.",
+        TipId.AlwaysOpen => "When picking an app on the dock, turn on Always Open This Way to skip the question next time.",
+        TipId.OpenHome => "Double-click the bean to open the home window, where you can see and edit rules and apps.",
+        TipId.HideDock => "Click the bean icon in the notification area to hide or show the dock.",
+        _ => "Sign in to GitHub under Settings → Sync to keep your rules the same on other PCs.",
+    };
+    public string TipDontShowAgain => "Don't Show Again";
+    public string DockMenuShowTip => "Show a Tip";
     public string HotkeyFailed(string combo) => $"Couldn't turn on the {combo} shortcut. Another app may be using it.";
     public string SettingsStartup => "Startup";
     public string SettingsStartupToggle => "Start automatically when I sign in";

@@ -1,3 +1,4 @@
+using JackBean.Domain.Tips;
 using JackBean.Domain;
 
 namespace JackBean.App.Localization;
@@ -196,6 +197,20 @@ public sealed class KoreanStrings : IAppStrings
     public string SettingsHotkey => "전역 단축키";
     public string SettingsHotkeyToggle(string combo) => $"{combo} 로 독 숨기기·보이기";
     public string SettingsHotkeyNote => "어느 앱에 있어도 눌립니다. 다른 앱이 같은 단축키를 쓰고 있으면 켜지지 않습니다.";
+    public string SettingsTips => "사용 팁";
+    public string SettingsTipsToggle => "시작할 때 사용 팁 보이기";
+    public string SettingsTipsNote => "로그인할 때 자동으로 시작한 경우에는 보이지 않습니다. 독 메뉴의 [사용 팁 보기]로 언제든 볼 수 있습니다.";
+    public string Tip(TipId tip) => tip switch
+    {
+        TipId.DropOnBean => "파일이나 폴더를 콩에 끌어다 놓으면 알맞은 앱으로 열립니다.",
+        TipId.ChooseApp => "한 종류에 앱을 여러 개 연결해 두면, 놓을 때 독에서 고를 수 있습니다.",
+        TipId.AlwaysOpen => "독에서 앱을 고를 때 [항상 이렇게 열기]를 켜면 다음부터는 바로 그 앱으로 열립니다.",
+        TipId.OpenHome => "콩을 더블클릭하면 규칙과 앱을 보고 고칠 수 있는 홈 창이 열립니다.",
+        TipId.HideDock => "알림 영역의 콩 아이콘을 누르면 독을 숨기거나 다시 보일 수 있습니다.",
+        _ => "설정의 [동기화]에서 GitHub 에 로그인하면 규칙을 다른 PC 와 맞출 수 있습니다.",
+    };
+    public string TipDontShowAgain => "다시 보지 않기";
+    public string DockMenuShowTip => "사용 팁 보기";
     public string HotkeyFailed(string combo) => $"{combo} 단축키를 켜지 못했습니다. 다른 앱이 쓰고 있을 수 있습니다.";
     public string SettingsStartup => "시작 프로그램";
     public string SettingsStartupToggle => "로그인할 때 자동으로 시작";

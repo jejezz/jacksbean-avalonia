@@ -1,6 +1,7 @@
 namespace JackBean.Services.Notifications;
 
-public enum NotificationKind { Info, Error }
+/// <summary>Tip 은 시작할 때 독 옆에 보이는 사용 팁 — 읽을 시간을 더 준다.</summary>
+public enum NotificationKind { Info, Error, Tip }
 
 /// <summary>사용자에게 잠깐 보여 주는 알림 하나. <paramref name="Detail"/>은 오류 원문 — "복사"가 이것을 복사한다(없으면 메시지).</summary>
 public sealed record Notification(NotificationKind Kind, string Message, string? Detail = null)
@@ -17,6 +18,7 @@ public sealed class NotificationGate(TimeProvider? time = null)
 {
     public static readonly TimeSpan InfoDuration = TimeSpan.FromSeconds(4);
     public static readonly TimeSpan ErrorDuration = TimeSpan.FromSeconds(10);
+    public static readonly TimeSpan TipDuration = TimeSpan.FromSeconds(12);
     /// <summary>실행 취소 같은 액션 버튼이 있는 알림이 최소한 머무는 시간.</summary>
     public static readonly TimeSpan ActionDuration = TimeSpan.FromSeconds(8);
     public static readonly TimeSpan DuplicateWindow = TimeSpan.FromSeconds(3);
@@ -25,7 +27,12 @@ public sealed class NotificationGate(TimeProvider? time = null)
     private Notification? _last;
     private DateTimeOffset _lastAt;
 
-    public static TimeSpan DurationOf(NotificationKind kind) => kind == NotificationKind.Error ? ErrorDuration : InfoDuration;
+    public static TimeSpan DurationOf(NotificationKind kind) => kind switch
+    {
+        NotificationKind.Error => ErrorDuration,
+        NotificationKind.Tip => TipDuration,
+        _ => InfoDuration,
+    };
 
     /// <summary>보여 줘야 하면 true. 같은 종류·같은 메시지가 <see cref="DuplicateWindow"/> 안에 또 오면 false(반복 오류가 창을 깜박이게 하지 않는다).</summary>
     public bool Accept(Notification n)

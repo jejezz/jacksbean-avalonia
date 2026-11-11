@@ -86,6 +86,18 @@ public sealed record AppSettings
     [JsonPropertyName("sync_last_at")]
     public DateTimeOffset? SyncLastAt { get; init; }
 
+    /// <summary>시작할 때 독 옆에 사용 팁을 보인다(기본 켜짐). 로그인할 때 자동으로 시작한 경우에는 켜져 있어도 보이지 않는다.</summary>
+    [JsonPropertyName("startup_tips")]
+    public bool StartupTips { get; init; } = true;
+
+    /// <summary>다음에 보일 팁의 차례(<c>Tips.StartupTips.Rotation</c> 의 위치).</summary>
+    [JsonPropertyName("startup_tips_next")]
+    public int StartupTipsNext { get; init; }
+
+    /// <summary>독에 한 번이라도 놓아 보았다 — 그 전에는 "콩에 끌어다 놓으세요" 팁만 보인다.</summary>
+    [JsonPropertyName("dock_dropped_once")]
+    public bool DockDroppedOnce { get; init; }
+
     public AppSettings WithTextScale(double scale) => this with { TextScale = TextScales.Snap(scale) };
 
     /// <summary>파일에서 읽은 값을 쓸 수 있는 값으로 고친다 (배율은 범위 안으로, 틀린 독 위치는 버린다).</summary>
