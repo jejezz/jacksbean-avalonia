@@ -63,6 +63,13 @@
         "{path}"
       ],
       "updated": "2026-11-11T04:53:50.123347Z"
+    },
+    "android-studio": {
+      "command": "C:\\Program Files\\Android\\Android Studio2\\bin\\studio64.exe",
+      "args": [
+        "{path}"
+      ],
+      "updated": "2026-11-11T05:15:49.174088Z"
     }
   },
   "rules": [
@@ -215,9 +222,10 @@
         "explorer",
         "terminal",
         "archive",
-        "vscode"
+        "vscode",
+        "android-studio"
       ],
-      "updated": "2026-11-11T04:54:05.485805Z"
+      "updated": "2026-11-11T05:16:00.958319Z"
     },
     {
       "id": "files",
