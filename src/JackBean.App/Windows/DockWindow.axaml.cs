@@ -22,6 +22,7 @@ using JackBean.Domain.Window;
 using JackBean.Domain.Settings;
 using JackBean.Domain.Theme;
 using JackBean.Services;
+using JackBean.Services.DragWatch;
 using JackBean.Services.Updates;
 using JackBean.Domain.Dock;
 using JackBean.Domain.Drop;
@@ -53,7 +54,8 @@ public partial class DockWindow : Window
         new(() => new Avalonia.Media.Imaging.Bitmap(Avalonia.Platform.AssetLoader.Open(new Uri("avares://JacksBean/Assets/dock_icon.png"))));
 
     private bool _hovering;
-    private (bool, bool, int, string?, bool) _renderedKey;
+    private bool _outsideDrag; // 다른 앱에서 끌기가 시작됐다(아직 독 위는 아님) — 미리 펼쳐서 "여기에 놓으세요"를 보인다
+    private (bool, bool, bool, int, string?, bool) _renderedKey;
     private bool _renderedHover; // 마지막으로 그린 모양이 "끌어다 놓는 중"이었는지
     private IReadOnlyList<DroppedItem> _last = [];
     private string? _status;
@@ -81,7 +83,7 @@ public partial class DockWindow : Window
                 if (!expanded)
                 {
                     // 기다리는 사이 다시 들어왔거나 결과를 보여 주는 중이면 줄이지 않는다.
-                    if (_hovering || _last.Count > 0 || _pickAsks != null) return;
+                    if (_hovering || _outsideDrag || _last.Count > 0 || _pickAsks != null) return;
                     RenderIfChanged(); // 모양(알약 → 정원)도 창과 함께, 지연 뒤에 한 번만 바뀐다
                 }
                 ResizeTo(expanded ? new Size(ActiveWidth, IdleSize) : new Size(IdleSize, IdleSize));
@@ -242,6 +244,28 @@ public partial class DockWindow : Window
 
     // ── 드래그와 드롭 ───────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// 다른 앱에서 끌기가 시작되거나 끝났다(<see cref="IDragWatcher"/>, 지금은 Windows 만). 시작하면 독을 미리 펼쳐 놓을 곳을 알리고,
+    /// 끝나면(어디에 놓았든) 평소처럼 줄인다. 추정이라 오탐이 있을 수 있으니 펼치기만 하고 드롭 판정은 <see cref="OnDrop"/> 이 한다.
+    /// </summary>
+    public void OnOutsideDrag(DragSignal signal)
+    {
+        if (signal == DragSignal.Started)
+        {
+            if (!IsVisible || _pickAsks != null || _hovering || _outsideDrag) return;
+            _outsideDrag = true;
+            _clearTimer.Stop();
+            _last = []; // 지난 결과 대신 안내를 보인다
+            _expansion.Expand(); // 창을 먼저 키운 뒤 그린다
+            Render();
+        }
+        else if (signal == DragSignal.Ended && _outsideDrag)
+        {
+            _outsideDrag = false;
+            if (!_hovering && _last.Count == 0) _expansion.ShrinkSoon(); // 모양은 줄이기 지연 뒤 창과 함께 바뀐다
+        }
+    }
+
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
         _clearTimer.Stop();
@@ -268,6 +292,7 @@ public partial class DockWindow : Window
     {
         if (_pickAsks != null) return;
         _hovering = false; // 상태만 — 모양과 창 크기는 지연(ShrinkDelay) 뒤 함께 줄인다
+        if (_outsideDrag) { Render(); return; } // 아직 끄는 중 — 펼친 채로 "놓으면 열립니다" → "여기에 떨어뜨리세요"
         if (_last.Count == 0) _expansion.ShrinkSoon(); // 떨어뜨린 직후에도 불릴 수 있다
     }
 
@@ -279,6 +304,7 @@ public partial class DockWindow : Window
         var items = paths.Select(p => PathClassifier.Classify(p)).ToList();
         _clearTimer.Stop();
         _hovering = false;
+        _outsideDrag = false; // 놓았다 — 뒤이어 오는 "끝" 신호는 할 일이 없다
         _last = items;
         _status = null;
         _statusIsError = false;
@@ -361,7 +387,7 @@ public partial class DockWindow : Window
 
     // ── 그리기 ──────────────────────────────────────────────────────────────────────
 
-    private bool Expanded => _hovering || _last.Count > 0;
+    private bool Expanded => _hovering || _outsideDrag || _last.Count > 0;
     private bool IsCircle => _pickAsks == null && !Expanded;
 
     private static string KindLabel(DropKind? kind) => kind switch
@@ -388,7 +414,7 @@ public partial class DockWindow : Window
         Render();
     }
 
-    private (bool, bool, int, string?, bool) StateKey() => (_hovering, _pickAsks != null, _last.Count, _status, _statusIsError);
+    private (bool, bool, bool, int, string?, bool) StateKey() => (_hovering, _outsideDrag, _pickAsks != null, _last.Count, _status, _statusIsError);
 
     private void Render()
     {
@@ -401,9 +427,9 @@ public partial class DockWindow : Window
         Pill.CornerRadius = new CornerRadius(radius);
         // 평소엔 테마 강조색 2px, 끌어다 놓으려고 들어왔을 때는 4px 그라데이션.
         Pill.BorderThickness = new Thickness(_hovering ? DockRing.ActiveWidth : DockRing.IdleWidth);
-        Pill.BorderBrush = DockRing.Brush(palette, _hovering, IsDark);
+        Pill.BorderBrush = DockRing.Brush(palette, _hovering || _outsideDrag, IsDark); // 다른 앱에서 끄는 중이면 색만 활성, 두께는 평소대로
         var surface = Color.FromUInt32(Colors_.Surface);
-        Pill.Background = new SolidColorBrush(surface, _hovering || chooser ? 0.98 : 0.90);
+        Pill.Background = new SolidColorBrush(surface, _hovering || _outsideDrag || chooser ? 0.98 : 0.90);
         Pill.Height = chooser ? double.NaN : PillHeight;
         Pill.Width = IsCircle ? PillHeight : double.NaN;
         Pill.VerticalAlignment = chooser ? VerticalAlignment.Top : VerticalAlignment.Center;
