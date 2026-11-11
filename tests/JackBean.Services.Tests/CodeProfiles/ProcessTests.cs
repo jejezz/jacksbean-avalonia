@@ -57,7 +57,12 @@ public class SystemProcessRunnerTests
     public async Task DecodesUtf8Output()
     {
         if (!OperatingSystem.IsWindows()) return;
-        var r = await Runner.RunAsync("cmd.exe", Cmd("chcp 65001>nul & echo 한글 문장"));
+        // 한글을 명령줄로 넘기면 PC 의 ANSI 코드 페이지(CI 러너는 영어)에서 `?` 로 깨진다 — UTF-8 파일을 `type` 으로 찍어 출력 쪽만 시험한다.
+        using var dir = new TempDir();
+        var file = Path.Combine(dir.Path, "hangul.txt");
+        if (file.Contains(' ')) return;   // 따옴표 없이 cmd 에 넘기므로 공백이 든 임시 경로에서는 건너뛴다
+        File.WriteAllText(file, "한글 문장", new System.Text.UTF8Encoding(false));
+        var r = await Runner.RunAsync("cmd.exe", ["/c", $"chcp 65001>nul & type {file}"]);
         Assert.True(r.Ok, r.FailureReason);
         Assert.Equal("한글 문장", r.StdOut.Trim());
     }
@@ -117,8 +122,12 @@ public class SystemProcessRunnerTests
     public async Task StartDecodesMultiByteLinesAndTrimsCarriageReturns()
     {
         if (!OperatingSystem.IsWindows()) return;
+        using var dir = new TempDir();
+        var file = Path.Combine(dir.Path, "hangul.txt");
+        if (file.Contains(' ')) return;   // 따옴표 없이 cmd 에 넘기므로 공백이 든 임시 경로에서는 건너뛴다
+        File.WriteAllText(file, "한글 하나" + (char)13 + (char)10 + "둘째 줄" + (char)13 + (char)10, new System.Text.UTF8Encoding(false));   // 명령줄 인코딩과 무관하게 UTF-8 출력만 시험한다
         var lines = new List<string>();
-        await foreach (var e in Runner.StartAsync("cmd.exe", Cmd("chcp 65001>nul & echo 한글 하나& echo 둘째 줄")))
+        await foreach (var e in Runner.StartAsync("cmd.exe", Cmd($"chcp 65001>nul & type {file}")))
             if (e is OutputLine { IsError: false } l) lines.Add(l.Line);
         Assert.Equal(["한글 하나", "둘째 줄"], lines);
     }
