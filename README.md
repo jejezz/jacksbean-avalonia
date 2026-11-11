@@ -6,11 +6,11 @@
 
 **Drop a bean, grow a beanstalk** — a free, open-source **drag-and-drop launcher** for Windows, macOS and Linux: drop any file, folder or drive on a small always-on-top dock and it opens with the app *your rules* choose.
 
-[![Latest release](https://img.shields.io/github/v/release/jejezz/jackbean-avalonia?include_prereleases&label=release&style=flat-square&color=4c9dff)](https://github.com/jejezz/jackbean-avalonia/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/jejezz/jackbean-avalonia/total?style=flat-square&color=7c5cff)](https://github.com/jejezz/jackbean-avalonia/releases)
+[![Latest release](https://img.shields.io/github/v/release/jejezz/jacksbean-avalonia?include_prereleases&label=release&style=flat-square&color=4c9dff)](https://github.com/jejezz/jacksbean-avalonia/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/jejezz/jacksbean-avalonia/total?style=flat-square&color=7c5cff)](https://github.com/jejezz/jacksbean-avalonia/releases)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-34d399?style=flat-square)](#install)
 [![.NET 10 NativeAOT](https://img.shields.io/badge/.NET%2010-NativeAOT-512BD4?style=flat-square)](https://learn.microsoft.com/dotnet/core/deploying/native-aot/)
-[![License: MIT](https://img.shields.io/github/license/jejezz/jackbean-avalonia?style=flat-square)](LICENSE)
+[![License: MIT](https://img.shields.io/github/license/jejezz/jacksbean-avalonia?style=flat-square)](LICENSE)
 
 English · [한국어](README.ko.md)
 
@@ -37,7 +37,7 @@ English · [한국어](README.ko.md)
 
 ## Install
 
-Download the file for your OS from the [latest release](https://github.com/jejezz/jackbean-avalonia/releases/latest) (`<version>` stands for the release number):
+Download the file for your OS from the [latest release](https://github.com/jejezz/jacksbean-avalonia/releases/latest) (`<version>` stands for the release number):
 
 | OS | File | Notes |
 |---|---|---|

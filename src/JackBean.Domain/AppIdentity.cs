@@ -34,7 +34,7 @@ public static class AppIdentity
 
     public static string Copyright => $"Copyright © {FirstReleaseYear} {CopyrightHolder}";
 
-    public const string RepositoryUrl = "https://github.com/jejezz/jackbean-avalonia";
+    public const string RepositoryUrl = "https://github.com/jejezz/jacksbean-avalonia";
 
     public const string LicenseName = "MIT License";
 

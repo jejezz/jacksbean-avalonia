@@ -6,11 +6,11 @@
 
 **콩 하나를 떨어뜨리면 알맞은 앱으로 자랍니다** — 작은 독에 파일·폴더·드라이브를 끌어다 놓으면 *내가 정한 규칙*에 따라 알맞은 앱으로 열어 주는, Windows·macOS·Linux용 무료 오픈소스 **드래그 앤 드롭 런처**입니다.
 
-[![최신 릴리스](https://img.shields.io/github/v/release/jejezz/jackbean-avalonia?include_prereleases&label=release&style=flat-square&color=4c9dff)](https://github.com/jejezz/jackbean-avalonia/releases/latest)
-[![다운로드](https://img.shields.io/github/downloads/jejezz/jackbean-avalonia/total?style=flat-square&color=7c5cff)](https://github.com/jejezz/jackbean-avalonia/releases)
+[![최신 릴리스](https://img.shields.io/github/v/release/jejezz/jacksbean-avalonia?include_prereleases&label=release&style=flat-square&color=4c9dff)](https://github.com/jejezz/jacksbean-avalonia/releases/latest)
+[![다운로드](https://img.shields.io/github/downloads/jejezz/jacksbean-avalonia/total?style=flat-square&color=7c5cff)](https://github.com/jejezz/jacksbean-avalonia/releases)
 [![플랫폼](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-34d399?style=flat-square)](#설치)
 [![.NET 10 NativeAOT](https://img.shields.io/badge/.NET%2010-NativeAOT-512BD4?style=flat-square)](https://learn.microsoft.com/dotnet/core/deploying/native-aot/)
-[![라이선스: MIT](https://img.shields.io/github/license/jejezz/jackbean-avalonia?style=flat-square)](LICENSE)
+[![라이선스: MIT](https://img.shields.io/github/license/jejezz/jacksbean-avalonia?style=flat-square)](LICENSE)
 
 [English](README.md) · 한국어
 
@@ -39,7 +39,7 @@
 
 ## 설치
 
-[최신 릴리스](https://github.com/jejezz/jackbean-avalonia/releases/latest)에서 OS에 맞는 파일을 받으세요(`<version>`은 릴리스 번호입니다):
+[최신 릴리스](https://github.com/jejezz/jacksbean-avalonia/releases/latest)에서 OS에 맞는 파일을 받으세요(`<version>`은 릴리스 번호입니다):
 
 | OS | 파일 | 참고 |
 |---|---|---|
