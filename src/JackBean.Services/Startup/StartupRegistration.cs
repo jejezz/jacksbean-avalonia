@@ -33,6 +33,12 @@ public sealed record LaunchCommand(string Executable, IReadOnlyList<string> Args
         return new LaunchCommand(exe, []);
     }
 
+    /// <summary>로그인할 때 자동으로 시작했다는 표시. 앱은 이 인자가 있으면 시작 팁을 보이지 않는다.</summary>
+    public const string AutostartArg = "--autostart";
+
+    /// <summary>자동 시작용: 같은 명령에 <see cref="AutostartArg"/> 를 붙인다.</summary>
+    public LaunchCommand WithAutostart() => Args.Contains(AutostartArg) ? this : this with { Args = [.. Args, AutostartArg] };
+
     /// <summary>공백이 있는 경로도 한 덩어리로 읽히게 따옴표로 감싼 한 줄(Windows 레지스트리·Linux `Exec` 용).</summary>
     public string ToCommandLine() => string.Join(' ', new[] { Executable }.Concat(Args).Select(Quote));
 

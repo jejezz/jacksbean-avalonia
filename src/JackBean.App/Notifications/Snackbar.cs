@@ -22,6 +22,10 @@ internal static class Snackbar
     public static void Info(string message, string? actionLabel = null, Action? action = null) =>
         Show(new Notification(NotificationKind.Info, message), actionLabel, action);
 
+    /// <summary>사용 팁(독 옆 말풍선, 12초). <paramref name="actionLabel"/> 은 보통 "다시 보지 않기".</summary>
+    public static void Tip(string message, string? actionLabel = null, Action? action = null) =>
+        Show(new Notification(NotificationKind.Tip, message), actionLabel, action);
+
     public static void Show(Notification notification, string? actionLabel = null, Action? action = null)
     {
         if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(() => Show(notification, actionLabel, action)); return; }

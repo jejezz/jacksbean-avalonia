@@ -13,6 +13,7 @@ using JackBean.Data;
 using JackBean.Domain;
 using JackBean.Domain.Policy;
 using JackBean.Domain.Settings;
+using JackBean.Domain.Tips;
 using JackBean.Services;
 using JackBean.Services.DragWatch;
 using JackBean.Services.GitHub;
@@ -78,7 +79,7 @@ public partial class App : Application
         // --snapshot(확인용)은 진짜 로그인 토큰을 읽거나 건드리지 않는다.
         ITokenStore tokens = Environment.GetCommandLineArgs().Contains("--snapshot") ? new MemoryTokenStore() : TokenStores.Create();
         Github = new GitHubSyncService(Settings, tokens, PolicyStore, Path.Combine(PolicyStore.Directory, "sync"));
-        Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName);
+        Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName, LaunchCommand.Current().WithAutostart());
         Tools = new ToolRegistry();
         Tools.Register(new ImageViewerTool());
         Tools.Register(new TextEditorTool());
@@ -149,6 +150,14 @@ public partial class App : Application
             var snap = Array.IndexOf(desktop.Args ?? [], "--snapshot");
             if (snap >= 0 && desktop.Args!.Length > snap + 1) _ = Snapshot.RunAsync(desktop.Args[snap + 1]);
             if (OperatingSystem.IsMacOS()) BuildMacMenu(dock);
+
+            // 사용 팁: 독이 자리를 잡은 뒤 옆에 말풍선으로. 확인용 실행(--snapshot·--tool)과 로그인 때 자동 시작에는 보이지 않는다.
+            var args = desktop.Args ?? [];
+            if (!args.Contains("--snapshot") && !args.Contains("--tool"))
+            {
+                var autostart = args.Contains(LaunchCommand.AutostartArg);
+                DispatcherTimer.RunOnce(() => ShowTip(atStartup: true, autostart), TimeSpan.FromMilliseconds(1500));
+            }
         }
         base.OnFrameworkInitializationCompleted();
     }
@@ -194,6 +203,27 @@ public partial class App : Application
             SyncRunning = false;
             SyncChanged?.Invoke();
         }
+    }
+
+    /// <summary>
+    /// 사용 팁 하나를 독 옆에 보인다. 시작할 때(<paramref name="atStartup"/>)는 설정이 꺼져 있거나 자동 시작이면 보이지 않고,
+    /// 메뉴의 "사용 팁 보기"는 늘 보인다. 차례는 보일 때마다 넘어간다(<see cref="StartupTips"/>). 팁이 켜져 있으면 [다시 보지 않기]가 붙는다.
+    /// </summary>
+    internal static void ShowTip(bool atStartup, bool autostart = false)
+    {
+        var current = Settings.Value;
+        TipId tip;
+        AppSettings next;
+        if (atStartup)
+        {
+            if (StartupTips.OnStartup(current, autostart) is not { } picked) return;
+            (tip, next) = picked;
+        }
+        else (tip, next) = StartupTips.Next(current);
+        if (next.StartupTipsNext != current.StartupTipsNext) Settings.Update(x => x with { StartupTipsNext = next.StartupTipsNext });
+        var s = Strings.Current;
+        if (current.StartupTips) Snackbar.Tip(s.Tip(tip), s.TipDontShowAgain, () => Settings.Update(x => x with { StartupTips = false }));
+        else Snackbar.Tip(s.Tip(tip));
     }
 
     /// <summary>독을 숨기거나 다시 보인다.</summary>

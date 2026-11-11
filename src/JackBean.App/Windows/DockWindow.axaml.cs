@@ -45,6 +45,7 @@ public partial class DockWindow : Window
     private readonly MenuItem HideItem = new();
     private readonly MenuItem SettingsItem = new();
     private readonly MenuItem AboutItem = new();
+    private readonly MenuItem TipItem = new();
     private readonly DockExpansion _expansion;
     private readonly DispatcherTimer _clearTimer = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly DispatcherTimer _pickTimer = new() { Interval = ChooserTimeout };
@@ -99,12 +100,13 @@ public partial class DockWindow : Window
 
         PointerPressed += OnPointerPressed;
         DoubleTapped += (_, _) => OpenHome();
-        ContextMenu = new ContextMenu { ItemsSource = new[] { OpenWindowItem, SettingsItem, AboutItem, HideItem, QuitItem } };
+        ContextMenu = new ContextMenu { ItemsSource = new[] { OpenWindowItem, SettingsItem, AboutItem, TipItem, HideItem, QuitItem } };
         OpenWindowItem.Click += (_, _) => OpenHome();
         QuitItem.Click += (_, _) => App.Quit();
         HideItem.Click += (_, _) => ToggleVisible();
         SettingsItem.Click += (_, _) => SettingsWindow.Open(this);
         AboutItem.Click += (_, _) => Dialogs.AboutDialog.Open(this);
+        TipItem.Click += (_, _) => App.ShowTip(atStartup: false);
         PositionChanged += OnPositionChanged;
         Opened += (_, _) => Place(App.Settings.Value.Dock);
         ActualThemeVariantChanged += (_, _) => Render();
@@ -130,6 +132,7 @@ public partial class DockWindow : Window
         OpenWindowItem.Header = Strings.Current.DockMenuOpenWindow;
         SettingsItem.Header = Strings.Current.SettingsTooltip;
         AboutItem.Header = Strings.Current.AboutTooltip;
+        TipItem.Header = Strings.Current.DockMenuShowTip;
         QuitItem.Header = Strings.Current.DockMenuQuit;
         HideItem.Header = Strings.Current.TrayHideDock;
     }
@@ -301,6 +304,7 @@ public partial class DockWindow : Window
         if (_pickAsks != null) return;
         var paths = (e.DataTransfer.TryGetFiles() ?? []).Select(f => f.TryGetLocalPath()).OfType<string>().ToList();
         if (paths.Count == 0) return;
+        if (!App.Settings.Value.DockDroppedOnce) App.Settings.Update(x => x with { DockDroppedOnce = true }); // 익혔다 — "콩에 놓으세요" 팁은 그만
         var items = paths.Select(p => PathClassifier.Classify(p)).ToList();
         _clearTimer.Stop();
         _hovering = false;
