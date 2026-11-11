@@ -35,6 +35,35 @@ public sealed class CodeProfileRulesStore(string directory)
         return Checked(baseRules.OverriddenBy(user.Value!));
     }
 
+    /// <summary>새 사용자 규칙 파일의 내용: 아무 유형도 더하지 않는 빈 틀(기본 규칙 그대로). 유형을 더하면 기본 규칙에 얹힌다.</summary>
+    public const string UserFileTemplate = """
+        {
+          "version": 1,
+          "types": []
+        }
+        """;   // 끝 줄바꿈은 없다(원시 문자열)
+
+    /// <summary>
+    /// 사용자 규칙 파일이 없으면 빈 틀로 만들고(있으면 **건드리지 않는다**) 경로를 돌려준다. 편집기로 열기 전에 부른다.
+    /// 폴더를 만들 수 없거나 쓸 수 없으면 오류.
+    /// </summary>
+    public async Task<CodeResult<string>> EnsureUserFileAsync()
+    {
+        try
+        {
+            if (!File.Exists(UserRulesPath))
+            {
+                Directory.CreateDirectory(directory);
+                await File.WriteAllTextAsync(UserRulesPath, UserFileTemplate, new System.Text.UTF8Encoding(false));
+            }
+            return CodeResult<string>.Success(UserRulesPath);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return CodeResult<string>.Fail($"{UserRulesPath}: 사용자 규칙 파일을 만들 수 없습니다: {e.Message}");
+        }
+    }
+
     private static CodeResult<ProfileRules> Checked(ProfileRules rules) =>
         rules.Validate() is { } problem ? CodeResult<ProfileRules>.Fail(problem) : CodeResult<ProfileRules>.Success(rules);
 }

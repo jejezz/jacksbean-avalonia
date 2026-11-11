@@ -444,4 +444,8 @@ public interface IAppStrings
     string CodeNoTypesHint { get; }
     string CodeOpenDefault { get; }
     string CodeOpenedDefault { get; }
+    string SettingsCodeRules { get; }
+    string SettingsCodeRulesOpen { get; }
+    string SettingsCodeRulesNote { get; }
+    string SettingsCodeRulesFailed(string message);
 }

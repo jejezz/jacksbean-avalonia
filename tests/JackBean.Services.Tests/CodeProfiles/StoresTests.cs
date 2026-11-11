@@ -308,4 +308,37 @@ public class CodeProfileRulesStoreTests
         File.WriteAllText(store.UserRulesPath, UserRust);
         Assert.Equal(10, (await store.LoadAsync()).Value!.Types.Count);
     }
+
+    [Fact]
+    public async Task EnsureCreatesAnEmptyTemplateThatChangesNothing()
+    {
+        using var t = Create();
+        var store = new CodeProfileRulesStore(Path.Combine(t.Path, "new-folder"));   // 폴더도 없다
+        var r = await store.EnsureUserFileAsync();
+        Assert.True(r.Ok, r.Error?.ToString());
+        Assert.Equal(store.UserRulesPath, r.Value);
+        Assert.Equal(CodeProfileRulesStore.UserFileTemplate, File.ReadAllText(store.UserRulesPath));
+        Assert.False(File.ReadAllBytes(store.UserRulesPath).AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }));   // BOM 없음
+        Assert.Equal(9, (await store.LoadAsync()).Value!.Types.Count);   // 틀만으로는 기본 규칙 그대로
+    }
+
+    [Fact]
+    public async Task EnsureNeverTouchesAnExistingFile()
+    {
+        using var t = Create(new() { [CodeProfileRulesStore.UserFileName] = UserRust });
+        var store = new CodeProfileRulesStore(t.Path);
+        Assert.True((await store.EnsureUserFileAsync()).Ok);
+        Assert.Equal(UserRust, File.ReadAllText(store.UserRulesPath));
+        Assert.Equal(10, (await store.LoadAsync()).Value!.Types.Count);
+    }
+
+    [Fact]
+    public async Task EnsureReportsAnUnwritableLocation()
+    {
+        using var t = Create(new() { ["file.txt"] = "" });
+        var store = new CodeProfileRulesStore(Path.Combine(t.Path, "file.txt"));   // 폴더 자리에 파일이 있다
+        var r = await store.EnsureUserFileAsync();
+        Assert.False(r.Ok);
+        Assert.Contains(CodeProfileRulesStore.UserFileName, r.Error!.Message);
+    }
 }

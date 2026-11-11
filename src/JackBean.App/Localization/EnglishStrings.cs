@@ -469,4 +469,8 @@ public sealed class EnglishStrings : IAppStrings
     public string CodeNoTypesHint => "The project type couldn't be determined. You can open the folder as it is, without a profile.";
     public string CodeOpenDefault => "Open without a profile";
     public string CodeOpenedDefault => "Opened in VS Code";
+    public string SettingsCodeRules => "User rules";
+    public string SettingsCodeRulesOpen => "Open the rules file";
+    public string SettingsCodeRulesNote => "A JSON file that adds or overrides project types (the same id overrides a built-in rule). If it doesn't exist, an empty template is created and opened. Saved changes apply from the next analysis; invalid JSON is reported with the file path and line number.";
+    public string SettingsCodeRulesFailed(string message) => $"Could not open the rules file: {message}";
 }

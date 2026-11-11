@@ -284,6 +284,27 @@ public sealed class SettingsWindow : Window
         for (var i = 0; i < buttons.Length; i++) { Grid.SetColumn(buttons[i], i); row.Children.Add(buttons[i]); }
         page.Children.Add(row);
         page.Children.Add(status);
+
+        // 사용자 규칙 파일(프로젝트 유형 추가·덮어쓰기): 없으면 빈 틀을 만들어 내장 텍스트 에디터로 연다. 분석할 때마다 다시 읽으므로 저장하면 바로 반영된다.
+        page.Children.Add(Heading(s.SettingsCodeRules));
+        var openRules = new Button { Content = s.SettingsCodeRulesOpen, HorizontalAlignment = HorizontalAlignment.Left };
+        openRules.Click += async (_, _) =>
+        {
+            openRules.IsEnabled = false;
+            try
+            {
+                var file = await new CodeProfileRulesStore(App.PolicyStore.Directory).EnsureUserFileAsync();
+                if (!file.Ok) Notifications.Snackbar.Error(s.SettingsCodeRulesFailed(file.Error!.Message), file.Error.Message);
+                else await App.Tools.OpenAsync(ToolRegistry.Scheme + "text-editor", file.Value!);
+            }
+            catch (Exception e)
+            {
+                Notifications.Snackbar.Error(s.SettingsCodeRulesFailed(e.Message), e.ToString());
+            }
+            finally { openRules.IsEnabled = true; }
+        };
+        page.Children.Add(openRules);
+        page.Children.Add(Note(s.SettingsCodeRulesNote));
     }
 
     void BuildSync(StackPanel page)
@@ -361,6 +382,14 @@ public sealed class SettingsWindow : Window
     static bool HasBehaviorSettings => true;   // 사용 팁 스위치는 어느 OS 에나 있다
 
     /// <summary>확인용(--snapshot): "동기화" 구역으로 넘어간다.</summary>
+    /// <summary>확인용(--snapshot): "VS Code 프로필" 구역(Windows 만).</summary>
+    internal void ShowCode()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        _section = Section.Code;
+        Rebuild();
+    }
+
     internal void ShowSync()
     {
         _section = Section.Sync;
