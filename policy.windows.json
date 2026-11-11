@@ -21,14 +21,69 @@
         "{path}"
       ]
     },
-    "daylight-pdf": {
-      "command": "C:\\Program Files\\Daylight PDF\\daylight_pdf.exe",
+    "image-viewer": {
+      "command": "jackbean:image-viewer",
       "args": [
         "{path}"
       ]
+    },
+    "text-editor": {
+      "command": "jackbean:text-editor",
+      "args": [
+        "{path}"
+      ]
+    },
+    "pdf-viewer": {
+      "command": "jackbean:pdf-viewer",
+      "args": [
+        "{path}"
+      ]
+    },
+    "archive": {
+      "command": "jackbean:archive",
+      "args": [
+        "{paths}"
+      ]
+    },
+    "video-player": {
+      "command": "jackbean:video-player",
+      "args": [
+        "{path}"
+      ]
+    },
+    "audio-player": {
+      "command": "jackbean:audio-player",
+      "args": [
+        "{path}"
+      ]
+    },
+    "vscode": {
+      "command": "C:\\Users\\jejez\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+      "args": [
+        "{path}"
+      ],
+      "updated": "2026-11-11T04:53:50.123347Z"
     }
   },
   "rules": [
+    {
+      "id": "images",
+      "when": {
+        "kind": "extension",
+        "extensions": [
+          "png",
+          "jpg",
+          "jpeg",
+          "gif",
+          "webp",
+          "bmp",
+          "ico"
+        ]
+      },
+      "open": [
+        "image-viewer"
+      ]
+    },
     {
       "id": "pdf",
       "when": {
@@ -38,9 +93,109 @@
         ]
       },
       "open": [
-        "daylight-pdf"
-      ],
-      "updated": "2026-11-10T02:39:46.431660Z"
+        "pdf-viewer"
+      ]
+    },
+    {
+      "id": "video",
+      "when": {
+        "kind": "extension",
+        "extensions": [
+          "mp4",
+          "m4v",
+          "webm",
+          "mov"
+        ]
+      },
+      "open": [
+        "video-player"
+      ]
+    },
+    {
+      "id": "audio",
+      "when": {
+        "kind": "extension",
+        "extensions": [
+          "mp3",
+          "wav",
+          "flac",
+          "aac",
+          "m4a",
+          "ogg",
+          "oga",
+          "opus"
+        ]
+      },
+      "open": [
+        "audio-player"
+      ]
+    },
+    {
+      "id": "zip",
+      "when": {
+        "kind": "extension",
+        "extensions": [
+          "zip"
+        ]
+      },
+      "open": [
+        "archive"
+      ]
+    },
+    {
+      "id": "text",
+      "when": {
+        "kind": "extension",
+        "extensions": [
+          "txt",
+          "md",
+          "log",
+          "ini",
+          "cfg",
+          "conf"
+        ]
+      },
+      "open": [
+        "text-editor"
+      ]
+    },
+    {
+      "id": "code",
+      "when": {
+        "kind": "extension",
+        "extensions": [
+          "json",
+          "xml",
+          "yaml",
+          "yml",
+          "toml",
+          "html",
+          "htm",
+          "css",
+          "js",
+          "mjs",
+          "ts",
+          "tsx",
+          "jsx",
+          "py",
+          "cs",
+          "java",
+          "c",
+          "cpp",
+          "h",
+          "hpp",
+          "go",
+          "rs",
+          "rb",
+          "php",
+          "sh",
+          "ps1",
+          "sql"
+        ]
+      },
+      "open": [
+        "text-editor"
+      ]
     },
     {
       "id": "drives",
@@ -56,8 +211,13 @@
       "when": {
         "kind": "folder"
       },
-      "open": [],
-      "updated": "2026-11-10T02:48:21.505544Z"
+      "open": [
+        "explorer",
+        "terminal",
+        "archive",
+        "vscode"
+      ],
+      "updated": "2026-11-11T04:54:05.485805Z"
     },
     {
       "id": "files",
