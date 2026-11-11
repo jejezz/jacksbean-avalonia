@@ -72,12 +72,17 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         var os = PolicyOsExtensions.Current ?? throw new PlatformNotSupportedException("Windows, macOS, Linux 만 지원합니다.");
-        var settingsFile = JsonSettingsRepository.DefaultFile(AppIdentity.FileName);
+        // 확인용 --snapshot 은 실제 설정·정책을 건드리지 않는다 — 설정을 이리저리 바꾸고(테마·언어·sync_repo …) 그대로 저장하므로
+        // 매번 새 임시 폴더에 쓴다. HOME 을 바꾸는 것으로는 Windows 에서 격리되지 않는다(설정 위치는 APPDATA).
+        var snapshot = Environment.GetCommandLineArgs().Contains("--snapshot");
+        var settingsFile = snapshot
+            ? Path.Combine(Directory.CreateTempSubdirectory("JacksBean-snapshot-").FullName, "settings.json")
+            : JsonSettingsRepository.DefaultFile(AppIdentity.FileName);
         Settings = new SettingsController(new JsonSettingsRepository(settingsFile));
 
         PolicyStore = new PolicyStore(os, Path.GetDirectoryName(settingsFile));
         // --snapshot(확인용)은 진짜 로그인 토큰을 읽거나 건드리지 않는다.
-        ITokenStore tokens = Environment.GetCommandLineArgs().Contains("--snapshot") ? new MemoryTokenStore() : TokenStores.Create();
+        ITokenStore tokens = snapshot ? new MemoryTokenStore() : TokenStores.Create();
         Github = new GitHubSyncService(Settings, tokens, PolicyStore, Path.Combine(PolicyStore.Directory, "sync"));
         Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName, LaunchCommand.Current().WithAutostart());
         Tools = new ToolRegistry();
