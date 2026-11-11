@@ -42,6 +42,12 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 알림 영역 아이콘(`Tray/TrayService`, Avalonia `TrayIcon` — macOS 는 메뉴 막대; 그림은 독과 같은 "새싹이 난 콩" `dock_icon.png`)이 항상 있다: 누르면 독 숨기기·보이기, 메뉴는 독 숨기기·보이기 / 홈 / 설정 / 정보 / 종료. 독 메뉴에도 [독 숨기기]가 있다(`DockWindow.ToggleVisible`, 숨겨도 위치는 기억하고 다음 실행에는 다시 보인다).
 전역 단축키 **Ctrl+Alt+J**(독 숨기기·보이기)는 설정 창 "동작" 구역의 스위치로 켠다(`global_hotkey`, 기본 꺼짐 — 다른 앱과 겹칠 수 있어서). `Services/Hotkeys`: Windows 만(`WindowsGlobalHotkey` — 전용 스레드에서 `RegisterHotKey` + 메시지 루프), 그 밖의 OS 는 `IsSupported=false` 라 설정 항목이 숨는다(macOS 는 접근성 권한, Linux Wayland 는 막혀 있다). 등록에 실패하면(다른 앱이 쓰는 중) 알림을 띄우고 설정을 다시 끈다(`HotkeyService`). 조합을 바꾸는 화면은 아직 없다.
 
+## 다른 앱에서 끌기 시작 감지 (시험 중, Windows 만)
+다른 앱에서 파일을 끌기 시작하면 독이 미리 펼쳐져 "여기에 떨어뜨리세요"를 보인다(테두리 색만 활성, 두께는 평소). 독 위에 올라오면 지금처럼 "놓으면 열립니다", 놓거나 버튼을 떼면 줄어든다(`DockWindow.OnOutsideDrag`).
+Windows 의 OLE 드래그는 알림이 없어서 **추정**한다(`Services/DragWatch`): 전용 스레드의 저수준 마우스 후크 + 끄는 동안 50ms 마다 드래그의 흔적 — 왼쪽 버튼을 누른 채 6px 넘게 움직였고 ① 셸 드래그 이미지 창(`SysDragImage`)이 보이거나 ② 커서가 보통 커서(화살표·I빔·크기 조절 …)가 아니거나 "놓을 수 없음"(IDC_NO)이면 시작(`DragDetector`). **①이 필요하다**: 탐색기는 드롭 대상 위에서 커서를 화살표로 두고 효과를 드래그 이미지에 그려서, 커서만 보면 제목 막대처럼 놓을 수 없는 곳에 머물 때에야 펼쳐졌다. 창 끌기·글자 선택은 커서가 그대로라 걸러진다.
+시험해 본 것(2026-11-11 탐침): 탐색기 `EVENT_OBJECT_DRAGSTART`·`EVENT_SYSTEM_DRAGDROPSTART` 는 오지 않는다, 드래그 커서 핸들은 앱·때마다 다르다(그래서 "보통 커서가 아니다"로 판정). 탐색기에서 끌자마자 펼쳐지는 것은 사용자가 확인했다. 설정 스위치는 아직 없다(늘 켜짐), 단축키와 같은 이유로 시작 3초 뒤 UI 스레드 밖에서 건다.
+macOS(드래그 보드 `NSPasteboard .drag` 의 changeCount)·Linux X11(XFixes 로 `XdndSelection` 주인 변경)은 가능할 것으로 보지만 아직 없다. Wayland 는 막혀 있다.
+
 ## 정책 편집(룰 메이커)
 홈 창은 **보기 전용**이고 편집은 별도 창에서 한다(JSON 을 직접 고치지 않아도 되게 폼으로). 지금은 **앱 편집 창**(`Views/AppsEditorWindow`: 왼쪽 앱 목록 + 오른쪽 폼 — 이름·실행 파일·인자)만 있고,
 홈 창 "앱" 카드의 [앱 편집]과 빈 상태의 [앱 추가]로 연다. 저장·삭제는 `PolicyStore.UpsertAppAsync/RemoveAppAsync`(임시 파일에 쓰고 교체, 사용자가 적은 모르는 키는 보존, 깨진 파일은 쓰지 않음).
@@ -102,12 +108,12 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 326개(Domain 111 · Services 201 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 328개(Domain 111 · Services 207 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
 - **못 본 것**: 실제 파일 드롭·물어보기 목록, 독 끌기·위치 기억, 여러 모니터, Windows/Linux, 업데이트 흐름(서버에 이 앱이 아직 없다), 설정 창 좁은 배치(<700).
 
 ## 아직 없는 것
-정책 GitHub 동기화, 트레이·전역 단축키, 독 시작 시 다른 앱의 드래그 감지,
+정책 GitHub 동기화, 트레이·전역 단축키, 다른 앱의 드래그 감지(macOS·Linux — Windows 는 시험 중),
 앱 아이콘의 소품 글리프 교체, 데모 GIF. 설치 파일(`installer/`)·릴리스 워크플로(`.github/workflows/release.yml`)·README 는 작성했지만 Windows AOT 게시만 확인했고 Inno/Linux/macOS/워크플로는 아직 돌려 보지 않았다.
