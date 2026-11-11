@@ -195,7 +195,7 @@ internal sealed class CodeProfileWindow : Window
         }
 
         var result = a.Analysis;
-        if (result.Types.Count == 0) panel.Children.Add(Card(Text(s.CodeAnalysisNoTypes)));
+        if (result.Types.Count == 0) panel.Children.Add(Card(new StackPanel { Spacing = 4, Children = { Text(s.CodeAnalysisNoTypes), Text(s.CodeNoTypesHint, size: "FsSmall", mid: true) } }));
         for (var i = 0; i < result.Types.Count; i++)
         {
             var t = result.Types[i];
@@ -453,7 +453,9 @@ internal sealed class CodeProfileWindow : Window
             _ => line.Text,   // VS Code 가 낸 줄·실패 사유는 그대로
         };
         var raw = line.Event is LogEvent.ExtensionOutput or LogEvent.Failure;
-        var row = Text(raw ? "    " + text : text, mono: true, size: "FsSmall", mid: line.Event == LogEvent.ExtensionOutput && !line.IsError, danger: line.IsError);
+        // VS Code 는 성공할 때도 stderr 에 경고(Node DEP0169 등)를 낸다 — 그 줄은 적용이 실패했을 때만 빨갛게 한다.
+        var showAsError = line.IsError && (line.Event != LogEvent.ExtensionOutput || _flow.FailedStep != null);
+        var row = Text(raw ? "    " + text : text, mono: true, size: "FsSmall", mid: line.Event == LogEvent.ExtensionOutput && !showAsError, danger: showAsError);
         return row;
     }
 
@@ -471,6 +473,12 @@ internal sealed class CodeProfileWindow : Window
         {
             case FlowStep.Analysis:
                 if (_flow.Analysis == null && !_flow.IsBusy) buttons.Children.Add(Plain(s.CodeRetry, _flow.AnalyzeAsync, icon: "undo"));
+                if (_flow.HasNoTypes)
+                {
+                    buttons.Children.Add(Plain(Strings.Current.AboutClose, () => { Close(); return Task.CompletedTask; }));
+                    buttons.Children.Add(Primary(s.CodeOpenDefault, OpenDefaultAsync, enabled: !_flow.IsBusy, icon: "code"));
+                    break;
+                }
                 buttons.Children.Add(Primary(s.CodeViewRecommendation, () => { _flow.GoToRecommendation(); return Task.CompletedTask; }, enabled: !_flow.IsBusy && _flow.Recommendation != null, icon: "arrow-right"));
                 break;
             case FlowStep.Recommendation:
@@ -495,6 +503,17 @@ internal sealed class CodeProfileWindow : Window
                 break;
         }
         _footer.Children.Add(buttons);
+    }
+
+    async Task OpenDefaultAsync()
+    {
+        var s = Strings.Current;
+        if (await _flow.OpenDefaultAsync())
+        {
+            Snackbar.Info(s.CodeOpenedDefault);
+            Close();
+        }
+        else Snackbar.Error(s.CodeOpenFailed(_flow.Error!.Message), _flow.Error.Message);
     }
 
     async Task OpenAsync()
