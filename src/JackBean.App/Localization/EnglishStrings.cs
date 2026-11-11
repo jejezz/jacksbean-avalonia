@@ -345,6 +345,13 @@ public sealed class EnglishStrings : IAppStrings
     public string HomeSyncOn => "Connected";
     public string HomeSyncOff => "Off";
     public string HomeSyncNotYet => "Not yet";
+    public string HomeRestoreDefaultsNote => "Caution: Restore default policy replaces all current rules and apps with the defaults. Rules and apps you made are removed (the previous contents are kept as a .backup file and can be restored with Undo last change), and if sync is on, the next Sync now may spread this change to your other PCs.";
+    public string HomePolicyModified(string when) => $"File modified: {when}";
+    public string HomeSyncLast(string when) => $"Last sync: {when}";
+    public string HomeSyncStateOff => "Not syncing — connect GitHub in Settings to share it with other PCs";
+    public string HomeSyncStateNever => "Connected, but never synced";
+    public string HomeSyncStateUpToDate => "Up to date — nothing changed on this PC since the last sync";
+    public string HomeSyncStateLocalChanged => "Changed on this PC — press Sync now to upload";
     public string HomeOtherFiles => "Everything else";
     public string HomeTargetFileType => "File type";
     public string HomeTargetAnyFolder => "Any folder";
