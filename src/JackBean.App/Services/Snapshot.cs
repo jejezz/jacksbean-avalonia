@@ -81,6 +81,9 @@ static class Snapshot
             await Task.Delay(500);
             Save(settingsWindow, Path.Combine(dir, "behavior-SettingsWindow.png"));
             App.Settings.Update(x => x with { SyncRepo = "octo/jacksbean-policy", SyncLastAt = DateTimeOffset.Now.AddMinutes(-3) });
+            settingsWindow.ShowCode();
+            await Task.Delay(500);
+            Save(settingsWindow, Path.Combine(dir, "code-SettingsWindow.png"));
             settingsWindow.ShowSync();
             await Task.Delay(500);
             Save(settingsWindow, Path.Combine(dir, "sync-SettingsWindow.png"));

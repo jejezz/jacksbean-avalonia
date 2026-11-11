@@ -469,4 +469,8 @@ public sealed class KoreanStrings : IAppStrings
     public string CodeNoTypesHint => "프로젝트 유형을 알 수 없는 폴더입니다. 프로필 없이 그대로 열 수 있습니다.";
     public string CodeOpenDefault => "프로필 없이 열기";
     public string CodeOpenedDefault => "VS Code 로 열었습니다";
+    public string SettingsCodeRules => "사용자 규칙";
+    public string SettingsCodeRulesOpen => "규칙 파일 열기";
+    public string SettingsCodeRulesNote => "프로젝트 유형을 더하거나 바꾸는 JSON 파일입니다(같은 id 는 기본 규칙을 덮어씁니다). 없으면 빈 틀을 만들어 엽니다. 저장하면 다음 분석부터 적용되고, 잘못된 JSON 이면 분석이 파일 경로와 줄 번호를 알려 줍니다.";
+    public string SettingsCodeRulesFailed(string message) => $"규칙 파일을 열지 못했습니다: {message}";
 }
