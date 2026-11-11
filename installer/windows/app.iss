@@ -25,7 +25,7 @@
   #define MyAppExeName "JacksBean.exe"
 #endif
 #define MyAppPublisher "Jongyun Ahn"
-#define MyAppURL "https://github.com/jejezz/jackbean-avalonia"
+#define MyAppURL "https://github.com/jejezz/jacksbean-avalonia"
 ; The app's first release year.
 #define MyFirstReleaseYear "2026"
 #define SourceDir "..\..\publish\aot"
