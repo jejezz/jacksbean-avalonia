@@ -68,6 +68,7 @@ public partial class DockWindow : Window
     private double _idleLeft;
     private bool _userMoving;
     private bool _placing;
+    private PixelPoint _lastSetPos; // 코드가 마지막으로 정한 창 위치 — 이와 다르면 사용자가 옮긴 것이다
 
     public DockWindow()
     {
@@ -156,8 +157,8 @@ public partial class DockWindow : Window
         }
         _placing = true;
         Width = size.Width; Height = size.Height;
-        Position = new PixelPoint((int)Math.Round(left), (int)Math.Round(top));
-        _idleLeft = left;
+        Position = _lastSetPos = new PixelPoint((int)Math.Round(left), (int)Math.Round(top));
+        _idleLeft = Position.X;
         Dispatcher.UIThread.Post(() => _placing = false, DispatcherPriority.Background);
     }
 
@@ -182,9 +183,11 @@ public partial class DockWindow : Window
     private void ResizeTo(Size size)
     {
         var scale = DesktopScaling;
+        SyncIdleLeft(scale);
         _placing = true;
         var left = GrowsRight ? _idleLeft : _idleLeft + IdleSize * scale - size.Width * scale;
         var target = new PixelPoint((int)Math.Round(left), Position.Y);
+        _lastSetPos = target;
         // 위치와 크기를 한 번에 바꾼다(그 사이 어긋난 프레임이 안 보이게). 안 되는 OS 에서는 차례로 바꾼다.
         NativeBounds.TrySet(this, target, new PixelSize((int)Math.Round(size.Width * scale), (int)Math.Round(size.Height * scale)));
         Width = size.Width;
@@ -193,9 +196,19 @@ public partial class DockWindow : Window
         Dispatcher.UIThread.Post(() => _placing = false, DispatcherPriority.Background);
     }
 
+    /// <summary>창이 코드가 정한 자리에 있지 않으면 사용자가 옮긴 것이다 — 그 자리를 콩의 자리로 다시 잡는다(이벤트를 놓쳐도 원래 자리로 되돌아가지 않게).</summary>
+    private void SyncIdleLeft(double scale)
+    {
+        if (Position == _lastSetPos) return;
+        _idleLeft = GrowsRight ? Position.X : Position.X + (Width - IdleSize) * scale;
+        _lastSetPos = Position;
+        RememberPosition();
+    }
+
     private void OnPositionChanged(object? sender, PixelPointEventArgs e)
     {
-        if (_placing || !_userMoving) return;
+        // 코드가 정한 자리로의 변경은 무시한다. 플래그(_placing)는 끌기 중에 늦게 풀릴 수 있어 위치 비교로 가른다.
+        if (!_userMoving || e.Point == _lastSetPos) return;
         _idleLeft = GrowsRight ? e.Point.X : e.Point.X + (Width - IdleSize) * DesktopScaling;
         _movedTimer.Stop();
         _movedTimer.Start(); // 끌기가 멈춘 뒤 한 번만 저장한다
