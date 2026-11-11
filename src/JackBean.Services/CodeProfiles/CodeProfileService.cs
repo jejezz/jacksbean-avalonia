@@ -45,6 +45,16 @@ public sealed record StepFinished(ApplyStep Step, bool? Written = null, string? 
 /// <summary>단계가 실패해 적용을 멈췄다.</summary>
 public sealed record StepFailed(ApplyStep Step, string Message) : ApplyEvent;
 
+/// <summary>빠른 열기의 결과: 바로 열었다 / 설정을 다시 해야 한다(기억이 없거나 프로필이 사라졌다) / 열지 못했다.</summary>
+public abstract record QuickOpenResult;
+
+public sealed record QuickOpened(string Profile) : QuickOpenResult;
+
+/// <param name="MissingProfile">기억은 있는데 VS Code 에 그 프로필이 없다면 그 이름, 처음 보는 폴더면 null.</param>
+public sealed record QuickNeedsSetup(string? MissingProfile) : QuickOpenResult;
+
+public sealed record QuickFailed(CodeError Error) : QuickOpenResult;
+
 /// <summary>
 /// 폴더를 분석해 추천을 만들고, 사용자가 확인하면 **프로필 준비 → 확장 설치 → 설정 쓰기**를 차례로 한 뒤 VS Code 로 연다.
 /// 화면은 엔진·VS Code 를 이 클래스로만 쓴다.
@@ -146,6 +156,21 @@ public sealed class CodeProfileService(VsCodeCli cli, ProjectAnalyzer analyzer, 
             // 기억하지 못해도 적용은 끝났다. 다음 드롭 때 한 번 더 확인하게 될 뿐이다.
         }
     }
+
+    /// <summary>
+    /// 빠른 열기: 이 폴더에 적용해 둔 프로필이 기억돼 있고 VS Code 에 아직 있으면 분석·확인 없이 바로 그 프로필로 연다.
+    /// 처음 보는 폴더이거나 프로필이 사라졌으면 열지 않고 <see cref="QuickNeedsSetup"/> 으로 알린다(화면이 처음부터 안내한다).
+    /// </summary>
+    public async Task<QuickOpenResult> QuickOpenAsync(string folder)
+    {
+        var record = await memory.GetAsync(folder);
+        if (record == null) return new QuickNeedsSetup(null);
+        if (!await cli.ProfileExistsAsync(record.Profile)) return new QuickNeedsSetup(record.Profile);
+        return await cli.OpenAsync(record.Profile, folder) is { } error ? new QuickFailed(error) : new QuickOpened(record.Profile);
+    }
+
+    /// <summary>프로필 없이 폴더만 연다(프로젝트 유형을 알 수 없는 폴더). 성공하면 null.</summary>
+    public Task<CodeError?> OpenDefaultAsync(string folder) => cli.OpenWithoutProfileAsync(folder);
 
     /// <summary>폴더를 그 프로필로 연다. 성공하면 null.</summary>
     public Task<CodeError?> OpenAsync(string folder, string profile) => cli.OpenAsync(profile, folder);

@@ -89,7 +89,7 @@ public static class KnownApps
         ["text-editor"] = new(new LaunchSpec("jackbean:text-editor"), new LaunchSpec("jackbean:text-editor"), new LaunchSpec("jackbean:text-editor")),
         // 앱 안에 들어 있는 VS Code 프로필 도구(프로젝트 폴더를 분석해 프로필을 추천·생성하고 연다). 지금은 Windows 에서만 동작하고,
         // 설정에서 켠 사람에게만 목록에 보인다(`vscode_profile_enabled`). 다른 OS 는 아직 모른다 → 건너뜀.
-        ["vscode-profile"] = new(new LaunchSpec("jackbean:vscode-profile")),
+        ["vscode-profile"] = new(new LaunchSpec("jackbean:vscode-profile", ["{paths}"])),
         // 터미널: 리눅스는 배포판마다 달라서 모른다(건너뜀).
         ["terminal"] = new(
             new LaunchSpec("wt.exe", ["-d", "{path}"]),

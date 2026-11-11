@@ -439,4 +439,9 @@ public interface IAppStrings
     string SettingsCodeNotFound { get; }
     string SettingsCodeCheckOk(string version);
     string SettingsCodeCheckFailed(string message);
+    string CodeMultiDropFirstOnly(string name);
+    string CodeQuickProfileMissing(string profile);
+    string CodeNoTypesHint { get; }
+    string CodeOpenDefault { get; }
+    string CodeOpenedDefault { get; }
 }

@@ -464,4 +464,9 @@ public sealed class KoreanStrings : IAppStrings
     public string SettingsCodeNotFound => "VS Code 를 찾지 못했습니다. 경로를 직접 지정하세요.";
     public string SettingsCodeCheckOk(string version) => $"VS Code {version}";
     public string SettingsCodeCheckFailed(string message) => $"실행하지 못했습니다: {message}";
+    public string CodeMultiDropFirstOnly(string name) => $"여러 폴더를 놓았습니다. ‘{name}’ 만 처리합니다 — 나머지는 하나씩 놓아 주세요.";
+    public string CodeQuickProfileMissing(string profile) => $"‘{profile}’ 프로필이 VS Code 에 없어 다시 설정합니다.";
+    public string CodeNoTypesHint => "프로젝트 유형을 알 수 없는 폴더입니다. 프로필 없이 그대로 열 수 있습니다.";
+    public string CodeOpenDefault => "프로필 없이 열기";
+    public string CodeOpenedDefault => "VS Code 로 열었습니다";
 }

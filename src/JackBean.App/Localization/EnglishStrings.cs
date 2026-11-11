@@ -464,4 +464,9 @@ public sealed class EnglishStrings : IAppStrings
     public string SettingsCodeNotFound => "VS Code was not found. Set the path yourself.";
     public string SettingsCodeCheckOk(string version) => $"VS Code {version}";
     public string SettingsCodeCheckFailed(string message) => $"Could not run it: {message}";
+    public string CodeMultiDropFirstOnly(string name) => $"Several folders were dropped. Only ‘{name}’ is handled — drop the others one at a time.";
+    public string CodeQuickProfileMissing(string profile) => $"The ‘{profile}’ profile no longer exists in VS Code, so it will be set up again.";
+    public string CodeNoTypesHint => "The project type couldn't be determined. You can open the folder as it is, without a profile.";
+    public string CodeOpenDefault => "Open without a profile";
+    public string CodeOpenedDefault => "Opened in VS Code";
 }

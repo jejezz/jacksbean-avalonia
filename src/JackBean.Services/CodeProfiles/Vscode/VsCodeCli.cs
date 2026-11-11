@@ -108,6 +108,14 @@ public sealed partial class VsCodeCli
         return output.Ok ? null : new CodeError($"VS Code 를 열지 못했습니다: {output.FailureReason}");
     }
 
+    /// <summary>`code &lt;폴더&gt;` — 프로필을 지정하지 않고 연다(VS Code 가 그 폴더에 쓰던 프로필, 없으면 기본 프로필). 성공하면 null.</summary>
+    public async Task<CodeError?> OpenWithoutProfileAsync(string folder)
+    {
+        if (CheckArgs(folder) is { } bad) return bad;
+        var output = await _runner.RunAsync(_codePath, [folder], TimeSpan.FromSeconds(30));
+        return output.Ok ? null : new CodeError($"VS Code 를 열지 못했습니다: {output.FailureReason}");
+    }
+
     /// <summary>확장 하나를 설치한다(프로필이 이미 있어야 한다). 출력을 줄 단위로 흘리고 마지막에 <see cref="ProcessExited"/> 가 온다.</summary>
     public async IAsyncEnumerable<ProcessEvent> InstallExtensionAsync(string profile, string extensionId, [EnumeratorCancellation] CancellationToken ct = default)
     {

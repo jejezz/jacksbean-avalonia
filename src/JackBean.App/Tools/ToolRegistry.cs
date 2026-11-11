@@ -22,6 +22,15 @@ public interface IBuiltInTool
     Window CreateWindow(IReadOnlyList<string> paths) => CreateWindow(paths[0]);
 }
 
+/// <summary>
+/// 창을 반드시 띄우지는 않는 도구. <see cref="TryRunAsync"/> 가 일을 끝내면(예: 이미 설정된 프로젝트를 바로 연다) null 을 돌려주고
+/// 레지스트리는 창을 띄우지 않는다. 창이 필요하면 그 창을 돌려준다. UI 스레드에서 불리고 기다리는 동안 UI 를 막지 않는다.
+/// </summary>
+public interface IQuickTool : IBuiltInTool
+{
+    Task<Window?> TryRunAsync(IReadOnlyList<string> paths);
+}
+
 public sealed class ToolRegistry
 {
     public const string Scheme = "jackbean:";
@@ -39,36 +48,38 @@ public sealed class ToolRegistry
     /// <summary>`jackbean:image-viewer` 같은 명령을 연다. 모르는 도구면 예외(실행기가 실패로 독에 알린다).</summary>
     public Task OpenAsync(string command, string path) => OpenAsync(command, [path]);
 
-    /// <summary>`jackbean:도구` 를 경로 여러 개로 연다(도구가 `{paths}` 를 받는 경우). 같은 도구·같은 경로 묶음이면 열려 있는 창을 앞으로 가져온다.</summary>
+    /// <summary>
+    /// `jackbean:도구` 를 경로 여러 개로 연다(도구가 `{paths}` 를 받는 경우). 같은 도구·같은 경로 묶음이면 열려 있는 창을 앞으로 가져온다.
+    /// <see cref="IQuickTool"/> 이면 먼저 빠른 경로를 시도하고, 창을 돌려줄 때만 띄운다.
+    /// </summary>
     public Task OpenAsync(string command, IReadOnlyList<string> paths)
     {
         var path = string.Join('|', paths);   // 창을 구별하는 열쇠(경로 묶음)
         var id = command[Scheme.Length..];
         if (!_tools.TryGetValue(id, out var tool)) throw new InvalidOperationException($"알 수 없는 내장 도구: {id}");
-        var done = new TaskCompletionSource();
-        Dispatcher.UIThread.Post(() =>
+        var key = (tool.Id.ToLowerInvariant(), OperatingSystem.IsWindows() ? path.ToLowerInvariant() : path);
+        return Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            try
-            {
-                // 같은 도구로 같은 파일을 다시 열면 열려 있는 창을 앞으로 가져온다(파일 하나당 창 하나).
-                var key = (tool.Id.ToLowerInvariant(), OperatingSystem.IsWindows() ? path.ToLowerInvariant() : path);
-                if (_byFile.TryGetValue(key, out var existing))
-                {
-                    if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal;
-                    existing.Activate();
-                    done.SetResult();
-                    return;
-                }
-                var window = paths.Count > 1 ? tool.CreateWindow(paths) : tool.CreateWindow(paths[0]);
-                _open.Add(window);
-                _byFile[key] = window;
-                window.Closed += (_, _) => { _open.Remove(window); _byFile.Remove(key); };
-                window.Show();
-                window.Activate();
-                done.SetResult();
-            }
-            catch (Exception e) { done.SetException(e); }
+            // 같은 도구로 같은 파일을 다시 열면 열려 있는 창을 앞으로 가져온다(파일 하나당 창 하나).
+            if (TryActivate(key)) return;
+            var window = tool is IQuickTool quick
+                ? await quick.TryRunAsync(paths)
+                : paths.Count > 1 ? tool.CreateWindow(paths) : tool.CreateWindow(paths[0]);
+            if (window == null) return;
+            if (TryActivate(key)) { window.Close(); return; }   // 기다리는 사이 같은 창이 먼저 떴다
+            _open.Add(window);
+            _byFile[key] = window;
+            window.Closed += (_, _) => { _open.Remove(window); _byFile.Remove(key); };
+            window.Show();
+            window.Activate();
         });
-        return done.Task;
+    }
+
+    private bool TryActivate((string Id, string Path) key)
+    {
+        if (!_byFile.TryGetValue(key, out var existing)) return false;
+        if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal;
+        existing.Activate();
+        return true;
     }
 }

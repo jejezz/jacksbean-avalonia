@@ -129,6 +129,20 @@ static class Snapshot
             await Dispatcher.UIThread.InvokeAsync(() => Save(window, Path.Combine(dir, $"code-{name}-4-apply.png")));
             window.Close();
         }
+        await CodeNoTypesShotAsync(dir, data);
+    }
+
+    static async Task CodeNoTypesShotAsync(string dir, string data)
+    {
+        var folder = Path.Combine(dir, "code-notes");
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "notes.txt"), "");
+        var service = new CodeProfileService(new VsCodeCli(new ScriptedRunner(false), "code.cmd"), new ProjectAnalyzer(), new CodeProfileRulesStore(data), new ProjectSettingsFile(), new CodeProjectMemory(data));
+        var window = new CodeProfileWindow(new CodeProfileFlow(service, folder));
+        window.Show();
+        await Task.Delay(1500);
+        await Dispatcher.UIThread.InvokeAsync(() => Save(window, Path.Combine(dir, "code-notypes-1-analysis.png")));
+        window.Close();
     }
 
     /// <summary>`--snapshot` 전용: 무엇을 불러도 성공(또는 확장 설치만 실패)하는 가짜 실행기.</summary>

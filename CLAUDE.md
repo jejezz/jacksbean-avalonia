@@ -116,9 +116,19 @@ dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 
 ```
 테스트 334개(Domain 117 · Services 207 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
+## VS Code 프로필 도구 (`vscode-profile`, Windows 전용·선택)
+Code Profiler(Flutter)를 옮긴 내장 도구. 프로젝트 폴더를 분석해 VS Code 프로필·확장·`.vscode/settings.json` 을 추천하고, 확인을 받아 적용한 뒤 `code --profile` 로 연다.
+- **꺼짐이 기본**: 설정 `vscode_profile_enabled`(설정 창 "VS Code 프로필" 구역, Windows 만). 꺼져 있으면 홈의 앱 타일·앱 편집 목록·규칙의 앱 고르기에서 숨기고(`App.IsHiddenApp`), 규칙이 연결돼 있어도 실행하면 안내와 함께 실패한다(`App.OpenBuiltIn`). 기본 정책·정책 스키마(2)는 건드리지 않는다. `code.cmd` 경로는 `vscode_path`(비우면 자동 탐지).
+- 구조: Domain `CodeProfiles/`(규칙·분석·추천·JSONC·병합·diff, 순수) → Services `CodeProfiles/`(스캔·프로세스·`VsCodeCli`·설정 파일·`CodeProfileService`·화면 상태 `CodeProfileFlow`) → App `Tools/{VsCodeProfileTool,CodeProfileWindow}`. 규칙은 JSON(`DefaultProfileRules`, 사용자 규칙은 `code-profile-rules.user.json`), 기억은 `code-profile-projects.json`(이 PC 전용, 동기화 안 함).
+- **빠른 경로(`IQuickTool`)**: 이 폴더에 적용해 둔 프로필이 VS Code 에 아직 있으면 창 없이 바로 연다. 처음 보는 폴더·사라진 프로필이면 설정 창, 유형을 알 수 없는 폴더면 [프로필 없이 열기]. 앱의 `args` 가 `{paths}` 라 여러 폴더를 놓으면 **첫 번째만** 처리하고 알린다.
+- **VS Code CLI 사실**: 프로필 생성 명령이 없다 — 새 이름으로 폴더를 열면 빈 프로필이 만들어지고(그 뒤 1초 간격·60초 폴링), `--install-extension` 은 있는 프로필에만 된다. `code.cmd` 는 **셸 없이** 직접 실행하고(공백 경로·프로필 이름), 셸 특수문자(`& | < > ^ % "` 등)가 든 인자는 거부한다. VS Code 의 사용자 데이터 폴더에는 **절대 쓰지 않는다**. 출력은 UTF-8 로 읽고 안 되면 OEM 코드 페이지(cp949)로 다시 읽는다. 성공 중의 Node 경고(stderr `DEP0169`)는 실패가 아니다(로그에서 실패했을 때만 빨갛게).
+- 프로젝트 파일(`.vscode/settings.json`)은 쓰기 전에 diff 를 보여 주고, 기존 파일은 `.bak.<타임스탬프>` 로 백업, 주석이 사라지면 경고한다.
+- macOS·Linux 는 이 도구를 등록하지 않는다(맥에서 따로 구현).
+
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
 - **못 본 것**: 실제 파일 드롭·물어보기 목록, 독 끌기·위치 기억, 여러 모니터, Windows/Linux, 업데이트 흐름(서버에 이 앱이 아직 없다), 설정 창 좁은 배치(<700).
+- **VS Code 프로필 도구에서 못 본 것**: 실제 VS Code 로 처음부터 끝까지(프로필 생성 → 확장 설치 → 열기), 새 프로필 창이 먼저 열린 뒤 설치한 확장이 **재시작 없이 활성화되는지**, 60초 폴링이 느린 PC 에서 충분한지, 독에 폴더를 놓는 경로(규칙 연결), 빠른 경로가 프로필이 사라진 경우 설정 창으로 이어지는 것(시험은 서비스 단위로만 했다).
 
 ## 아직 없는 것
 정책 GitHub 동기화, 트레이·전역 단축키, 다른 앱의 드래그 감지(macOS·Linux — Windows 는 시험 중),

@@ -351,6 +351,29 @@ public sealed class CodeProfileFlow(CodeProfileService service, string folder)
     /// <summary>진행 중인 적용을 멈춘다(창을 닫을 때 확인을 받은 뒤 부른다).</summary>
     public void Cancel() => _cts?.Cancel();
 
+    /// <summary>판정된 유형이 없는 폴더인가(분석은 끝났다). 이때는 프로필 대신 기본 프로필로 열지 고른다.</summary>
+    public bool HasNoTypes => Analysis is { } a && a.Analysis.Types.Count == 0;
+
+    /// <summary>프로필 없이 폴더만 연다. 실패하면 <see cref="Error"/> 에 사유를 둔다.</summary>
+    public async Task<bool> OpenDefaultAsync()
+    {
+        if (IsBusy) return false;
+        IsBusy = true;
+        Error = null;
+        Raise();
+        try
+        {
+            var err = await service.OpenDefaultAsync(folder);
+            Error = err;
+            return err == null;
+        }
+        finally
+        {
+            IsBusy = false;
+            Raise();
+        }
+    }
+
     // ───── 5. 열기 ─────
 
     /// <summary>폴더를 이 프로필로 연다. 실패하면 <see cref="Error"/> 에 사유를 둔다.</summary>
