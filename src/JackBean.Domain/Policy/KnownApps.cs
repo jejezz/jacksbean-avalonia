@@ -65,7 +65,7 @@ public static class KnownApps
     /// 앱 안에 들어 있는 도구(`jackbean:` 명령). 정책 파일의 `apps` 에 적지 않아도 늘 쓸 수 있다(<see cref="PolicyDocument.Apps"/> 가 더해 준다) —
     /// 운영체제 기본 방식(`default`)처럼. 파일에 같은 이름이 있으면 파일이 이긴다.
     /// </summary>
-    public static readonly IReadOnlyList<string> BuiltInTools = ["image-viewer", "text-editor", "pdf-viewer", "archive", "video-player", "audio-player"];
+    public static readonly IReadOnlyList<string> BuiltInTools = ["image-viewer", "text-editor", "pdf-viewer", "archive", "video-player", "audio-player", "vscode-profile"];
 
     /// <summary>기본 제공 카탈로그. 새로 확실히 아는 앱이 생기면 여기에 더한다.</summary>
     public static readonly IReadOnlyDictionary<string, KnownApp> Catalog = new Dictionary<string, KnownApp>
@@ -87,6 +87,9 @@ public static class KnownApps
         ["archive"] = new(new LaunchSpec("jackbean:archive", ["{paths}"]), new LaunchSpec("jackbean:archive", ["{paths}"]), new LaunchSpec("jackbean:archive", ["{paths}"])),
         // 앱 안에 들어 있는 텍스트 에디터.
         ["text-editor"] = new(new LaunchSpec("jackbean:text-editor"), new LaunchSpec("jackbean:text-editor"), new LaunchSpec("jackbean:text-editor")),
+        // 앱 안에 들어 있는 VS Code 프로필 도구(프로젝트 폴더를 분석해 프로필을 추천·생성하고 연다). 지금은 Windows 에서만 동작하고,
+        // 설정에서 켠 사람에게만 목록에 보인다(`vscode_profile_enabled`). 다른 OS 는 아직 모른다 → 건너뜀.
+        ["vscode-profile"] = new(new LaunchSpec("jackbean:vscode-profile")),
         // 터미널: 리눅스는 배포판마다 달라서 모른다(건너뜀).
         ["terminal"] = new(
             new LaunchSpec("wt.exe", ["-d", "{path}"]),

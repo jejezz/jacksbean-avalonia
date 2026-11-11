@@ -43,6 +43,22 @@ public class JsonSettingsRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void VSCode_프로필_도구는_기본이_꺼짐이고_경로와_함께_저장된다()
+    {
+        Assert.False(new AppSettings().VsCodeProfileEnabled);   // 필요 없는 사람도 있어 사용자가 켠다
+        Assert.Null(new AppSettings().VsCodePath);
+        Repo().Save(new AppSettings { VsCodeProfileEnabled = true, VsCodePath = @"C:\Apps\Codein\code.cmd" });
+        var loaded = Repo().Load();
+        Assert.True(loaded.VsCodeProfileEnabled);
+        Assert.Equal(@"C:\Apps\Codein\code.cmd", loaded.VsCodePath);
+        var text = File.ReadAllText(File_);
+        Assert.Contains("\"vscode_profile_enabled\": true", text);
+        Assert.Contains("\"vscode_path\"", text);
+        File.WriteAllText(File_, "{ \"theme_mode\": \"dark\" }");   // 키가 없는 옛 파일도 읽힌다
+        Assert.False(Repo().Load().VsCodeProfileEnabled);
+    }
+
+    [Fact]
     public void 동기화_저장소와_마지막_시각을_저장한다()
     {
         Assert.Null(new AppSettings().SyncRepo);

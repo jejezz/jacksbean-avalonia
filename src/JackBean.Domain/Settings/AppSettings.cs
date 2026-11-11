@@ -74,6 +74,14 @@ public sealed record AppSettings
     [JsonPropertyName("global_hotkey")]
     public bool GlobalHotkey { get; init; }
 
+    /// <summary>VS Code 프로필 도구(프로젝트 폴더를 분석해 프로필을 추천·생성). 기본은 꺼짐 — 필요 없는 사람도 있어서 사용자가 켠다. Windows 에서만 쓴다.</summary>
+    [JsonPropertyName("vscode_profile_enabled")]
+    public bool VsCodeProfileEnabled { get; init; }
+
+    /// <summary>VS Code 실행 파일(`code.cmd`) 경로. null 이면 자동으로 찾고, 못 찾으면 `code` 를 PATH 에서 찾는다.</summary>
+    [JsonPropertyName("vscode_path")]
+    public string? VsCodePath { get; init; }
+
     /// <summary>정책을 동기화할 GitHub 저장소(`소유자/이름`). null 이면 동기화를 쓰지 않는다. 토큰은 설정 파일이 아니라 OS 보안 저장소에만 둔다.</summary>
     [JsonPropertyName("sync_repo")]
     public string? SyncRepo { get; init; }

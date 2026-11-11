@@ -40,6 +40,20 @@ public partial class App : Application
 
     internal static ToolRegistry Tools { get; private set; } = null!;
 
+    /// <summary>설정에서 켜야 쓰는 선택 도구(VS Code 프로필)를 꺼 둔 상태라 목록에서 숨길 앱인가.</summary>
+    internal static bool IsHiddenApp(string id) => id == VsCodeProfileTool.ToolId && !Settings.Value.VsCodeProfileEnabled;
+
+    /// <summary>`jackbean:` 명령을 연다. 선택 도구는 꺼져 있거나 이 OS 에서 쓸 수 없으면 이유를 알리며 실패한다.</summary>
+    static Task OpenBuiltIn(string command, IReadOnlyList<string> args)
+    {
+        if (string.Equals(command, ToolRegistry.Scheme + VsCodeProfileTool.ToolId, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!OperatingSystem.IsWindows()) return Task.FromException(new InvalidOperationException(Strings.Current.CodeToolWindowsOnly));
+            if (!Settings.Value.VsCodeProfileEnabled) return Task.FromException(new InvalidOperationException(Strings.Current.CodeToolOff));
+        }
+        return Tools.OpenAsync(command, args);
+    }
+
     /// <summary>전역 단축키(독 숨기기·보이기). 이 OS 에서 쓸 수 없으면 <see cref="HotkeyService.IsSupported"/> 가 false.</summary>
     internal static HotkeyService Hotkeys { get; private set; } = null!;
 
@@ -92,10 +106,11 @@ public partial class App : Application
         Tools.Register(new ArchiveTool());
         Tools.Register(new VideoPlayerTool());
         Tools.Register(new AudioPlayerTool());
+        if (OperatingSystem.IsWindows()) Tools.Register(new VsCodeProfileTool());   // 설정에서 켠 사람에게만 열린다(OpenBuiltIn)
         // `jackbean:` 로 시작하는 명령은 프로세스를 띄우지 않고 내장 도구가 연다. 나머지는 셸 없이 프로세스로.
         var external = new AppLauncher();
         Router = new DropRouter(PolicyStore, new AppLauncher((command, args) =>
-            ToolRegistry.IsBuiltIn(command) ? Tools.OpenAsync(command, args) : external.SpawnAsync(command, args)));
+            ToolRegistry.IsBuiltIn(command) ? OpenBuiltIn(command, args) : external.SpawnAsync(command, args)));
 
         // UI 스레드에서 처리하지 못한 예외로 독이 사라지면 곤란하다 — 알림으로 알리고(원문 복사 가능) 계속 떠 있는다.
         Dispatcher.UIThread.UnhandledException += (_, e) =>

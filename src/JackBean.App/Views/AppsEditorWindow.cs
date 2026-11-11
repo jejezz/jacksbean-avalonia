@@ -101,12 +101,15 @@ public sealed class AppsEditorWindow : Window
 
     // --- 불러오기 ---
 
+    /// <summary>목록에 보일 앱 id. 꺼 둔 선택 도구(VS Code 프로필)는 뺀다.</summary>
+    private IEnumerable<string> VisibleIds() => (_policy?.Apps.Keys ?? []).Where(id => !App.IsHiddenApp(id));
+
     private async Task ReloadAsync(bool selectFirst, string? select = null, bool keepForm = false)
     {
         _policy = await App.PolicyStore.LoadAsync();
         if (select != null) { _selectedId = select; _isNew = false; }
-        else if (selectFirst && _selectedId == null && !_isNew) _selectedId = _policy.Apps.Keys.FirstOrDefault();
-        if (_selectedId != null && !_policy.Apps.ContainsKey(_selectedId) && !_isNew) _selectedId = _policy.Apps.Keys.FirstOrDefault();
+        else if (selectFirst && _selectedId == null && !_isNew) _selectedId = VisibleIds().FirstOrDefault();
+        if (_selectedId != null && !_policy.Apps.ContainsKey(_selectedId) && !_isNew) _selectedId = VisibleIds().FirstOrDefault();
         BuildList();
         if (!keepForm) BuildForm();
     }
@@ -135,7 +138,7 @@ public sealed class AppsEditorWindow : Window
         _leftPanel.Children.Add(header);
 
         if (_isNew) _list.Children.Add(ListItem(s.AppsEditorNewApp, selected: true, () => { }));
-        foreach (var id in _policy?.Apps.Keys ?? [])
+        foreach (var id in VisibleIds())
         {
             var captured = id;
             _list.Children.Add(ListItem(id, selected: !_isNew && id == _selectedId, () => Select(captured)));

@@ -355,4 +355,88 @@ public interface IAppStrings
     string HomeOpenAppPick(string app);
     string HomeAppsSummary(int total, int builtIn);
     string HomeOpenAppTip { get; }
+    string CodeToolName { get; }
+    string CodeStepAnalysis { get; }
+    string CodeStepRecommend { get; }
+    string CodeStepDiff { get; }
+    string CodeStepApply { get; }
+    string CodeAnalysisRunning { get; }
+    string CodeAnalysisFailed { get; }
+    string CodeAnalysisNoTypes { get; }
+    string CodePrimaryBadge { get; }
+    string CodePriority(int value);
+    string CodeCompetitorsTitle { get; }
+    string CodeCompetitorsBody(string names);
+    string CodeScanStats(int count);
+    string CodeScanTruncated { get; }
+    string CodeSkippedDirs(string names);
+    string CodeVariables { get; }
+    string CodeViewRecommendation { get; }
+    string CodePrimaryType { get; }
+    string CodeProfileName { get; }
+    string CodeProfileNameHelp { get; }
+    string CodeNameEmpty { get; }
+    string CodeNameTooLong(int max);
+    string CodeNameInvalid { get; }
+    string CodeExtRecommended { get; }
+    string CodeExtOptional { get; }
+    string CodeSettingsPatch { get; }
+    string CodeSettingsCount(int count);
+    string CodeNotes { get; }
+    string CodeNothingToRecommend { get; }
+    string CodeCompareSettings { get; }
+    string CodeDiffLoading { get; }
+    string CodeDiffFailed { get; }
+    string CodeDiffNewFile { get; }
+    string CodeDiffNoChange { get; }
+    string CodeDiffComments { get; }
+    string CodeDiffAdded(int count);
+    string CodeDiffConflicts(int count);
+    string CodeDiffUnchanged(int count);
+    string CodeDiffReplace { get; }
+    string CodeDiffReplaceAll { get; }
+    string CodeDiffKeepAll { get; }
+    string CodeDiffExisting { get; }
+    string CodeDiffPatch { get; }
+    string CodeDiffPreview { get; }
+    string CodeApply { get; }
+    string CodeStepProfile { get; }
+    string CodeStepExtensions { get; }
+    string CodeStepSettings { get; }
+    string CodeNoExtensions { get; }
+    string CodeLogProfileExists(string name);
+    string CodeLogProfileCreating(string name);
+    string CodeLogProfileCreated(string name);
+    string CodeLogExtSkipped(string id);
+    string CodeLogExtInstalling(string id);
+    string CodeLogExtOk(string id);
+    string CodeLogExtFailed(string id);
+    string CodeLogCancelled { get; }
+    string CodeSettingsWritten { get; }
+    string CodeSettingsBackup(string path);
+    string CodeSettingsUnchanged { get; }
+    string CodeApplyDone { get; }
+    string CodeApplyFailedStep(string step, string message);
+    string CodeApplyRunning { get; }
+    string CodeStop { get; }
+    string CodeRetry { get; }
+    string CodeBack { get; }
+    string CodeOpenInVsCode { get; }
+    string CodeOpenFailed(string message);
+    string CodeOpened(string name);
+    string CodeNotAFolder(string name);
+    string CodeToolOff { get; }
+    string CodeToolWindowsOnly { get; }
+    string SettingsCodeSection { get; }
+    string SettingsCodeToggle { get; }
+    string SettingsCodeNote { get; }
+    string SettingsCodePath { get; }
+    string SettingsCodePathHint { get; }
+    string SettingsCodeDetect { get; }
+    string SettingsCodeBrowse { get; }
+    string SettingsCodeCheck { get; }
+    string SettingsCodeDetected(string path);
+    string SettingsCodeNotFound { get; }
+    string SettingsCodeCheckOk(string version);
+    string SettingsCodeCheckFailed(string message);
 }

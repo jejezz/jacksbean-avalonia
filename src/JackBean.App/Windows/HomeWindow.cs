@@ -245,7 +245,7 @@ public sealed class HomeWindow : Window
         var stats = new[]
         {
             Stat(s.HomeStatRules, policy.Rules.Count.ToString()),
-            Stat(s.HomeStatApps, policy.Apps.Count.ToString(), s.HomeAppsSummary(policy.Apps.Count, policy.Apps.Keys.Count(id => ToolRegistry.IsBuiltIn(policy.Apps[id].Command)))),
+            Stat(s.HomeStatApps, VisibleApps(policy).Count.ToString(), s.HomeAppsSummary(VisibleApps(policy).Count, VisibleApps(policy).Count(a => ToolRegistry.IsBuiltIn(a.Command)))),
             Stat(s.HomeStatSync, connected ? s.HomeSyncOn : s.HomeSyncOff, syncSub, connected ? "AppPrimary" : null),
             Stat(s.HomeStatPolicy, Path.GetFileName(App.PolicyStore.FilePath), os.Length > 0 ? os : null),
         };
@@ -282,8 +282,12 @@ public sealed class HomeWindow : Window
     /// <summary>제목에 쓰려고 첫 글자만 대문자로(영어 "drive" → "Drive").</summary>
     private static string Cap(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
 
+    /// <summary>목록에 보일 앱. 꺼 둔 선택 도구(VS Code 프로필)는 뺀다.</summary>
+    private static IReadOnlyList<AppEntry> VisibleApps(PolicyDocument policy) => policy.Apps.Values.Where(a => !App.IsHiddenApp(a.Id)).ToList();
+
     private static string AppIconKey(AppEntry app) => app.Id switch
     {
+        "vscode-profile" => "code",
         "image-viewer" => "image", "text-editor" => "file-text", "pdf-viewer" => "pdf", "video-player" => "video",
         "audio-player" => "audio", "archive" => "file-zip", "explorer" => "folder", "default" => "monitor", "terminal" => "terminal",
         _ => "app",
@@ -415,7 +419,7 @@ public sealed class HomeWindow : Window
         var s = Strings.Current;
         var appsTitle = Heading(s.HomeApps);
         appsTitle.VerticalAlignment = VerticalAlignment.Center;   // 오른쪽 편집 버튼(30px)과 같은 줄 가운데에 맞춘다
-        var summary = new TextBlock { Text = s.HomeAppsSummary(policy.Apps.Count, policy.Apps.Values.Count(a => ToolRegistry.IsBuiltIn(a.Command))), VerticalAlignment = VerticalAlignment.Center };
+        var summary = new TextBlock { Text = s.HomeAppsSummary(VisibleApps(policy).Count, VisibleApps(policy).Count(a => ToolRegistry.IsBuiltIn(a.Command))), VerticalAlignment = VerticalAlignment.Center };
         summary.Classes.Add("small");
         summary.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
         var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { appsTitle, summary } };
@@ -424,9 +428,9 @@ public sealed class HomeWindow : Window
         Grid.SetColumn(editApps, 1);
         appsHeader.Children.Add(editApps);
         var tiles = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
-        foreach (var a in policy.Apps.Values) tiles.Children.Add(AppTile(a, policy));
+        foreach (var a in VisibleApps(policy)) tiles.Children.Add(AppTile(a, policy));
         var body = new StackPanel { Spacing = 2, Children = { appsHeader } };
-        if (policy.Apps.Count == 0) body.Children.Add(Muted(s.HomeNoApps)); else body.Children.Add(tiles);
+        if (VisibleApps(policy).Count == 0) body.Children.Add(Muted(s.HomeNoApps)); else body.Children.Add(tiles);
         return Card(body);
     }
 
