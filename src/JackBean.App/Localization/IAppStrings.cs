@@ -327,6 +327,13 @@ public interface IAppStrings
     string HomeSyncOn { get; }
     string HomeSyncOff { get; }
     string HomeSyncNotYet { get; }
+    string HomeRestoreDefaultsNote { get; }
+    string HomePolicyModified(string when);
+    string HomeSyncLast(string when);
+    string HomeSyncStateOff { get; }
+    string HomeSyncStateNever { get; }
+    string HomeSyncStateUpToDate { get; }
+    string HomeSyncStateLocalChanged { get; }
     string HomeOtherFiles { get; }
     string HomeTargetFileType { get; }
     string HomeTargetAnyFolder { get; }

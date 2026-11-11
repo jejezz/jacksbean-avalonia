@@ -471,9 +471,7 @@ public sealed class HomeWindow : Window
         openFile.Click += (_, _) => OpenPolicyFile();
         var undo = new Button { Content = s.HomeUndo, IsEnabled = App.PolicyStore.CanUndo };
         undo.Click += (_, _) => PolicyNotices.Undo();
-        var restore = new Button { Content = s.HomeRestoreDefaults, IsVisible = _policy is { IsFallback: false } };
-        restore.Click += async (_, _) => await RestoreDefaultsAsync();
-        var fileButtons = new WrapPanel { Orientation = Orientation.Horizontal, Children = { reload, openFile, undo, restore } };
+        var fileButtons = new WrapPanel { Orientation = Orientation.Horizontal, Children = { reload, openFile, undo } };
         foreach (var b in fileButtons.Children) ((Control)b).Margin = new Thickness(0, 0, 8, 8);
         if (App.Github.CanSync)
         {
@@ -481,7 +479,51 @@ public sealed class HomeWindow : Window
             sync.Click += async (_, _) => await App.SyncNowAsync();
             fileButtons.Children.Add(sync);
         }
-        return Card(new StackPanel { Spacing = 8, Children = { Heading(s.HomePolicyFile), path, fileButtons } });
+        Control? restoreNote = null;
+        if (_policy is { IsFallback: false })
+        {
+            // 되돌리기 어려운 동작 — 맨 뒤에 두고 경고 아이콘을 붙인다.
+            var icon = new DuoIcon { Icon = "warning", ColorKey = "AppDanger", Width = 16, Height = 16, VerticalAlignment = VerticalAlignment.Center };
+            var label = new TextBlock { Text = s.HomeRestoreDefaults, VerticalAlignment = VerticalAlignment.Center };
+            var restore = new Button
+            {
+                Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { icon, label } },
+                Margin = new Thickness(0, 0, 8, 8),
+            };
+            restore.Click += async (_, _) => await RestoreDefaultsAsync();
+            fileButtons.Children.Add(restore);
+            var note = new TextBlock { Text = s.HomeRestoreDefaultsNote, TextWrapping = TextWrapping.Wrap };
+            note.Classes.Add("small");
+            note.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppDanger"));
+            restoreNote = note;
+        }
+        var info = new StackPanel { Spacing = 2 };
+        DateTimeOffset? modified = null;
+        try { if (File.Exists(App.PolicyStore.FilePath)) modified = File.GetLastWriteTime(App.PolicyStore.FilePath); } catch (IOException) { }
+        if (modified is { } m) info.Children.Add(MutedSmall(s.HomePolicyModified(m.LocalDateTime.ToString("g"))));
+        var st = App.Settings.Value;
+        string state;
+        if (string.IsNullOrEmpty(st.SyncRepo)) state = s.HomeSyncStateOff;
+        else
+        {
+            info.Children.Add(MutedSmall(s.HomeSyncLast(st.SyncLastAt is { } at ? at.LocalDateTime.ToString("g") : s.HomeSyncNotYet)));
+            state = st.SyncLastAt is not { } last ? s.HomeSyncStateNever
+                : modified is { } mod && mod > last.AddSeconds(2) ? s.HomeSyncStateLocalChanged
+                : s.HomeSyncStateUpToDate;
+        }
+        info.Children.Add(MutedSmall(state));
+        if (App.LastSyncSummary is { Length: > 0 } summary) info.Children.Add(MutedSmall(summary));
+        var body = new StackPanel { Spacing = 8, Children = { Heading(s.HomePolicyFile), path, info, fileButtons } };
+        if (restoreNote != null) body.Children.Add(restoreNote);
+        return Card(body);
+    }
+
+    private TextBlock MutedSmall(string text)
+    {
+        var t = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
+        t.Classes.Add("small");
+        t.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
+        return t;
     }
 
     private TextBlock Muted(string text)

@@ -345,6 +345,13 @@ public sealed class KoreanStrings : IAppStrings
     public string HomeSyncOn => "연결됨";
     public string HomeSyncOff => "꺼짐";
     public string HomeSyncNotYet => "아직 안 함";
+    public string HomeRestoreDefaultsNote => "주의: [기본 정책으로 되돌리기]는 지금의 규칙과 앱을 모두 기본값으로 바꿉니다. 직접 만든 규칙·앱은 사라지고(이전 내용은 .backup 파일로 남고 [마지막 변경 되돌리기]로 복구할 수 있습니다), 동기화를 켜 두었다면 다음 [지금 동기화] 때 다른 PC 에도 이 변경이 퍼질 수 있습니다.";
+    public string HomePolicyModified(string when) => $"파일 수정: {when}";
+    public string HomeSyncLast(string when) => $"마지막 동기화: {when}";
+    public string HomeSyncStateOff => "동기화 안 함 — 설정에서 GitHub 를 연결하면 다른 PC 와 맞출 수 있어요";
+    public string HomeSyncStateNever => "연결했지만 아직 동기화하지 않았어요";
+    public string HomeSyncStateUpToDate => "최신 — 마지막 동기화 뒤로 이 PC 에서 바뀐 것이 없어요";
+    public string HomeSyncStateLocalChanged => "이 PC 에서 바뀌었어요 — [지금 동기화]로 올리세요";
     public string HomeOtherFiles => "그 밖의 파일";
     public string HomeTargetFileType => "파일 형식";
     public string HomeTargetAnyFolder => "모든 폴더";
