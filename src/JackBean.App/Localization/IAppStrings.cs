@@ -1,3 +1,4 @@
+using JackBean.Domain.Tips;
 namespace JackBean.App.Localization;
 
 /// <summary>
@@ -193,6 +194,13 @@ public interface IAppStrings
     string SettingsHotkey { get; }
     string SettingsHotkeyToggle(string combo);
     string SettingsHotkeyNote { get; }
+    string SettingsTips { get; }
+    string SettingsTipsToggle { get; }
+    string SettingsTipsNote { get; }
+    /// <summary>시작할 때 독 옆에 보이는 사용 팁 한 줄.</summary>
+    string Tip(TipId tip);
+    string TipDontShowAgain { get; }
+    string DockMenuShowTip { get; }
     string HotkeyFailed(string combo);
     string SettingsStartup { get; }
     string SettingsStartupToggle { get; }

@@ -15,6 +15,7 @@ public class NotificationTests
     {
         Assert.Equal(TimeSpan.FromSeconds(4), NotificationGate.DurationOf(NotificationKind.Info));
         Assert.True(NotificationGate.DurationOf(NotificationKind.Error) > NotificationGate.DurationOf(NotificationKind.Info));
+        Assert.True(NotificationGate.DurationOf(NotificationKind.Tip) > NotificationGate.DurationOf(NotificationKind.Info));   // 팁은 읽을 시간이 더 필요하다
     }
 
     [Fact]

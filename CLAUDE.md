@@ -36,6 +36,12 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 - OS 별 파일(`policy.<os>.json`)을 각자 동기화한다(같은 OS 끼리 공유). 합치기 규칙: 한쪽만 바뀌면 그쪽, 양쪽이 다르게 바뀌면 `updated` 가 더 최근인 쪽(같으면 이 PC), 한쪽에서 지운 것은 이쪽이 그 뒤로 안 고쳤으면 따라 지우고 고쳤으면 남긴다, base 가 없으면(처음) 합집합. 합친 뒤 어긋난 것은 편집 때와 같은 규칙으로 고친다(확장자는 한 규칙에만, 드라이브·폴더·파일 규칙은 하나씩, 없는 앱은 규칙에서 뺌). 앱도 `updated` 를 가진다.
 - 시험은 가짜 GitHub 서버(`FakeGitHub`, HttpMessageHandler)로 한다 — 사용자·저장소·토픽·Contents API(sha 잠금)·Device Flow.
 
+## 사용 팁
+시작하고 1.5초 뒤 독 옆(알림 자리)에 팁 하나를 말풍선으로 12초 보인다(`Snackbar.Tip`, `NotificationKind.Tip` — 포커스를 가져가지 않고 마우스를 올리면 멈춘다).
+어느 팁인지는 `Domain/Tips/StartupTips`: 독에 한 번도 놓아 보지 않았으면(`dock_dropped_once`) "콩에 끌어다 놓으세요"만 — 첫 드롭에서 저절로 그친다 — 그 뒤에는 실행마다 하나씩 돌아가며(`startup_tips_next`: 앱 고르기 · 항상 이렇게 열기 · 홈 창 · 독 숨기기 · 동기화).
+끄기: 말풍선의 [다시 보지 않기] 또는 설정 "동작" 구역의 스위치(`startup_tips`, 기본 켜짐 — 그래서 "동작" 구역은 어느 OS 에나 있다). 독 메뉴·트레이 메뉴의 [사용 팁 보기]는 꺼 두어도 다음 팁을 보인다.
+**로그인할 때 자동 시작이면 보이지 않는다**: 시작 프로그램 등록 명령에 `--autostart` 를 붙인다(`LaunchCommand.WithAutostart`). 이 인자가 생기기 전에 등록한 것은 스위치를 껐다 켜야 붙는다. 확인용 실행(`--snapshot`·`--tool`)에도 보이지 않는다.
+
 ## 트레이·전역 단축키·시작 프로그램
 **시작 프로그램**(로그인할 때 자동 시작)은 설정 창 "동작" 구역의 스위치다(`Services/Startup`). 등록 여부는 설정 파일이 아니라 OS 의 등록이 원본이다(스위치가 늘 실제 상태를 보인다): Windows `HKCU\…\Run` 값, macOS `~/Library/LaunchAgents/<앱 ID>.plist`, Linux `~/.config/autostart/jacksbean.desktop`.
 실행 명령은 지금 실행 중인 앱의 경로(`LaunchCommand.Current` — 개발 중 `dotnet run` 이면 `dotnet "…dll"`). 등록하지 못하면 알림을 띄우고 스위치를 되돌린다.
@@ -94,7 +100,7 @@ Windows 설치 프로그램(`installer/windows/app.iss`)은 트레이에 숨어 
 - **문구**: `IAppStrings`(인터페이스 → `KoreanStrings` → `EnglishStrings` 순으로 모두 추가, 빠뜨리면 컴파일 오류). 코드는 `Strings.Current`, XAML은 `{DynamicResource Str.*}`(새 문구를 XAML에서 쓰면 `Strings.PublishResources`에 더한다).
 - **글꼴(fonts.md)**: SeoulNamsan 400/700/800 번들 + 설정에서 시스템 글꼴 선택. 파일 이름·경로는 `user` 클래스(시스템 글꼴), 고정폭은 `mono`.
 - **아이콘(icons.md)**: Phosphor Duotone 하나(`Icons/DuoIcon`). 쓸 아이콘은 `scripts/gen-phosphor-icons.py`의 `ICONS`에 더하고 다시 돌린다(`PhosphorIcons.g.cs`는 직접 고치지 않는다). 단, `+` `x` `✓` 같은 단순 기호는 18px 에서 채움 사각형이 윤곽을 흐리므로 `OUTLINE_ONLY` 에 넣어 **윤곽 층만** 쓴다(규약 "Duotone 하나로 통일"의 이 앱 한정 예외 — 같은 duotone 파일의 윤곽 층이라 선 모양은 같다).
-- **설정**: 저장 키 `theme_mode accent_palette text_scale app_locale ui_font_family window_placement dock_position global_hotkey sync_repo sync_login sync_last_at`. `SettingsController.Update(...)`로 바꾸면 바로 적용·(모아서)저장되고 열린 모든 창이 따라온다.
+- **설정**: 저장 키 `theme_mode accent_palette text_scale app_locale ui_font_family window_placement dock_position global_hotkey sync_repo sync_login sync_last_at startup_tips startup_tips_next dock_dropped_once`. `SettingsController.Update(...)`로 바꾸면 바로 적용·(모아서)저장되고 열린 모든 창이 따라온다.
 - **창 위치**: 홈 창은 `PlacementMath`로 기억·복원(window-placement.md), 새 독립 창은 `WindowPlacementHelper.OpenNear`.
 - **창 제목**: 홈 창(앱 창)은 `Jack’s Bean`, 그 밖의 보조 창·대화상자는 항상 `창 이름 — Jack’s Bean`(`WindowTitle.Of`). 새 창을 만들면 이것으로 제목을 정한다.
 - **단축키**: 설정 ⌘,/Ctrl+, · 정보 F1 · 새로 고침 F5/⌘R · 창 닫기 ⌘W · 대화상자 Esc. macOS 메뉴 막대에 정보·설정·종료.
@@ -108,7 +114,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 HOME=$(mktemp -d) dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장
 ```
-테스트 328개(Domain 111 · Services 207 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 334개(Domain 117 · Services 207 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.

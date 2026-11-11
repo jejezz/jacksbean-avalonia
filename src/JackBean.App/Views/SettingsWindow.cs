@@ -269,7 +269,7 @@ public sealed class SettingsWindow : Window
         page.Children.Add(Small(s.SyncOsNote, 0.7));
     }
 
-    static bool HasBehaviorSettings => App.Startup.IsSupported || App.Hotkeys.IsSupported;
+    static bool HasBehaviorSettings => true;   // 사용 팁 스위치는 어느 OS 에나 있다
 
     /// <summary>확인용(--snapshot): "동기화" 구역으로 넘어간다.</summary>
     internal void ShowSync()
@@ -312,6 +312,7 @@ public sealed class SettingsWindow : Window
         if (App.Hotkeys.IsSupported)
         {
             page.Children.Add(Heading(s.SettingsHotkey, first: first));
+            first = false;
             var toggle = new ToggleSwitch { IsChecked = App.Settings.Value.GlobalHotkey, OnContent = s.SettingsHotkeyToggle(HotkeyService.Combo), OffContent = s.SettingsHotkeyToggle(HotkeyService.Combo) };
             toggle.IsCheckedChanged += (_, _) =>
             {
@@ -322,6 +323,17 @@ public sealed class SettingsWindow : Window
             page.Children.Add(toggle);
             page.Children.Add(Note(s.SettingsHotkeyNote));
         }
+
+        page.Children.Add(Heading(s.SettingsTips, first: first));
+        var tips = new ToggleSwitch { IsChecked = App.Settings.Value.StartupTips, OnContent = s.SettingsTipsToggle, OffContent = s.SettingsTipsToggle };
+        tips.IsCheckedChanged += (_, _) =>
+        {
+            var on = tips.IsChecked == true;
+            if (on != App.Settings.Value.StartupTips) App.Settings.Update(x => x with { StartupTips = on });
+        };
+        _refreshers.Add(() => tips.IsChecked = App.Settings.Value.StartupTips);   // 말풍선의 [다시 보지 않기]로 꺼도 따라간다
+        page.Children.Add(tips);
+        page.Children.Add(Note(s.SettingsTipsNote));
     }
 
     void BuildAppearance(StackPanel page)

@@ -22,6 +22,7 @@ internal sealed class TrayService : IDisposable
     private readonly NativeMenuItem _home = new();
     private readonly NativeMenuItem _settings = new();
     private readonly NativeMenuItem _about = new();
+    private readonly NativeMenuItem _tip = new();
     private readonly NativeMenuItem _quit = new();
 
     public TrayService(Application app, DockWindow dock)
@@ -30,13 +31,14 @@ internal sealed class TrayService : IDisposable
         // 독과 같은 "새싹이 난 콩". 알림 영역에서는 작게 보이니 윤곽이 또렷한 이 그림을 쓴다.
         using var png = AssetLoader.Open(new Uri("avares://JacksBean/Assets/dock_icon.png"));
         _icon = new TrayIcon { Icon = new WindowIcon(png), ToolTipText = AppIdentity.DisplayName, IsVisible = true };
-        _icon.Menu = new NativeMenu { _toggle, new NativeMenuItemSeparator(), _home, _settings, _about, new NativeMenuItemSeparator(), _quit };
+        _icon.Menu = new NativeMenu { _toggle, new NativeMenuItemSeparator(), _home, _settings, _about, _tip, new NativeMenuItemSeparator(), _quit };
         _icon.Clicked += (_, _) => Dispatcher.UIThread.Post(App.ToggleDock);
 
         _toggle.Click += (_, _) => App.ToggleDock();
         _home.Click += (_, _) => App.OpenHome();
         _settings.Click += (_, _) => SettingsWindow.Open(_dock);
         _about.Click += (_, _) => Dialogs.AboutDialog.Open(_dock);
+        _tip.Click += (_, _) => App.ShowTip(atStartup: false);
         _quit.Click += (_, _) => App.Quit();
 
         TrayIcon.SetIcons(app, new TrayIcons { _icon });
@@ -52,6 +54,7 @@ internal sealed class TrayService : IDisposable
         _home.Header = s.DockMenuOpenWindow;
         _settings.Header = s.SettingsTooltip;
         _about.Header = s.AboutTooltip;
+        _tip.Header = s.DockMenuShowTip;
         _quit.Header = s.DockMenuQuit;
     }
 
