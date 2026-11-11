@@ -7,7 +7,7 @@ public enum DragSignal { None, Started, Ended }
 
 /// <summary>
 /// 다른 앱에서 파일 드래그가 시작됐는지 마우스와 커서만으로 추정한다(Windows 의 OLE 드래그는 시스템에 알림을 남기지 않는다).
-/// 왼쪽 버튼을 누른 채 <see cref="Threshold"/> 보다 많이 움직였고 커서가 드래그 모양(보통 커서가 아님, 또는 "놓을 수 없음")으로 바뀌면 시작,
+/// 왼쪽 버튼을 누른 채 <see cref="Threshold"/> 보다 많이 움직였고 드래그의 흔적(셸 드래그 이미지 창이 보이거나, 커서가 드래그 모양)이 보이면 시작,
 /// 버튼을 떼면 끝. 창 끌기·글자 선택·크기 조절은 커서가 화살표·I빔·크기 조절 커서로 남으므로 걸러진다.
 /// 오탐(커서를 직접 그리는 앱)이 날 수 있으니 받는 쪽은 "살짝 알리기"만 하고 실제 판정은 드롭 대상이 한다.
 /// </summary>
@@ -30,7 +30,7 @@ public sealed class DragDetector
         if (_down && !_moved && (Math.Abs(x - _x) > Threshold || Math.Abs(y - _y) > Threshold)) _moved = true;
     }
 
-    /// <param name="dragCursor">커서가 드래그 모양이다(보통 커서가 아니거나 "놓을 수 없음").</param>
+    /// <param name="dragCursor">드래그의 흔적이 보인다 — 셸 드래그 이미지 창이 보이거나 커서가 드래그 모양(보통 커서가 아니거나 "놓을 수 없음")이다.</param>
     public DragSignal Cursor(bool dragCursor)
     {
         if (!Watching || !dragCursor) return DragSignal.None;
@@ -73,7 +73,9 @@ internal sealed class UnsupportedDragWatcher : IDragWatcher
 }
 
 /// <summary>
-/// Windows: 전용 스레드에 저수준 마우스 후크(WH_MOUSE_LL)를 걸고, 같은 스레드의 50ms 타이머로 끄는 동안에만 커서 모양을 본다.
+/// Windows: 전용 스레드에 저수준 마우스 후크(WH_MOUSE_LL)를 걸고, 같은 스레드의 50ms 타이머로 끄는 동안에만 드래그의 흔적을 본다.
+/// 흔적은 둘이다. ① 셸 드래그 이미지 창(`SysDragImage`, 탐색기·바탕화면처럼 드래그 이미지를 쓰는 앱 — 이 앱들은 드롭 대상 위에서 커서를 화살표로
+/// 두고 효과를 이미지에 그리므로 커서만으로는 놓친다) ② 커서 모양(드래그 이미지를 안 쓰는 앱, 드롭 대상이 아닌 곳의 "놓을 수 없음").
 /// 후크 콜백은 그 스레드의 메시지 루프에서 불리므로 <see cref="DragDetector"/> 를 잠금 없이 쓴다. 콜백은 가볍게 — 늦으면 시스템이 후크를 건너뛴다.
 /// </summary>
 [SupportedOSPlatform("windows")]
@@ -127,6 +129,13 @@ internal sealed unsafe partial class WindowsDragWatcher : IDragWatcher
     [LibraryImport("user32.dll", EntryPoint = "LoadCursorW")]
     private static partial nint LoadCursor(nint hInstance, nint id);
 
+    [LibraryImport("user32.dll", EntryPoint = "FindWindowExW", StringMarshalling = StringMarshalling.Utf16)]
+    private static partial nint FindWindowEx(nint parent, nint after, string? className, string? title);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool IsWindowVisible(nint hWnd);
+
     [LibraryImport("kernel32.dll", EntryPoint = "GetModuleHandleW", StringMarshalling = StringMarshalling.Utf16)]
     private static partial nint GetModuleHandle(string? name);
 
@@ -166,7 +175,7 @@ internal sealed unsafe partial class WindowsDragWatcher : IDragWatcher
                 if (_hook == 0) { _active = null; return; }
                 SetTimer(0, 0, PollMs, 0);
                 while (GetMessage(out var msg, 0, 0, 0) > 0)
-                    if (msg.message == WM_TIMER && _detector.Watching) Emit(_detector.Cursor(IsDragCursor()));
+                    if (msg.message == WM_TIMER && _detector.Watching) Emit(_detector.Cursor(DragImageVisible() || IsDragCursor()));
                 UnhookWindowsHookEx(_hook);
                 _hook = 0;
                 _active = null;
@@ -177,6 +186,14 @@ internal sealed unsafe partial class WindowsDragWatcher : IDragWatcher
             if (failure == null) _thread = thread; else thread.Join(1000);
             return failure == null;
         }
+    }
+
+    /// <summary>셸 드래그 이미지 창이 보이는가. 창은 드래그가 끝나도 숨은 채 남을 수 있어 보이는 것만 센다.</summary>
+    private static bool DragImageVisible()
+    {
+        for (nint h = FindWindowEx(0, 0, "SysDragImage", null); h != 0; h = FindWindowEx(0, h, "SysDragImage", null))
+            if (IsWindowVisible(h)) return true;
+        return false;
     }
 
     private bool IsDragCursor()
