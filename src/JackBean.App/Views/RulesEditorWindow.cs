@@ -446,7 +446,7 @@ public sealed partial class RulesEditorWindow : Window
 
         if (_apps.Count < PolicyLimits.MaxAppsPerRule)
         {
-            var free = (_policy?.Apps.Keys ?? []).Concat(_pending.Keys).Where(id => !_apps.Contains(id)).ToList();
+            var free = (_policy?.Apps.Keys ?? []).Where(id => !App.IsHiddenApp(id)).Concat(_pending.Keys).Where(id => !_apps.Contains(id)).ToList();
             var addRow = new WrapPanel { Orientation = Orientation.Horizontal };   // 좁으면 줄을 바꾼다
             if (free.Count > 0)
             {

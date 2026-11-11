@@ -2,10 +2,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using JackBean.App.Tools;
 using JackBean.App.Views;
 using JackBean.App.Windows;
 using JackBean.Domain.Settings;
 using JackBean.Domain.Theme;
+using JackBean.Services.CodeProfiles;
 
 namespace JackBean.App;
 
@@ -93,7 +95,63 @@ static class Snapshot
             var login = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!).Windows.OfType<Dialogs.GitHubLoginDialog>().FirstOrDefault();
             if (login != null) { Save(login, Path.Combine(dir, "login-GitHubLoginDialog.png")); login.CloseFromState(); }
         });
+        await CodeProfileShotsAsync(dir);
         App.Quit();
+    }
+
+    /// <summary>VS Code 프로필 도구 창의 단계별 화면(성공·실패). 진짜 VS Code 를 건드리지 않도록 가짜 실행기를 쓴다.</summary>
+    static async Task CodeProfileShotsAsync(string dir)
+    {
+        var project = Path.Combine(dir, "code-sample");
+        Directory.CreateDirectory(Path.Combine(project, ".vscode"));
+        File.WriteAllText(Path.Combine(project, "pom.xml"), "<project/>");
+        File.WriteAllText(Path.Combine(project, "package.json"), "{}");
+        File.WriteAllText(Path.Combine(project, ".vscode", "settings.json"), "// 내 설정" + Environment.NewLine + "{ \"java.configuration.updateBuildConfiguration\": \"disabled\" }");
+        var data = Path.Combine(dir, "code-data");
+        Directory.CreateDirectory(data);
+
+        foreach (var (name, failInstall) in new[] { ("ok", false), ("fail", true) })
+        {
+            var service = new CodeProfileService(new VsCodeCli(new ScriptedRunner(failInstall), "code.cmd"), new ProjectAnalyzer(), new CodeProfileRulesStore(data), new ProjectSettingsFile(), new CodeProjectMemory(data));
+            var flow = new CodeProfileFlow(service, project);
+            var window = new CodeProfileWindow(flow);
+            window.Show();
+            await Task.Delay(1500);
+            await Dispatcher.UIThread.InvokeAsync(() => Save(window, Path.Combine(dir, $"code-{name}-1-analysis.png")));
+            flow.GoToRecommendation();
+            await Task.Delay(500);
+            await Dispatcher.UIThread.InvokeAsync(() => Save(window, Path.Combine(dir, $"code-{name}-2-recommend.png")));
+            await flow.GoToDiffAsync();
+            await Task.Delay(500);
+            await Dispatcher.UIThread.InvokeAsync(() => Save(window, Path.Combine(dir, $"code-{name}-3-diff.png")));
+            await flow.ApplyAsync();
+            await Task.Delay(500);
+            await Dispatcher.UIThread.InvokeAsync(() => Save(window, Path.Combine(dir, $"code-{name}-4-apply.png")));
+            window.Close();
+        }
+    }
+
+    /// <summary>`--snapshot` 전용: 무엇을 불러도 성공(또는 확장 설치만 실패)하는 가짜 실행기.</summary>
+    sealed class ScriptedRunner(bool failInstall) : IProcessRunner
+    {
+        public Task<ProcessOutput> RunAsync(string executable, IReadOnlyList<string> args, TimeSpan? timeout = null, CancellationToken ct = default) =>
+            Task.FromResult(new ProcessOutput(0, StdOut: "1.95.0"));
+
+        public async IAsyncEnumerable<ProcessEvent> StartAsync(string executable, IReadOnlyList<string> args, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+        {
+            await Task.Yield();
+            yield return new OutputLine("Installing extensions...");
+            if (failInstall)
+            {
+                yield return new OutputLine("Error: extension not found in marketplace", IsError: true);
+                yield return new ProcessExited(1);
+            }
+            else
+            {
+                yield return new OutputLine("Extension was successfully installed.");
+                yield return new ProcessExited(0);
+            }
+        }
     }
 
     static void Save(Window w, string path)

@@ -4,11 +4,14 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using JackBean.App.Tools;
 using JackBean.App.Tray;
 using JackBean.Domain;
 using JackBean.Domain.Settings;
 using JackBean.Domain.Theme;
+using JackBean.Services.CodeProfiles;
 
 namespace JackBean.App.Views;
 
@@ -52,7 +55,7 @@ public sealed class SettingsWindow : Window
         window.Show();
     }
 
-    enum Section { Appearance, Behavior, Sync }
+    enum Section { Appearance, Behavior, Sync, Code }
 
     readonly Grid _root = new();
     readonly StackPanel _nav = new() { Spacing = 4 };
@@ -149,9 +152,11 @@ public sealed class SettingsWindow : Window
         AddNavItem(Section.Appearance, s.SettingsSectionAppearance, "palette");
         if (HasBehaviorSettings) AddNavItem(Section.Behavior, s.SettingsSectionBehavior, "sliders");
         AddNavItem(Section.Sync, s.SettingsSectionSync, "cloud");   // 이 OS 에서 쓸 수 있는 동작 설정이 있을 때만
+        if (OperatingSystem.IsWindows()) AddNavItem(Section.Code, s.SettingsCodeSection, "code");   // VS Code 프로필 도구는 아직 Windows 만
 
         var page = new StackPanel { Spacing = 8, MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left };
         if (_section == Section.Sync) BuildSync(page);
+        else if (_section == Section.Code && OperatingSystem.IsWindows()) BuildCode(page);
         else if (_section == Section.Behavior && HasBehaviorSettings) BuildBehavior(page);
         else BuildAppearance(page);
         _scroll.Content = page;
@@ -195,6 +200,90 @@ public sealed class SettingsWindow : Window
         if (!HasBehaviorSettings) return;
         _section = Section.Behavior;
         Rebuild();
+    }
+
+    /// <summary>
+    /// "VS Code 프로필" 구역(Windows 만). 켜면 앱 목록에 `vscode-profile` 이 나타나 규칙에 연결할 수 있다. 실행 파일(`code.cmd`) 경로는
+    /// 비워 두면 자동으로 찾는다 — 찾기·고르기·확인 버튼이 있다.
+    /// </summary>
+    void BuildCode(StackPanel page)
+    {
+        var s = Strings.Current;
+        TextBlock Note(string text, bool danger = false)
+        {
+            var note = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
+            note.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsSmall"));
+            if (danger) note.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppDanger"));
+            return note;
+        }
+
+        page.Children.Add(Heading(s.SettingsCodeSection, first: true));
+        var toggle = new ToggleSwitch { IsChecked = App.Settings.Value.VsCodeProfileEnabled, OnContent = s.SettingsCodeToggle, OffContent = s.SettingsCodeToggle };
+        toggle.IsCheckedChanged += (_, _) =>
+        {
+            var on = toggle.IsChecked == true;
+            if (on == App.Settings.Value.VsCodeProfileEnabled) return;
+            App.Settings.Update(x => x with { VsCodeProfileEnabled = on });
+            App.NotifyPolicyChanged();   // 홈 창의 앱 목록을 다시 그린다(켜면 나타나고 끄면 사라진다)
+        };
+        _refreshers.Add(() => toggle.IsChecked = App.Settings.Value.VsCodeProfileEnabled);
+        page.Children.Add(toggle);
+        page.Children.Add(Note(s.SettingsCodeNote));
+
+        page.Children.Add(Heading(s.SettingsCodePath));
+        var box = new TextBox { Text = App.Settings.Value.VsCodePath ?? "", PlaceholderText = s.SettingsCodePathHint, Height = ControlHeight };
+        box.Classes.Add("user");
+        var status = Note("");
+        void Save()
+        {
+            var text = (box.Text ?? "").Trim();
+            var value = text.Length == 0 ? null : text;
+            if (value != App.Settings.Value.VsCodePath) App.Settings.Update(x => x with { VsCodePath = value });
+        }
+        box.LostFocus += (_, _) => Save();
+        box.KeyDown += (_, e) => { if (e.Key == Key.Enter) Save(); };
+
+        var detect = new Button { Content = s.SettingsCodeDetect };
+        detect.Click += (_, _) =>
+        {
+            status.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("AppTextMid"));
+            if (CodeLocator.Discover() is { } found)
+            {
+                box.Text = found;
+                Save();
+                status.Text = s.SettingsCodeDetected(found);
+            }
+            else status.Text = s.SettingsCodeNotFound;
+        };
+        var browse = new Button { Content = s.SettingsCodeBrowse };
+        browse.Click += async (_, _) =>
+        {
+            var picked = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { AllowMultiple = false });
+            if (picked.Count > 0 && picked[0].TryGetLocalPath() is { } path)
+            {
+                box.Text = path;
+                Save();
+            }
+        };
+        var check = new Button { Content = s.SettingsCodeCheck };
+        check.Click += async (_, _) =>
+        {
+            Save();
+            check.IsEnabled = false;
+            try
+            {
+                var cli = new VsCodeCli(new SystemProcessRunner(), VsCodeProfileTool.ResolveCodePath(box.Text));
+                var r = await cli.VersionAsync();
+                status.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable(r.Ok ? "AppTextMid" : "AppDanger"));
+                status.Text = r.Ok ? s.SettingsCodeCheckOk(r.Value!) : s.SettingsCodeCheckFailed(r.Error!.Message);
+            }
+            finally { check.IsEnabled = true; }
+        };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"), ColumnSpacing = 8 };
+        var buttons = new Control[] { box, detect, browse, check };
+        for (var i = 0; i < buttons.Length; i++) { Grid.SetColumn(buttons[i], i); row.Children.Add(buttons[i]); }
+        page.Children.Add(row);
+        page.Children.Add(status);
     }
 
     void BuildSync(StackPanel page)
