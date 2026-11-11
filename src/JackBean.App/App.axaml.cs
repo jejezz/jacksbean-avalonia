@@ -14,6 +14,7 @@ using JackBean.Domain;
 using JackBean.Domain.Policy;
 using JackBean.Domain.Settings;
 using JackBean.Services;
+using JackBean.Services.DragWatch;
 using JackBean.Services.GitHub;
 using JackBean.Services.Startup;
 using JackBean.Services.Sync;
@@ -57,6 +58,7 @@ public partial class App : Application
     internal static event Action? SyncChanged;
 
     private TrayService? _tray;
+    private IDragWatcher? _dragWatch;
 
     /// <summary>업데이트 확인·설치. 서버 주소가 없는 빌드(<c>-p:AppUpdateServer=</c>)나 로컬 빌드는 null.</summary>
     internal static UpdateService? Updates { get; private set; }
@@ -117,12 +119,20 @@ public partial class App : Application
             if (Settings.Value.GlobalHotkey)
                 _ = Task.Run(async () => { await Task.Delay(3000); Dispatcher.UIThread.Post(() => Hotkeys.Apply(Settings.Value.GlobalHotkey)); });
             Settings.Changed += st => Dispatcher.UIThread.Post(() => Hotkeys.Apply(st.GlobalHotkey));
+            // 다른 앱에서 파일을 끌기 시작하면 독이 미리 펼쳐진다(Windows 만, 시험 중). 단축키와 같은 이유로 UI 스레드 밖에서, 시작이 끝난 뒤 건다.
+            var dragWatch = _dragWatch = DragWatchers.Create();
+            if (dragWatch.IsSupported)
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    dragWatch.Start(signal => Dispatcher.UIThread.Post(() => dock.OnOutsideDrag(signal)), out _);
+                });
             Updates = UpdateService.Create(
                 FileUpdateStateStore.BesideSettings(settingsFile),
                 owner: () => desktop.Windows.OfType<HomeWindow>().FirstOrDefault(w => w.IsActive) ?? desktop.Windows.OfType<HomeWindow>().FirstOrDefault(),
                 isBusy: () => false);
             Updates?.StartAutomaticCheck();
-            desktop.Exit += (_, _) => { Hotkeys.Dispose(); _tray?.Dispose(); Settings.Dispose(); }; // 종료할 때 단축키를 풀고 마지막 변경까지 저장
+            desktop.Exit += (_, _) => { _dragWatch?.Dispose(); Hotkeys.Dispose(); _tray?.Dispose(); Settings.Dispose(); }; // 종료할 때 단축키를 풀고 마지막 변경까지 저장
 
             // 확인용 인자: `--home` `--settings` `--about` 으로 그 창도 함께 띄운다.
             foreach (var arg in desktop.Args ?? [])
