@@ -16,6 +16,7 @@ using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using JackBean.App.Notifications;
+using JackBean.App.Recent;
 using JackBean.App.Views;
 using JackBean.Domain;
 using JackBean.Domain.Window;
@@ -39,6 +40,8 @@ public partial class DockWindow : Window
     private const double IconSize = 46;
     private static readonly TimeSpan ChooserTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan MovedSaveDelay = TimeSpan.FromMilliseconds(400);
+    /// <summary>독과 목록을 둘 다 벗어나고 이만큼 지나면 닫는다(그 사이 돌아오면 그대로).</summary>
+    private static readonly TimeSpan RecentLinger = TimeSpan.FromMilliseconds(300);
 
     private readonly MenuItem OpenWindowItem = new();
     private readonly MenuItem QuitItem = new();
@@ -50,6 +53,17 @@ public partial class DockWindow : Window
     private readonly DispatcherTimer _clearTimer = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly DispatcherTimer _pickTimer = new() { Interval = ChooserTimeout };
     private readonly DispatcherTimer _movedTimer = new() { Interval = MovedSaveDelay };
+    /// <summary>
+    /// 콩을 한 번 누르고 이만큼 기다렸다가 최근 작업 목록을 연다 — 그 사이 한 번 더 누르면(두 번 누르기 = 홈 창) 열지 않는다.
+    /// 바로 여는 것도 해 봤지만 두 번 누를 때 목록이 번쩍여서 사용자가 이쪽을 골랐다.
+    /// </summary>
+    private static readonly TimeSpan RecentClickDelay = TimeSpan.FromMilliseconds(250);
+    private readonly DispatcherTimer _recentClickTimer = new() { Interval = RecentClickDelay };
+    private Task<IReadOnlyList<RecentRow>>? _recentRows; // 누르는 순간 읽기 시작한 목록 — 떼었을 때 바로 띄운다
+    private readonly DispatcherTimer _recentLingerTimer = new() { Interval = RecentLinger };
+    private RecentWindow? _recent;
+    private bool _pointerOverDock;
+    private bool _recentOpening; // 목록을 읽는 중(비동기) — 그 사이 조건이 바뀌면 띄우지 않는다
 
     private static readonly Lazy<Avalonia.Media.Imaging.Bitmap> DockIcon =
         new(() => new Avalonia.Media.Imaging.Bitmap(Avalonia.Platform.AssetLoader.Open(new Uri("avares://JacksBean/Assets/dock_icon.png"))));
@@ -99,8 +113,16 @@ public partial class DockWindow : Window
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
 
         PointerPressed += OnPointerPressed;
+        // 창(TopLevel) 자체에는 Enter/Exit 가 오지 않아서 창을 꽉 채운 Root 에 건다.
+        _recentClickTimer.Tick += (_, _) => { _recentClickTimer.Stop(); ShowRecent(); };
+        Root.PointerEntered += (_, _) => { _pointerOverDock = true; _recentLingerTimer.Stop(); };
+        Root.PointerExited += (_, _) => { _pointerOverDock = false; if (_recent != null) { _recentLingerTimer.Stop(); _recentLingerTimer.Start(); } };
+        Root.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left && OperatingSystem.IsLinux()) FinishPress(Position == _pressedAt); };   // X11 은 창 옮기기가 바로 돌아온다 — 뗄 때 판단
+        _releaseWatch.Tick += (_, _) => OnReleaseWatch();
+        _recentLingerTimer.Tick += (_, _) => { _recentLingerTimer.Stop(); if (!_pointerOverDock && _recent?.IsPointerInside != true) CloseRecent(); };
         DoubleTapped += (_, _) => OpenHome();
         ContextMenu = new ContextMenu { ItemsSource = new[] { OpenWindowItem, SettingsItem, AboutItem, TipItem, HideItem, QuitItem } };
+        ContextMenu.Opening += (_, _) => CloseRecent();
         OpenWindowItem.Click += (_, _) => OpenHome();
         QuitItem.Click += (_, _) => App.Quit();
         HideItem.Click += (_, _) => ToggleVisible();
@@ -110,7 +132,7 @@ public partial class DockWindow : Window
         PositionChanged += OnPositionChanged;
         Opened += (_, _) => Place(App.Settings.Value.Dock);
         ActualThemeVariantChanged += (_, _) => Render();
-        App.Settings.Changed += _ => Dispatcher.UIThread.Post(() => { UpdateMenuText(); Render(); });
+        App.Settings.Changed += st => Dispatcher.UIThread.Post(() => { UpdateMenuText(); Render(); if (!st.RecentHistory) CloseRecent(); });
         Strings.Changed += () => Dispatcher.UIThread.Post(() => { UpdateMenuText(); Render(); });
         _clearTimer.Tick += (_, _) => { _clearTimer.Stop(); _last = []; _expansion.ShrinkSoon(); }; // 모양은 줄이기 지연 뒤 창과 함께 바뀐다
         _pickTimer.Tick += (_, _) => CloseChooser();
@@ -224,9 +246,94 @@ public partial class DockWindow : Window
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || e.ClickCount > 1) return;
+        // 누르면 열려 있던 목록은 비킨다(옮기기·메뉴·두 번 누르기). 열려 있을 때 누른 것은 "닫기"다 — 다시 열지 않는다.
+        _clickOpens = _recent == null && !_recentClickTimer.IsEnabled && !_releaseWatch.IsEnabled;   // 기다리는 중에 또 눌렀다 = 두 번 누르기
+        _releaseWatch.Stop();
+        CloseRecent();
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || e.ClickCount > 1) { _clickOpens = false; return; }
+        if (_clickOpens && CanShowRecent) _recentRows = LoadRecentRows();   // 옮기기가 끝나기를 기다리는 동안 미리 읽는다
         _userMoving = true;
+        _pressedAt = Position;
+        _pressedTime = DateTime.UtcNow;
         BeginMoveDrag(e);
+        // 클릭인지(옮기지 않고 뗐는지) 가린다. Windows 는 BeginMoveDrag 가 떼기 전에 돌아오고 떼는 이벤트도 오지 않아 버튼 상태를 지켜본다.
+        // macOS 는 떼야 돌아온다. Linux(X11)는 바로 돌아오지만 떼는 이벤트가 온다(Root.PointerReleased).
+        if (OperatingSystem.IsWindows()) { _releaseWatch.Stop(); _releaseWatch.Start(); }
+        else if (OperatingSystem.IsMacOS()) FinishPress(Position == _pressedAt);
+    }
+
+    private PixelPoint _pressedAt;
+    private DateTime _pressedTime;
+    /// <summary>누른 뒤 버튼을 뗄 때까지 30ms 마다 본다(Windows). 그 사이 독이 움직였으면 옮기기, 그대로 뗐으면 클릭.</summary>
+    private readonly DispatcherTimer _releaseWatch = new() { Interval = TimeSpan.FromMilliseconds(30) };
+    /// <summary>이보다 오래 누르고 있다가 떼면 클릭으로 보지 않는다(누른 채 망설인 것).</summary>
+    private static readonly TimeSpan LongPress = TimeSpan.FromMilliseconds(800);
+
+    private void OnReleaseWatch()
+    {
+        if (Position != _pressedAt) { _releaseWatch.Stop(); FinishPress(clicked: false); return; }
+        if (NativeMouse.IsPrimaryDown() == true) return;
+        _releaseWatch.Stop();
+        FinishPress(clicked: DateTime.UtcNow - _pressedTime < LongPress);
+    }
+
+    /// <summary>누름이 끝났다: 클릭이면 목록을 열 준비를, 옮기기였으면 미리 읽은 목록을 버린다.</summary>
+    private void FinishPress(bool clicked)
+    {
+        if (clicked) { _userMoving = false; OnClicked(); }
+        else { _clickOpens = false; _recentRows = null; }
+    }
+
+    private bool _clickOpens;
+
+    /// <summary>콩을 한 번 눌렀다(옮기지 않고) — 잠깐 기다렸다가 최근 작업 목록을 연다(두 번 누르기면 열지 않는다). 목록은 누를 때 이미 읽기 시작했다.</summary>
+    private void OnClicked()
+    {
+        if (!_clickOpens) return;
+        _clickOpens = false;
+        if (!CanShowRecent) return;
+        PlayRipple();   // 눌렀다는 것을 바로 보인다 — 목록은 0.25초 뒤
+        _recentClickTimer.Stop();
+        _recentClickTimer.Start();
+    }
+
+    private readonly DispatcherTimer _rippleTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private DateTime _rippleStart;
+    private const double RippleFrom = 0.2, RippleOpacity = 0.6;   // 사용자 확인: 처음 값(0.35·0.42초)은 잘 안 보였다
+    private static readonly TimeSpan RippleDuration = TimeSpan.FromMilliseconds(650);
+
+    /// <summary>
+    /// 안드로이드의 물결(ripple)처럼 콩 가운데에서 강조색 원이 퍼지며 사라진다. 알약이 원(정원)일 때만 불린다 — 원이 알약 안에 들어맞아 잘라 낼 필요가 없다.
+    /// 프레임마다 크기·투명도를 직접 바꾼다(애니메이션 스타일 없이, NativeAOT 에도 안전).
+    /// </summary>
+    private void PlayRipple()
+    {
+        Ripple.Fill = new SolidColorBrush(Color.FromUInt32(Colors_.Primary));
+        Ripple.RenderTransform = new ScaleTransform(RippleFrom, RippleFrom);
+        Ripple.Opacity = RippleOpacity;
+        _rippleStart = DateTime.UtcNow;
+        if (!_rippleTimer.IsEnabled)
+        {
+            _rippleTimer.Tick -= OnRippleFrame;
+            _rippleTimer.Tick += OnRippleFrame;
+            _rippleTimer.Start();
+        }
+    }
+
+    private void OnRippleFrame(object? sender, EventArgs e)
+    {
+        var t = Math.Clamp((DateTime.UtcNow - _rippleStart) / RippleDuration, 0, 1);
+        var eased = 1 - Math.Pow(1 - t, 3);   // 처음엔 빠르게, 끝에서 느리게
+        var scale = RippleFrom + (1 - RippleFrom) * eased;
+        Ripple.RenderTransform = new ScaleTransform(scale, scale);
+        Ripple.Opacity = RippleOpacity * (1 - t * t);   // 끝 무렵에 빠르게 사라진다
+        if (t >= 1) { _rippleTimer.Stop(); Ripple.Opacity = 0; }
+    }
+
+    private static async Task<IReadOnlyList<RecentRow>> LoadRecentRows()
+    {
+        try { return await RecentActions.RowsAsync(); }
+        catch (Exception) { return []; }   // 못 읽으면 빈 목록으로
     }
 
     private void OpenHome() => App.OpenHome();
@@ -241,6 +348,7 @@ public partial class DockWindow : Window
     /// <summary>독을 숨기거나 다시 보인다(트레이 아이콘·전역 단축키·독 메뉴). 위치는 그대로 기억한다.</summary>
     public void ToggleVisible()
     {
+        CloseRecent();
         if (IsVisible) Hide();
         else Show();
     }
@@ -255,6 +363,7 @@ public partial class DockWindow : Window
     {
         if (signal == DragSignal.Started)
         {
+            CloseRecent();
             if (!IsVisible || _pickAsks != null || _hovering || _outsideDrag) return;
             _outsideDrag = true;
             _clearTimer.Stop();
@@ -271,6 +380,7 @@ public partial class DockWindow : Window
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
+        CloseRecent();
         _clearTimer.Stop();
         if (_pickAsks != null) return; // 고르는 중에는 새 드래그를 받지 않는다
         _hovering = true;
@@ -315,7 +425,9 @@ public partial class DockWindow : Window
         _expansion.Expand(); // 창을 먼저 키운 뒤 그린다
         Render();
 
+        CloseRecent();
         var plan = await App.Router.RouteAsync(items);
+        RecentActions.Remember(plan.Outcomes);
         if (plan.Policy.Warnings.Count > 0)
             Snackbar.Error(Strings.Current.PolicyWarningsFound, string.Join(Environment.NewLine, plan.Policy.Warnings),
                 plan.Policy.IsFallback ? Strings.Current.SnackbarOpenHome : null, plan.Policy.IsFallback ? App.OpenHome : null); // 파일을 못 읽었으면 복구 버튼이 있는 홈 창으로
@@ -343,6 +455,46 @@ public partial class DockWindow : Window
 
 
     private void ScheduleClear() { _clearTimer.Stop(); _clearTimer.Start(); }
+
+    // ── 최근 작업 목록 ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 콩을 한 번 누르면(옮기지 않고) 연다 — 마우스를 올리는 것만으로는 열지 않는다(사용자 결정: 지나가다 뜨면 어수선하다, 클릭은 원래 아무 일도 하지 않았다).
+    /// 지금 목록을 띄워도 되는가: 드래그·앱 고르기·드롭 결과 표시·그 밖의 상태가 아니고, 같은 자리에 알림이 떠 있지 않을 때.
+    /// 놓은 직후에는 결과(<see cref="_last"/>)를 몇 초 보이므로 그동안도 뜨지 않는다.
+    /// </summary>
+    private bool CanShowRecent =>
+        IsVisible && App.Settings.Value.RecentHistory && !_hovering && !_outsideDrag && _pickAsks == null && _last.Count == 0
+        && !Snackbar.IsShowing && ContextMenu?.IsOpen != true;
+
+    private async void ShowRecent()
+    {
+        if (_recent != null || _recentOpening || !CanShowRecent) return;
+        _recentOpening = true;
+        var pending = _recentRows ?? LoadRecentRows();
+        _recentRows = null;
+        IReadOnlyList<RecentRow> rows;
+        try { rows = await pending; }
+        finally { _recentOpening = false; }
+        // 읽는 사이 드래그가 시작됐으면 그만둔다. 기록이 없으면 "아직 없습니다" 한 줄을 보인다(눌렀는데 아무 반응이 없으면 고장 같다).
+        if (_recent != null || !CanShowRecent) return;
+        var window = new RecentWindow(rows);
+        _recent = window;
+        window.PointerInside += inside => { _recentLingerTimer.Stop(); if (!inside) _recentLingerTimer.Start(); };
+        window.Done += CloseRecent;
+        window.Closed += (_, _) => { if (ReferenceEquals(_recent, window)) _recent = null; };
+        window.Show();
+        window.PlaceNear(this, GrowsRight);
+    }
+
+    private void CloseRecent()
+    {
+        _recentClickTimer.Stop();
+        _recentLingerTimer.Stop();
+        var window = _recent;
+        _recent = null;
+        window?.Close();
+    }
 
     // ── 앱 고르기 ───────────────────────────────────────────────────────────────────
 
@@ -377,6 +529,7 @@ public partial class DockWindow : Window
         if (asks == null) return;
         _pickTimer.Stop();
         var result = await App.Router.ChooseAsync(app, asks, _remember && _suggestions.Count > 0);
+        RecentActions.Remember(result.Outcomes);
         var failure = result.Failures.FirstOrDefault();
         if (failure != null) { SetError(Strings.Current.DockOpenFailed(failure.Error)); }
         else if (result.SaveError != null) { SetError(Strings.Current.DockRuleSaveFailed(result.SaveError)); }

@@ -37,7 +37,9 @@ public static class TextScales
 /// 앱 고유 설정은 <c>&lt;기능&gt;_&lt;이름&gt;</c> 키를 쓴다 (<c>dock_*</c>, <c>global_hotkey</c>). 같은 키 이름의 JSON 파일 하나에 저장한다
 /// (정책 파일 <c>policy.&lt;os&gt;.json</c>과는 별개 — 정책만 동기화 대상이다).
 /// <para>
-/// 모든 필드에 기본값이 있어서 옛 파일에 없는 키가 있어도, 새 버전이 키를 더해도 읽힌다. 불변이라 <c>with</c>로 바꾼다.
+/// 모든 필드에 기본값이 있어서 옛 파일에 없는 키가 있어도, 새 버전이 키를 더해도 읽힌다. <c>with</c>로 바꾼다.
+/// <b>기본값이 0·false·null 이 아닌 속성은 <c>init</c> 대신 <c>set</c></b>이다: 소스 생성 JSON 은 <c>init</c> 속성을 객체 초기화식으로 채우면서
+/// 파일에 없는 키에 기본값(0·false)을 넣어 버려, 키가 없는 옛 파일에서 <c>recent_history</c>·<c>startup_tips</c> 가 꺼지고 글자 크기가 80% 가 됐다.
 /// </para>
 /// </summary>
 public sealed record AppSettings
@@ -51,7 +53,7 @@ public sealed record AppSettings
     public ColorPalette Palette { get; init; } = ColorPalette.Saturn;
 
     [JsonPropertyName("text_scale")]
-    public double TextScale { get; init; } = TextScales.Default;
+    public double TextScale { get; set; } = TextScales.Default;   // init 이 아니다 — 아래 설명
 
     /// <summary>null이면 시스템 언어를 따른다.</summary>
     [JsonPropertyName("app_locale")]
@@ -96,7 +98,7 @@ public sealed record AppSettings
 
     /// <summary>시작할 때 독 옆에 사용 팁을 보인다(기본 켜짐). 로그인할 때 자동으로 시작한 경우에는 켜져 있어도 보이지 않는다.</summary>
     [JsonPropertyName("startup_tips")]
-    public bool StartupTips { get; init; } = true;
+    public bool StartupTips { get; set; } = true;   // init 이 아니다 — 아래 설명
 
     /// <summary>다음에 보일 팁의 차례(<c>Tips.StartupTips.Rotation</c> 의 위치).</summary>
     [JsonPropertyName("startup_tips_next")]
@@ -105,6 +107,10 @@ public sealed record AppSettings
     /// <summary>독에 한 번이라도 놓아 보았다 — 그 전에는 "콩에 끌어다 놓으세요" 팁만 보인다.</summary>
     [JsonPropertyName("dock_dropped_once")]
     public bool DockDroppedOnce { get; init; }
+
+    /// <summary>독에 놓아 연 작업을 최근 10개까지 이 PC 에 기록하고, 알약에 마우스를 올리면 보인다(기본 켜짐). 끄면 기록을 지운다.</summary>
+    [JsonPropertyName("recent_history")]
+    public bool RecentHistory { get; set; } = true;   // init 이 아니다 — 아래 설명
 
     public AppSettings WithTextScale(double scale) => this with { TextScale = TextScales.Snap(scale) };
 

@@ -31,6 +31,16 @@ public class JsonSettingsRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void 키가_없는_옛_파일은_기본_켜짐_설정을_켜진_채로_읽는다()
+    {
+        File.WriteAllText(File_, """{ "theme_mode": "dark" }""");
+        var loaded = Repo().Load();
+        Assert.True(loaded.RecentHistory);
+        Assert.True(loaded.StartupTips);
+        Assert.Equal(TextScales.Default, loaded.TextScale);
+    }
+
+    [Fact]
     public void 전역_단축키는_기본이_꺼짐이고_저장한_값을_읽는다()
     {
         Assert.False(new AppSettings().GlobalHotkey);   // 다른 앱과 겹칠 수 있어 사용자가 켠다

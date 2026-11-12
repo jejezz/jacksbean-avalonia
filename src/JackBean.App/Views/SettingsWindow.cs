@@ -452,6 +452,17 @@ public sealed class SettingsWindow : Window
         _refreshers.Add(() => tips.IsChecked = App.Settings.Value.StartupTips);   // 말풍선의 [다시 보지 않기]로 꺼도 따라간다
         page.Children.Add(tips);
         page.Children.Add(Note(s.SettingsTipsNote));
+
+        page.Children.Add(Heading(s.SettingsRecent));
+        var recent = new ToggleSwitch { IsChecked = App.Settings.Value.RecentHistory, OnContent = s.SettingsRecentToggle, OffContent = s.SettingsRecentToggle };
+        recent.IsCheckedChanged += (_, _) =>
+        {
+            var on = recent.IsChecked == true;
+            if (on != App.Settings.Value.RecentHistory) App.Settings.Update(x => x with { RecentHistory = on });
+        };
+        _refreshers.Add(() => recent.IsChecked = App.Settings.Value.RecentHistory);
+        page.Children.Add(recent);
+        page.Children.Add(Note(s.SettingsRecentNote));
     }
 
     void BuildAppearance(StackPanel page)

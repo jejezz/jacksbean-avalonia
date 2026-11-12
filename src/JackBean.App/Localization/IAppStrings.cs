@@ -197,6 +197,15 @@ public interface IAppStrings
     string SettingsTips { get; }
     string SettingsTipsToggle { get; }
     string SettingsTipsNote { get; }
+    string SettingsRecent { get; }
+    string SettingsRecentToggle { get; }
+    string SettingsRecentNote { get; }
+    string RecentTitle { get; }
+    string RecentEmpty { get; }
+    string RecentClearAll { get; }
+    string RecentRemove { get; }
+    string RecentItemMissing { get; }
+    string RecentOpenAgain(string app);
     /// <summary>시작할 때 독 옆에 보이는 사용 팁 한 줄.</summary>
     string Tip(TipId tip);
     string TipDontShowAgain { get; }
