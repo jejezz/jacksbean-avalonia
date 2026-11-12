@@ -15,6 +15,14 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 - `src/JackBean.App` — Avalonia UI. 창: `DockWindow`(항상 위 독), `HomeWindow`(규칙·앱 보기, 앱 바 44), `Views/SettingsWindow`, `Dialogs/AboutDialog`, `Views/LicensesWindow`.
 - 정체성·버전·업데이트 서버는 `Directory.Build.props` 하나(`AppIdentity`/`AppVersion`이 어셈블리 메타데이터로 읽는다). **저장소 URL(`AppIdentity.RepositoryUrl`)은 업데이트 서버가 앱을 아는 이름이다 — 다른 앱 것을 복사해 두면 그 앱의 릴리스를 업데이트로 내놓는다.**
 
+## 창 크롬·단추 정책 (따를 것)
+정책 원문: `snapdock-flutter/docs/WINDOW_CHROME.md`(`D:/01.Work/01.Projects/13.FlutterProject/snapdock-flutter/docs/`). 요약:
+- **사용자가 따로 놓고 쓰는 창이면 OS 창(타이틀바 있음), 지금 하던 일에 딸린 질문·정보면 타이틀바 없는 모달.** 애매하면 모달(A)로 시작한다(부모를 막는가 · 결과가 돌아오는가 · 여러 개 띄우는가 · 다른 앱 뒤로 보냈다 다시 찾는가).
+- 이 앱의 분류: **A** 정보·확인/취소·메시지·텍스트 입력·GitHub 로그인/저장소·업데이트 안내/진행/확인 중 → 전부 `DialogBase`(`WindowDecorations=None`, 작업 표시줄 없음, 소유 창 가운데, 앱이 그린 둥근 테두리 `Border.dialogframe`, 가로 최대 440 내외(GitHub 대화상자는 내용이 많아 520~600), Esc 로 닫기, 제목은 본문 첫 줄 한 곳). 새 대화상자는 `DialogBase` 를 쓰고 `Content` 에 본문만 넣는다.
+  **B** 설정·앱 편집·규칙 편집·텍스트 에디터·PDF/이미지/오디오/비디오/압축/VS Code 프로필 도구 창(부모를 막지 않고 따로 쓴다 — OS 타이틀바). **C** 홈 창. **D** 독·스낵바·최근 작업·트레이. **E** 라이선스(원래 부모 전체를 덮는 화면이어야 하나 지금은 B 형태의 별도 창 — 고치려면 정보 대화상자를 거치지 않는 라우트로).
+- **대화상자 위의 대화상자는 한 단계까지.** OS 창 안의 대화상자는 다시 A 규칙(창 안의 창 안의 OS 창을 만들지 않는다).
+- **단추(`App.axaml` 한 곳에서만 정의)**: 기본 `Button` = 보조 동작, 배경 없는 강조색 글자(회색 칩 금지). `Classes="accent"` = 주 동작, 강조색 채운 알약, 대화상자에 하나, **맨 오른쪽**. `accent danger` = 되돌릴 수 없는 파괴 동작(오류색 채움). `outlined` = 본문 안의 중요한 보조. 글자는 하는 일을 적는다("확인"보다 "저장"·"업데이트"). 단추 모양을 코드에서 따로 정하지 않는다.
+
 ## 알림(스낵바)
 오류는 `Notifications/Snackbar.Error(메시지, 원문?)` 로 알린다(어느 스레드에서든). 독 옆에 뜨는 별도 창(`SnackbarWindow`)이 포커스를 가져가지 않고, 오류 10초·안내 4초 뒤 닫히며 마우스를 올려 두면 멈춘다. "복사"는 메시지+원문을 클립보드로 보낸다. 같은 알림이 3초 안에 또 오면 거른다(`Services/Notifications/NotificationGate`). UI 스레드의 처리되지 않은 예외도 여기로 온다(`App`). 독의 실행 실패·정책 경고·규칙 저장 실패가 연결되어 있다.
 

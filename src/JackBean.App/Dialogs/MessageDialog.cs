@@ -32,7 +32,7 @@ public sealed class MessageDialog : DialogBase
     {
         Title = WindowTitle.Of(title);
         MinWidth = 440;
-        MaxWidth = 640;
+        MaxWidth = 440;   // WINDOW_CHROME.md §3
 
         var heading = new TextBlock { Text = title, FontWeight = Avalonia.Media.FontWeight.Bold, Margin = new Thickness(0, 0, 0, 4) };
         heading.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsTitle"));

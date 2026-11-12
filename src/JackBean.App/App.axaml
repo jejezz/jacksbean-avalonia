@@ -85,6 +85,37 @@
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="Padding" Value="18,6" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+            <!-- WINDOW_CHROME.md §5: 보조 동작 = 배경 없는 강조색 글자 단추(기본). 회색 칩은 쓰지 않는다 -->
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppPrimary}" />
+        </Style>
+        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppHover}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppPrimary}" />
+        </Style>
+        <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+        <!-- 주 동작: 강조색 채움 알약, 대화상자 맨 오른쪽에 하나 -->
+        <Style Selector="Button.accent">
+            <Setter Property="Background" Value="{DynamicResource AppPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppOnPrimary}" />
+        </Style>
+        <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppOnPrimary}" />
+            <Setter Property="Opacity" Value="0.88" />
+        </Style>
+        <Style Selector="Button.accent:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource AppOnPrimary}" />
+        </Style>
+        <!-- 본문 안의 중요한 보조 동작: 윤곽선 -->
+        <Style Selector="Button.outlined">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppStrokeStrong}" />
         </Style>
 
         <!-- 설정 창 -->
@@ -158,7 +189,15 @@
 
         <!-- 짧은 질문 창: 패널보다 한 단계 띄운 색 (원본 결정) -->
         <Style Selector="Window.dialog">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="WindowDecorations" Value="None" />
+            <Setter Property="TransparencyLevelHint" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.dialogframe">
             <Setter Property="Background" Value="{DynamicResource AppSurfaceHi}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppStrokeStrong}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
         </Style>
 
         <!-- 영구 삭제 확인 버튼: 위험색 -->
@@ -166,7 +205,7 @@
             <Setter Property="Background" Value="{DynamicResource AppDanger}" />
             <Setter Property="Foreground" Value="White" />
         </Style>
-        <Style Selector="Button.accent.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Style Selector="Button.accent.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.accent.danger:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.accent.danger:disabled /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource AppDanger}" />
             <Setter Property="Foreground" Value="White" />
         </Style>
