@@ -23,7 +23,7 @@ public sealed class AboutDialog : DialogBase
     AboutDialog()
     {
         var s = Strings.Current;
-        Title = AppIdentity.DisplayName;
+        Title = AppIdentity.DisplayName;   // 타이틀바는 없다(분류 A) — 제목은 아래 아이콘+이름이 맡는다
         MinWidth = 440;
         MaxWidth = 440;
 
@@ -75,14 +75,14 @@ public sealed class AboutDialog : DialogBase
                 finally { update.IsEnabled = true; }
             };
         }
-        // 버튼이 많아 좁은 창(최대 440)에서 넘치지 않게, 왼쪽 버튼들은 줄을 바꿀 수 있게 두고 닫기는 오른쪽에 붙인다.
-        var left = new WrapPanel { Orientation = Orientation.Horizontal };
+        // WINDOW_CHROME.md §5·§7: 보조(글자 단추) 왼쪽 → 주 동작(닫기) 맨 오른쪽, 한 줄. 440 안에 들어가게 글자 단추는 좌우 여백을 줄인다.
+        var left = new StackPanel { Orientation = Orientation.Horizontal };
         foreach (var b in new[] { licenses, repo, update }.OfType<Button>())
         {
-            b.Margin = new Thickness(0, 0, 8, 8);
+            b.Padding = new Thickness(12, 6);
             left.Children.Add(b);
         }
-        close.VerticalAlignment = VerticalAlignment.Top;
+        left.Margin = new Thickness(-12, 0, 0, 0);   // 글자가 본문 왼쪽 줄에 맞게
         DockPanel.SetDock(close, Dock.Right);
         var buttons = new DockPanel { Margin = new Thickness(0, 8, 0, 0), Children = { close, left } };
 
