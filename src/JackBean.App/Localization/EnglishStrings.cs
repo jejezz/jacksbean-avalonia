@@ -200,6 +200,15 @@ public sealed class EnglishStrings : IAppStrings
     public string SettingsTips => "Tips";
     public string SettingsTipsToggle => "Show a tip at startup";
     public string SettingsTipsNote => "Not shown when the app starts automatically at sign-in. Choose Show a Tip in the dock menu any time.";
+    public string SettingsRecent => "Recent";
+    public string SettingsRecentToggle => "Show recent items when you click the bean";
+    public string SettingsRecentNote => "Keeps the last 10 items you opened from the dock on this PC only (not synced). Turning this off clears the list.";
+    public string RecentTitle => "Recent";
+    public string RecentEmpty => "Nothing yet. Files and folders you drop on the bean show up here.";
+    public string RecentClearAll => "Clear all";
+    public string RecentRemove => "Remove from list";
+    public string RecentItemMissing => "Item not found";
+    public string RecentOpenAgain(string app) => $"Open again with {app}";
     public string Tip(TipId tip) => tip switch
     {
         TipId.DropOnBean => "Drag a file or folder onto the bean to open it in the right app.",

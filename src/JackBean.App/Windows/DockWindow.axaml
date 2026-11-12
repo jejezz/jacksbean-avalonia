@@ -15,7 +15,12 @@
     <Border x:Name="Pill" Margin="6" HorizontalAlignment="Right" VerticalAlignment="Center"
             BorderThickness="2" CornerRadius="36" Height="72" MinWidth="72"
             BoxShadow="0 1 6 0 #33000000">
-      <Grid x:Name="PillContent" />
+      <Grid>
+        <!-- 콩을 눌렀을 때 퍼지는 원(물결). 코드가 크기·투명도를 바꾼다. -->
+        <Ellipse x:Name="Ripple" Width="68" Height="68" Opacity="0" IsHitTestVisible="False"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Grid x:Name="PillContent" />
+      </Grid>
     </Border>
   </Grid>
 </Window>

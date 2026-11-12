@@ -17,6 +17,7 @@ using JackBean.Domain.Tips;
 using JackBean.Services;
 using JackBean.Services.DragWatch;
 using JackBean.Services.GitHub;
+using JackBean.Services.Recent;
 using JackBean.Services.Startup;
 using JackBean.Services.Sync;
 using JackBean.Services.Updates;
@@ -39,6 +40,9 @@ public partial class App : Application
     internal static void NotifyPolicyChanged() => PolicyChanged?.Invoke();
 
     internal static ToolRegistry Tools { get; private set; } = null!;
+
+    /// <summary>최근 작업(독 알약에 마우스를 올리면 보이는 목록). 이 PC 전용, 설정과 같은 폴더의 `recent.json`.</summary>
+    internal static RecentStore Recent { get; private set; } = null!;
 
     /// <summary>설정에서 켜야 쓰는 선택 도구(VS Code 프로필)를 꺼 둔 상태라 목록에서 숨길 앱인가.</summary>
     internal static bool IsHiddenApp(string id) => id == VsCodeProfileTool.ToolId && !Settings.Value.VsCodeProfileEnabled;
@@ -99,6 +103,8 @@ public partial class App : Application
         ITokenStore tokens = snapshot ? new MemoryTokenStore() : TokenStores.Create();
         Github = new GitHubSyncService(Settings, tokens, PolicyStore, Path.Combine(PolicyStore.Directory, "sync"));
         Startup = StartupRegistrations.Create(AppIdentity.FileName, AppIdentity.Id, AppIdentity.DisplayName, LaunchCommand.Current().WithAutostart());
+        Recent = new RecentStore(PolicyStore.Directory);
+        Settings.Changed += st => { if (!st.RecentHistory) _ = Recent.ClearAsync(); };   // 끄면 기록을 지운다
         Tools = new ToolRegistry();
         Tools.Register(new ImageViewerTool());
         Tools.Register(new TextEditorTool());

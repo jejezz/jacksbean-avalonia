@@ -200,6 +200,15 @@ public sealed class KoreanStrings : IAppStrings
     public string SettingsTips => "사용 팁";
     public string SettingsTipsToggle => "시작할 때 사용 팁 보이기";
     public string SettingsTipsNote => "로그인할 때 자동으로 시작한 경우에는 보이지 않습니다. 독 메뉴의 [사용 팁 보기]로 언제든 볼 수 있습니다.";
+    public string SettingsRecent => "최근 작업";
+    public string SettingsRecentToggle => "콩을 누르면 최근 작업 보이기";
+    public string SettingsRecentNote => "독에 놓아 연 작업을 최근 10개까지 이 PC 에만 기록합니다(동기화하지 않음). 끄면 기록을 지웁니다.";
+    public string RecentTitle => "최근 작업";
+    public string RecentEmpty => "아직 최근 작업이 없습니다. 콩에 파일이나 폴더를 끌어다 놓으면 여기에 남습니다.";
+    public string RecentClearAll => "모두 지우기";
+    public string RecentRemove => "목록에서 지우기";
+    public string RecentItemMissing => "항목을 찾을 수 없습니다";
+    public string RecentOpenAgain(string app) => $"{app}(으)로 다시 열기";
     public string Tip(TipId tip) => tip switch
     {
         TipId.DropOnBean => "파일이나 폴더를 콩에 끌어다 놓으면 알맞은 앱으로 열립니다.",

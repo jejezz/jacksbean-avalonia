@@ -36,6 +36,15 @@ Flutter 판(`jacksbean-flutter`, 개발 종료)에서 C#/Avalonia(.NET 10)로 �
 - OS 별 파일(`policy.<os>.json`)을 각자 동기화한다(같은 OS 끼리 공유). 합치기 규칙: 한쪽만 바뀌면 그쪽, 양쪽이 다르게 바뀌면 `updated` 가 더 최근인 쪽(같으면 이 PC), 한쪽에서 지운 것은 이쪽이 그 뒤로 안 고쳤으면 따라 지우고 고쳤으면 남긴다, base 가 없으면(처음) 합집합. 합친 뒤 어긋난 것은 편집 때와 같은 규칙으로 고친다(확장자는 한 규칙에만, 드라이브·폴더·파일 규칙은 하나씩, 없는 앱은 규칙에서 뺌). 앱도 `updated` 를 가진다.
 - 시험은 가짜 GitHub 서버(`FakeGitHub`, HttpMessageHandler)로 한다 — 사용자·저장소·토픽·Contents API(sha 잠금)·Device Flow.
 
+## 최근 작업 (콩 누르기)
+콩을 **한 번 누르면**(옮기지 않고 떼면) 0.25초 뒤 독 옆(아래, 넘치면 위 · 콩 쪽 끝에 맞춤)에 최근 작업 목록이 뜬다(`Recent/RecentWindow` — 스낵바처럼 포커스를 가져가지 않는 별도 창). 기다리는 사이 또 누르면 두 번 누르기(홈 창)라 열지 않는다. 처음엔 마우스를 올리면 뜨게 했다가 사용자가 클릭으로 바꿨다(원래 클릭은 아무 일도 안 했다). 바로 여는 것도 해 봤지만 두 번 누를 때 번쩍여서 0.25초를 둔다. 기록은 누르는 순간 미리 읽는다. 클릭으로 판정되면 바로 콩 뒤에서 강조색 원이 퍼지며 사라진다(안드로이드 ripple 처럼, `DockWindow.PlayRipple` — 투명도 0.6·0.65초, 사용자가 고른 값).
+**클릭 판정**: 누르면 `BeginMoveDrag`(독 옮기기)를 시작하는데 Windows 에서는 이것이 떼기 전에 돌아오고 떼는 이벤트도 오지 않는다 — 그래서 30ms 마다 버튼 상태(`NativeMouse.IsPrimaryDown`, `GetAsyncKeyState`)와 독 위치를 보고, 움직였으면 옮기기, 그대로 뗐으면 클릭(0.8초 넘게 누르고 있었으면 클릭 아님). macOS 는 떼야 돌아온다고 보고 위치만 비교, Linux 는 `PointerReleased`(둘 다 확인 못 함). 창(TopLevel) 자체에는 PointerEntered/Exited 가 오지 않아서 창을 채운 `Root`·목록의 바깥 테두리에 건다.
+한 줄은 `아이콘 · 이름(길면 가운데 줄임, 여러 개면 "파일 3개") → 앱 ID`, **누르면 같은 앱으로 다시 열고**(`RecentActions.ReopenAsync`, 맨 위로 올라간다), 커서를 올린 줄에만 X(목록에서 지우기), 맨 아래 [모두 지우기]. 항목이 없거나 앱이 정책에 없으면 흐리게 + 툴팁. 기록이 없으면 "아직 없습니다" 안내.
+**독과 목록을 합친 곳이 한 영역**이다: 목록 위에 있는 동안은 닫히지 않고, 둘 다 벗어나고 0.3초 뒤에 닫힌다. 다시 누르기·드래그 시작·드롭·앱 고르기·메뉴에서 닫히고, 드롭 결과 표시 중·알림이 떠 있을 때는 열지 않는다. 포커스가 없어서 Esc 로는 닫지 않는다.
+기록(`Domain/Recent/RecentHistory`, 최근 10개, 같은 앱·같은 경로는 한 줄로)은 드롭과 앱 고르기에서 실제로 열린 것(`Opened`)만, 앱마다 한 줄. 저장은 **이 PC 전용** `recent.json`(`Services/Recent/RecentStore`, 경로·종류·앱 ID·시각만, 동기화 안 함, 깨지면 `.broken`).
+설정 "동작" 구역의 `recent_history`(기본 켜짐) — 끄면 기록을 지우고 남기지 않는다.
+**설정 JSON 주의**: 소스 생성 JSON 은 `init` 속성을 객체 초기화식으로 채우며 **파일에 없는 키에 0·false 를 넣는다** — 기본값이 0·false 가 아닌 설정(`text_scale` `startup_tips` `recent_history`)은 `set` 으로 둔다(`AppSettings`, 시험 `키가_없는_옛_파일은…`). 새 설정을 더할 때 같은 것을 지킨다.
+
 ## 사용 팁
 시작하고 1.5초 뒤 독 옆(알림 자리)에 팁 하나를 말풍선으로 12초 보인다(`Snackbar.Tip`, `NotificationKind.Tip` — 포커스를 가져가지 않고 마우스를 올리면 멈춘다).
 어느 팁인지는 `Domain/Tips/StartupTips`: 독에 한 번도 놓아 보지 않았으면(`dock_dropped_once`) "콩에 끌어다 놓으세요"만 — 첫 드롭에서 저절로 그친다 — 그 뒤에는 실행마다 하나씩 돌아가며(`startup_tips_next`: 앱 고르기 · 항상 이렇게 열기 · 홈 창 · 독 숨기기 · 동기화).
@@ -100,7 +109,7 @@ Windows 설치 프로그램(`installer/windows/app.iss`)은 트레이에 숨어 
 - **문구**: `IAppStrings`(인터페이스 → `KoreanStrings` → `EnglishStrings` 순으로 모두 추가, 빠뜨리면 컴파일 오류). 코드는 `Strings.Current`, XAML은 `{DynamicResource Str.*}`(새 문구를 XAML에서 쓰면 `Strings.PublishResources`에 더한다).
 - **글꼴(fonts.md)**: SeoulNamsan 400/700/800 번들 + 설정에서 시스템 글꼴 선택. 파일 이름·경로는 `user` 클래스(시스템 글꼴), 고정폭은 `mono`.
 - **아이콘(icons.md)**: Phosphor Duotone 하나(`Icons/DuoIcon`). 쓸 아이콘은 `scripts/gen-phosphor-icons.py`의 `ICONS`에 더하고 다시 돌린다(`PhosphorIcons.g.cs`는 직접 고치지 않는다). 단, `+` `x` `✓` 같은 단순 기호는 18px 에서 채움 사각형이 윤곽을 흐리므로 `OUTLINE_ONLY` 에 넣어 **윤곽 층만** 쓴다(규약 "Duotone 하나로 통일"의 이 앱 한정 예외 — 같은 duotone 파일의 윤곽 층이라 선 모양은 같다).
-- **설정**: 저장 키 `theme_mode accent_palette text_scale app_locale ui_font_family window_placement dock_position global_hotkey sync_repo sync_login sync_last_at startup_tips startup_tips_next dock_dropped_once`. `SettingsController.Update(...)`로 바꾸면 바로 적용·(모아서)저장되고 열린 모든 창이 따라온다.
+- **설정**: 저장 키 `theme_mode accent_palette text_scale app_locale ui_font_family window_placement dock_position global_hotkey sync_repo sync_login sync_last_at startup_tips startup_tips_next dock_dropped_once recent_history`. `SettingsController.Update(...)`로 바꾸면 바로 적용·(모아서)저장되고 열린 모든 창이 따라온다.
 - **창 위치**: 홈 창은 `PlacementMath`로 기억·복원(window-placement.md), 새 독립 창은 `WindowPlacementHelper.OpenNear`.
 - **창 제목**: 홈 창(앱 창)은 `Jack’s Bean`, 그 밖의 보조 창·대화상자는 항상 `창 이름 — Jack’s Bean`(`WindowTitle.Of`). 새 창을 만들면 이것으로 제목을 정한다.
 - **단축키**: 설정 ⌘,/Ctrl+, · 정보 F1 · 새로 고침 F5/⌘R · 창 닫기 ⌘W · 대화상자 Esc. macOS 메뉴 막대에 정보·설정·종료.
@@ -114,7 +123,7 @@ dotnet run --project src/JackBean.App            # --home --settings --about 로
 ./scripts/publish-aot.sh                          # NativeAOT 게시 → publish/aot/JacksBean (의존성을 더할 때마다 확인)
 dotnet src/JackBean.App/bin/Debug/net10.0/JacksBean.dll --snapshot <폴더>   # 모드·색·크기·언어를 바꿔 가며 창을 PNG 로 저장(설정·정책은 매번 새 임시 폴더 — 실제 설정을 건드리지 않는다)
 ```
-테스트 334개(Domain 117 · Services 207 · Data 10). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
+테스트 611개(Domain 228 · Services 371 · Data 12). 앱이 실행 중이면 실행 파일이 잠기므로 `dotnet test tests/<프로젝트>`로 개별 실행.
 
 ## VS Code 프로필 도구 (`vscode-profile`, Windows 전용·선택)
 Code Profiler(Flutter)를 옮긴 내장 도구. 프로젝트 폴더를 분석해 VS Code 프로필·확장·`.vscode/settings.json` 을 추천하고, 확인을 받아 적용한 뒤 `code --profile` 로 연다.
@@ -128,7 +137,7 @@ Code Profiler(Flutter)를 옮긴 내장 도구. 프로젝트 폴더를 분석해
 
 ## 확인 상태
 - 설정·정보·홈 창은 `--snapshot` PNG 로 라이트/다크/고대비/색 구성/영어/글자 크기를 확인했고(열린 창에 즉시 반영), NativeAOT 게시본이 뜨고 정책 파일을 만드는 것까지 확인했다.
-- **못 본 것**: 실제 파일 드롭·물어보기 목록, 독 끌기·위치 기억, 여러 모니터, Windows/Linux, 업데이트 흐름(서버에 이 앱이 아직 없다), 설정 창 좁은 배치(<700).
+- **못 본 것**: 실제 파일 드롭·물어보기 목록, 최근 작업 목록의 macOS·Linux 클릭 판정, 독 끌기·위치 기억, 여러 모니터, Windows/Linux, 업데이트 흐름(서버에 이 앱이 아직 없다), 설정 창 좁은 배치(<700).
 - **VS Code 프로필 도구에서 못 본 것**: 실제 VS Code 로 처음부터 끝까지(프로필 생성 → 확장 설치 → 열기), 새 프로필 창이 먼저 열린 뒤 설치한 확장이 **재시작 없이 활성화되는지**, 60초 폴링이 느린 PC 에서 충분한지, 독에 폴더를 놓는 경로(규칙 연결), 빠른 경로가 프로필이 사라진 경우 설정 창으로 이어지는 것(시험은 서비스 단위로만 했다).
 
 ## 아직 없는 것
