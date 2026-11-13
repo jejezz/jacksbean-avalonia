@@ -59,6 +59,8 @@ public interface IAppStrings
     string UpdateQuitAndInstall { get; }
     string UpdateQuitApp(string appName);
     string UpdateReleaseNotes { get; }
+    string UpdateMoreChanges(int count);
+    string UpdateViewReleaseNotes { get; }
     string UpdateSkipVersion { get; }
     string UpdateUnavailableBody(string latest);
     string UpdateUnavailableTitle { get; }

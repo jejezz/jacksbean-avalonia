@@ -60,6 +60,8 @@ public sealed class EnglishStrings : IAppStrings
     public string UpdateQuitAndInstall => "Quit and install";
     public string UpdateQuitApp(string appName) => $"Quit {appName}";
     public string UpdateReleaseNotes => "What's new";
+    public string UpdateMoreChanges(int count) => count == 1 ? "and 1 more" : $"and {count} more";
+    public string UpdateViewReleaseNotes => "Release notes";
     public string UpdateSkipVersion => "Skip this version";
     public string UpdateUnavailableBody(string latest) => $"Version {latest} is available, but the app can't install it automatically. Please download it from the release page.";
     public string UpdateUnavailableTitle => "Install it manually";
