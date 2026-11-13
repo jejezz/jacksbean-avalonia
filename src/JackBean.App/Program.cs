@@ -22,5 +22,7 @@ internal static class Program
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args, Avalonia.Controls.ShutdownMode.OnExplicitShutdown);
     }
 
-    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace();
+    // macOS 앱 메뉴는 Avalonia 기본(영어 고정 "About … / Hide … / Quit …") 대신 앱 언어로 직접 만든다 (MacAppMenu).
+    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>().UsePlatformDetect()
+        .With(new MacOSPlatformOptions { DisableDefaultApplicationMenuItems = true }).LogToTrace();
 }
