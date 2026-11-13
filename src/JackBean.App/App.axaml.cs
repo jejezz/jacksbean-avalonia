@@ -181,7 +181,7 @@ public partial class App : Application
                 _ = Tools.OpenAsync(ToolRegistry.Scheme + desktop.Args[tool + 1], desktop.Args.Skip(tool + 2).TakeWhile(x => !x.StartsWith("--")).ToList());
             var snap = Array.IndexOf(desktop.Args ?? [], "--snapshot");
             if (snap >= 0 && desktop.Args!.Length > snap + 1) _ = Snapshot.RunAsync(desktop.Args[snap + 1]);
-            if (OperatingSystem.IsMacOS()) BuildMacMenu(dock);
+            MacAppMenu.Install(this, dock, Quit); // macOS 메뉴 막대의 앱 메뉴 (ui-ux.md §7) — 앱 언어로, 언어를 바꾸면 다시 만든다
 
             // 사용 팁: 독이 자리를 잡은 뒤 옆에 말풍선으로. 확인용 실행(--snapshot·--tool)과 로그인 때 자동 시작에는 보이지 않는다.
             var args = desktop.Args ?? [];
@@ -270,18 +270,6 @@ public partial class App : Application
         if (Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop) return;
         if (desktop.Windows.OfType<HomeWindow>().FirstOrDefault() is { } open) { open.Activate(); return; }
         new HomeWindow().Show();
-    }
-
-    /// <summary>macOS 메뉴 막대(ui-ux.md §7): 앱 메뉴에 정보, 설정(⌘,), 종료.</summary>
-    void BuildMacMenu(Window dock)
-    {
-        var about = new NativeMenuItem($"{Strings.Current.AboutTooltip} {AppIdentity.DisplayName}");
-        about.Click += (_, _) => Dialogs.AboutDialog.Open(dock);
-        var settings = new NativeMenuItem(Strings.Current.SettingsTooltip + "…") { Gesture = new Avalonia.Input.KeyGesture(Avalonia.Input.Key.OemComma, Avalonia.Input.KeyModifiers.Meta) };
-        settings.Click += (_, _) => SettingsWindow.Open(dock);
-        var quit = new NativeMenuItem(Strings.Current.DockMenuQuit) { Gesture = new Avalonia.Input.KeyGesture(Avalonia.Input.Key.Q, Avalonia.Input.KeyModifiers.Meta) };
-        quit.Click += (_, _) => Quit();
-        NativeMenu.SetMenu(this, new NativeMenu { about, settings, new NativeMenuItemSeparator(), quit });
     }
 
     /// <summary>앱을 끝낸다: 열려 있는 모든 창(독, 홈, 도구)이 닫힌다.</summary>

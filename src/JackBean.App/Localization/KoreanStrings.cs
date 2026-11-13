@@ -74,6 +74,12 @@ public sealed class KoreanStrings : IAppStrings
     public string CommonConfirm => "확인";
     public string SettingsTooltip => "설정";
     public string AboutTooltip => "정보";
+    public string MacMenuAbout(string app) => $"{app}에 관하여";
+    public string MacMenuSettings => "설정…";
+    public string MacMenuHide(string app) => $"{app} 가리기";
+    public string MacMenuHideOthers => "기타 가리기";
+    public string MacMenuShowAll => "모두 보기";
+    public string MacMenuQuit(string app) => $"{app} 종료";
     public string AboutTagline => "콩 하나를 떨어뜨리면 알맞은 앱으로 자랍니다";
     public string AboutDescription => "화면 가장자리에 떠 있는 독에 드라이브, 폴더, 파일을 떨어뜨리면 규칙에 따라 알맞은 앱으로 열어 줍니다. 규칙은 직접 만들고 고칠 수 있습니다.";
     public string DockDropHint => "여기에 떨어뜨리세요";

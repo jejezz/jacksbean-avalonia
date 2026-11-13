@@ -74,6 +74,12 @@ public sealed class EnglishStrings : IAppStrings
     public string CommonConfirm => "OK";
     public string SettingsTooltip => "Settings";
     public string AboutTooltip => "About";
+    public string MacMenuAbout(string app) => $"About {app}";
+    public string MacMenuSettings => "Settings…";
+    public string MacMenuHide(string app) => $"Hide {app}";
+    public string MacMenuHideOthers => "Hide Others";
+    public string MacMenuShowAll => "Show All";
+    public string MacMenuQuit(string app) => $"Quit {app}";
     public string AboutTagline => "Drop a bean, grow a beanstalk";
     public string AboutDescription => "Drop a drive, folder or file onto the dock that floats at the edge of your screen and it opens in the right app, following rules you can create and edit.";
     public string DockDropHint => "Drop it here";
