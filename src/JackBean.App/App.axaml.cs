@@ -85,7 +85,13 @@ public partial class App : Application
     /// <summary>화면에 이미 적용한 설정. 다른 설정(독 위치 등)이 바뀔 때마다 외형을 다시 적용하지 않으려고 둔다.</summary>
     AppSettings? _applied;
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        // macOS 메뉴 막대의 앱 메뉴 제목(굵은 글씨)과 "… 숨기기"·"… 종료" 항목은 Application.Name을 쓴다.
+        // 정하지 않으면 Avalonia 기본값 "Avalonia Application"이 보인다.
+        Name = AppIdentity.DisplayName;
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {
