@@ -118,12 +118,12 @@ sealed class UpdateService
             case UpdateCheckResult.Available available:
                 Available = true;
                 var info = available.Info;
-                var notes = info.Notes.Trim();
-                var body = s.UpdateAvailableBody(AppIdentity.DisplayName, info.CurrentVersion, info.LatestVersion);
-                if (notes.Length > 0) body += $"\n\n{s.UpdateReleaseNotes}\n{(notes.Length > 800 ? notes[..800] + "…" : notes)}";
+                var body = s.UpdateAvailableBody(AppIdentity.DisplayName, info.CurrentVersion, info.LatestVersion) + ChangesText(info.Notes);
+                var notesUrl = ReleaseNotesUrl(info);
                 // 나중에 = 1, 건너뛰기 = 0, 지금 = 2. 창을 그냥 닫으면 "나중에".
                 var choice = await MessageDialog.ShowAsync(owner, s.UpdateAvailableTitle, body,
-                    [s.UpdateSkipVersion, s.UpdateLater, s.UpdateNow], 2, 1);
+                    [s.UpdateSkipVersion, s.UpdateLater, s.UpdateNow], 2, 1,
+                    notesUrl is null ? null : (s.UpdateViewReleaseNotes, () => OpenUrl(notesUrl)));
                 if (choice == 0) _policy.Skip(info.LatestVersion);
                 else if (choice == 2)
                 {
@@ -133,6 +133,21 @@ sealed class UpdateService
                 break;
         }
     }
+
+    /// <summary>릴리스 노트 전문 대신 사용자에게 보이는 변경 항목만 짧게 보인다. 전문은 [릴리스 노트 보기].</summary>
+    static string ChangesText(string notes)
+    {
+        var summary = ReleaseNotesSummary.From(notes);
+        if (summary.Items.Count == 0) return "";
+        var s = Strings.Current;
+        var text = $"\n\n{s.UpdateReleaseNotes}\n" + string.Join("\n", summary.Items.Select(item => $" • {item}"));
+        if (summary.More > 0) text += $"\n   {s.UpdateMoreChanges(summary.More)}";
+        return text;
+    }
+
+    /// <summary>서버가 준 릴리스 주소, 없으면 저장소의 그 태그 페이지.</summary>
+    static Uri? ReleaseNotesUrl(UpdateInfo info) =>
+        info.ReleaseUrl ?? (info.Tag.Length > 0 ? new Uri($"{AppIdentity.RepositoryUrl}/releases/tag/{Uri.EscapeDataString(info.Tag)}") : null);
 
     /// <summary>새 버전은 있지만 앱이 자동 설치할 수 없는 경우(체크섬 없음, 이 OS용 파일 없음).</summary>
     async Task ShowUnavailableAsync(Window owner, UpdateCheckResult.Unavailable unavailable)

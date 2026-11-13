@@ -14,10 +14,12 @@ public sealed class MessageDialog : DialogBase
 {
     readonly TaskCompletionSource<int> _result = new();
 
+    /// <param name="side">단추 줄 왼쪽 끝의 글자 단추 (예: 릴리스 노트 보기). 눌러도 창은 닫히지 않는다.</param>
     /// <param name="buttons">왼쪽에서 오른쪽 순서. 기본 버튼은 주색이고 처음에 초점을 받는다.</param>
-    public static Task<int> ShowAsync(Window owner, string title, string message, string[] buttons, int defaultIndex, int cancelIndex)
+    public static Task<int> ShowAsync(Window owner, string title, string message, string[] buttons, int defaultIndex, int cancelIndex,
+        (string Label, Action Run)? side = null)
     {
-        var dialog = new MessageDialog(title, message, buttons, defaultIndex, cancelIndex);
+        var dialog = new MessageDialog(title, message, buttons, defaultIndex, cancelIndex, side);
         _ = dialog.ShowDialog(owner);
         return dialog._result.Task;
     }
@@ -28,7 +30,7 @@ public sealed class MessageDialog : DialogBase
 
     public event Action<int>? Chosen;
 
-    MessageDialog(string title, string message, string[] buttons, int defaultIndex, int cancelIndex)
+    MessageDialog(string title, string message, string[] buttons, int defaultIndex, int cancelIndex, (string Label, Action Run)? side = null)
     {
         Title = WindowTitle.Of(title);
         MinWidth = 440;
@@ -38,7 +40,7 @@ public sealed class MessageDialog : DialogBase
         heading.Bind(TextBlock.FontSizeProperty, this.GetResourceObservable("FsTitle"));
         var body = new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
 
-        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8, Margin = new Thickness(0, 12, 0, 0) };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
         Button? focus = null;
         for (var i = 0; i < buttons.Length; i++)
         {
@@ -54,7 +56,17 @@ public sealed class MessageDialog : DialogBase
             row.Children.Add(button);
         }
 
-        Content = new StackPanel { Margin = new Thickness(24), Spacing = 8, Children = { heading, body, row } };
+        var footer = new DockPanel { Margin = new Thickness(0, 12, 0, 0) };
+        if (side is { } extra)
+        {
+            var sideButton = new Button { Content = extra.Label, Margin = new Thickness(0, 0, 16, 0) };
+            sideButton.Click += (_, _) => extra.Run();
+            DockPanel.SetDock(sideButton, Dock.Left);
+            footer.Children.Add(sideButton);
+        }
+        footer.Children.Add(row);
+
+        Content = new StackPanel { Margin = new Thickness(24), Spacing = 8, Children = { heading, body, footer } };
         Dismissed += () => _result.TrySetResult(cancelIndex);
         KeyDown += (_, e) =>
         {

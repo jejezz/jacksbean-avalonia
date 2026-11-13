@@ -60,6 +60,8 @@ public sealed class KoreanStrings : IAppStrings
     public string UpdateQuitAndInstall => "종료하고 설치";
     public string UpdateQuitApp(string appName) => $"{appName} 종료";
     public string UpdateReleaseNotes => "변경 내용";
+    public string UpdateMoreChanges(int count) => $"외 {count}건";
+    public string UpdateViewReleaseNotes => "릴리스 노트 보기";
     public string UpdateSkipVersion => "이 버전 건너뛰기";
     public string UpdateUnavailableBody(string latest) => $"{latest} 버전이 있지만 앱에서 자동으로 설치할 수 없습니다. 릴리스 페이지에서 받아 주세요.";
     public string UpdateUnavailableTitle => "직접 설치해 주세요";
