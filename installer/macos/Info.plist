@@ -5,6 +5,12 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<!-- 앱이 지원하는 언어. 없으면 macOS가 앱을 영어로 보고 시스템이 그리는 부분(파일 고르기 창, 글 상자 오른쪽 메뉴 등)을 영어로 보인다. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>ko</string>
+		<string>en</string>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>@FILE_NAME@</string>
 	<key>CFBundleIconFile</key>
