@@ -43,7 +43,7 @@
 
 | OS | 파일 | 참고 |
 |---|---|---|
-| Windows 10/11 (x64) | `JacksBean-<version>-windows-x64-setup.exe` 또는 `…-windows-x64.zip` | 아직 코드 서명이 없어서 SmartScreen이 “Windows의 PC 보호” 창을 띄웁니다. **추가 정보 → 실행**을 누르세요. |
+| Windows 10/11 (x64) | `JacksBean-<version>-windows-x64-setup.exe` | 아직 코드 서명이 없어서 SmartScreen이 “Windows의 PC 보호” 창을 띄웁니다. **추가 정보 → 실행**을 누르세요. |
 | macOS (Apple Silicon, 11.0 이상) | `JacksBean-<version>-macos-arm64.dmg` | 아직 공증 전이라 **우클릭 → 열기**로 한 번 여시거나 `xattr -dr com.apple.quarantine "/Applications/Jack’s Bean.app"` 을 실행하세요. |
 | Linux (x64) | `JacksBean-<version>-linux-x64.tar.gz` | 압축을 풀고 `./install.sh`를 실행하세요(`--remove`로 제거). X11/XWayland에서 실행되고, 트레이 아이콘은 StatusNotifier를 지원하는 데스크톱에서 보이며 전역 단축키는 없습니다. |
 

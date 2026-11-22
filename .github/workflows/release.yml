@@ -6,7 +6,7 @@ name: Release
 # Push a `vX.Y.Z` (or `vX.Y.Z-rc.N`) tag to:
 #   1. check         — the tag must equal AppVersion in Directory.Build.props
 #   2. build-*       — NativeAOT must be built on each target OS, so each OS has its own job:
-#                        build-windows  unit tests, publish, Inno Setup installer + portable zip
+#                        build-windows  unit tests, publish, Inno Setup installer
 #                        build-linux    publish, tarball with install.sh (x64)
 #                        build-macos    publish, .app + .dmg (Apple Silicon / arm64)
 #   3. release       — only once every build succeeds, one GitHub Release with every asset plus SHA256SUMS.txt.
@@ -132,18 +132,10 @@ jobs:
             "/DMyAppExeName=$FILE_NAME.exe" \
             installer/windows/app.iss
 
-      - name: Portable zip
-        shell: pwsh
-        run: |
-          $files = Get-ChildItem publish/aot -File | Where-Object { $_.Extension -ne '.pdb' }
-          Compress-Archive -Path $files.FullName -DestinationPath "dist/$env:FILE_NAME-$env:VERSION-windows-x64.zip"
-
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: |
-            dist/*-windows-x64-setup.exe
-            dist/*-windows-x64.zip
+          path: dist/*-windows-x64-setup.exe
           if-no-files-found: error
 
   build-linux:
