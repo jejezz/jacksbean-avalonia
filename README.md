@@ -41,7 +41,7 @@ Download the file for your OS from the [latest release](https://github.com/jejez
 
 | OS | File | Notes |
 |---|---|---|
-| Windows 10/11 (x64) | `JacksBean-<version>-windows-x64-setup.exe` or `…-windows-x64.zip` | Not code-signed yet: SmartScreen shows “Windows protected your PC” — choose **More info → Run anyway**. |
+| Windows 10/11 (x64) | `JacksBean-<version>-windows-x64-setup.exe` | Not code-signed yet: SmartScreen shows “Windows protected your PC” — choose **More info → Run anyway**. |
 | macOS (Apple Silicon, 11.0+) | `JacksBean-<version>-macos-arm64.dmg` | Not notarized yet: **right-click → Open** once, or `xattr -dr com.apple.quarantine "/Applications/Jack’s Bean.app"`. |
 | Linux (x64) | `JacksBean-<version>-linux-x64.tar.gz` | Unpack and run `./install.sh` (`--remove` uninstalls). X11/XWayland; the tray icon needs StatusNotifier support; no global shortcut. |
 
